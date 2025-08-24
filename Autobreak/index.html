@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Magical Orb Weaver — Aligned Viewport, Stable Levels, Meteors</title>
+  <title>Magical Orb Weaver — Stable Levels + Interstitial + Streamlined UI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -61,13 +61,22 @@
     /* Boss HP bar */
     .hp-wrap { height: 10px; background: rgba(2,6,23,.6); border-radius: 9999px; overflow: hidden; border: 1px solid rgba(148,163,184,.25); }
     .hp-bar  { height: 100%; background: linear-gradient(90deg, #f43f5e, #fb7185); }
+
+    /* Interstitial overlay */
+    .overlay {
+      position: fixed; inset: 0;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(9, 9, 18, 0.55); backdrop-filter: blur(6px);
+      z-index: 50;
+    }
+    .overlay.show { display: flex; }
   </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
   <div class="w-full max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold text-center mb-4">
       <span class="bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 via-indigo-400 to-cyan-300">
-        Magical Orbs Weaver
+        Magical Orb Weaver
       </span>
     </h1>
 
@@ -100,9 +109,34 @@
       <canvas id="gameCanvas"></canvas>
     </div>
 
+    <!-- Interstitial overlay -->
+    <div id="overlay" class="overlay">
+      <div class="bg-gray-800/90 border border-gray-700 rounded-2xl p-6 shadow-2xl w-[min(90vw,520px)]">
+        <div class="text-center space-y-2 mb-4">
+          <p class="text-sm text-indigo-300" id="overlaySubtitle">Level Complete</p>
+          <h2 class="text-2xl font-bold" id="overlayTitle">Level 1 Cleared!</h2>
+        </div>
+        <div class="grid grid-cols-3 gap-4 text-center mb-5">
+          <div><p class="text-xs text-gray-400">Time</p><p id="ovTime" class="font-semibold">00:00</p></div>
+          <div><p class="text-xs text-gray-400">Score</p><p id="ovScore" class="font-semibold">0</p></div>
+          <div><p class="text-xs text-gray-400">Next</p><p id="ovNext" class="font-semibold">2</p></div>
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="text-xs text-gray-300 flex items-center gap-2">
+            <input type="checkbox" id="autoNext" class="accent-indigo-400" checked>
+            Auto-continue (2s)
+          </label>
+          <div class="flex gap-2">
+            <button id="btnRestart" class="px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">Restart</button>
+            <button id="btnNext" class="px-3 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm font-semibold">Next Level →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Controls -->
     <div class="grid grid-cols-1 mt-5 bg-gray-800/60 p-6 rounded-xl shadow-lg gap-6">
-      <div class="grid md:grid-cols-2 gap-6">
+      <div class="grid md:grid-cols-3 gap-6 items-end">
         <div>
           <label for="speed" class="text-sm font-medium text-gray-300">Game Speed:
             <span id="speedValue" class="text-sm font-bold text-white">8</span>
@@ -110,15 +144,6 @@
           <input id="speed" type="range" min="1" max="20" value="8" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
         </div>
 
-        <div>
-          <label for="offset" class="text-sm font-medium text-gray-300">Boundary Offset (°):
-            <span id="offsetValue" class="text-sm font-bold text-white">0</span>
-          </label>
-          <input id="offset" type="range" min="-45" max="45" value="0" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-        </div>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-6 items-start">
         <div>
           <label class="text-sm font-medium text-gray-300">Viewport Shape:
             <span id="shapeLabel" class="text-sm font-bold text-white">Circle</span>
@@ -131,40 +156,55 @@
           </select>
         </div>
 
-        <div id="ellipsePanel" class="hidden">
-          <label for="ellipseRatio" class="text-sm font-medium text-gray-300">Ellipse Vertical Ratio:
-            <span id="ellipseRatioValue" class="text-sm font-bold text-white">0.80</span>
-          </label>
-          <input id="ellipseRatio" type="range" min="0.50" max="1.00" step="0.01" value="0.80" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-          <p class="text-xs text-gray-400 mt-1">Ry = ratio × R, Rx = R</p>
-        </div>
-
-        <div>
-          <label class="text-sm font-medium text-gray-300">Polygon Rotation (°):
-            <span id="polyRotLabel" class="text-sm font-bold text-white">0</span>
-          </label>
-          <input id="polyRot" type="range" min="0" max="359" value="0" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-          <p class="text-xs text-gray-400 mt-1">Affects hexagon & square (viewport + physics)</p>
+        <div class="flex gap-2">
+          <button id="btnPause" class="flex-1 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">⏸ Pause</button>
+          <button id="btnReset" class="flex-1 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm">↺ Reset</button>
         </div>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="space-y-1">
-          <label class="text-sm font-medium text-gray-300 flex items-center gap-2">
-            <input id="randToggle" type="checkbox" class="accent-indigo-400"> Random Bounce Offset
-          </label>
-          <label class="text-xs text-gray-400">±<span id="randAmtLabel">10</span>°</label>
-          <input id="randAmt" type="range" min="0" max="45" value="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-          <label class="text-xs text-gray-400 flex items-center gap-2 mt-1">
-            <input id="randOnEntity" type="checkbox" class="accent-indigo-400"> Apply to entity/boss hits too
-          </label>
-        </div>
+      <details class="mt-2">
+        <summary class="cursor-pointer text-sm text-gray-300">Advanced</summary>
+        <div class="grid md:grid-cols-3 gap-6 mt-4">
+          <div>
+            <label for="offset" class="text-sm font-medium text-gray-300">Boundary Offset (°):
+              <span id="offsetValue" class="text-sm font-bold text-white">0</span>
+            </label>
+            <input id="offset" type="range" min="-45" max="45" value="0" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+          </div>
 
-        <div class="flex items-end justify-center gap-2">
-          <span class="chip">Space = Pause/Resume</span>
-          <span class="chip">R = Reset</span>
-          <span class="chip">Boss every 10 levels</span>
+          <div id="ellipsePanel" class="hidden">
+            <label for="ellipseRatio" class="text-sm font-medium text-gray-300">Ellipse Vertical Ratio:
+              <span id="ellipseRatioValue" class="text-sm font-bold text-white">0.80</span>
+            </label>
+            <input id="ellipseRatio" type="range" min="0.50" max="1.00" step="0.01" value="0.80" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            <p class="text-xs text-gray-400 mt-1">Ry = ratio × R, Rx = R</p>
+          </div>
+
+          <div>
+            <label class="text-sm font-medium text-gray-300">Polygon Rotation (°):
+              <span id="polyRotLabel" class="text-sm font-bold text-white">0</span>
+            </label>
+            <input id="polyRot" type="range" min="0" max="359" value="0" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            <p class="text-xs text-gray-400 mt-1">Affects hexagon & square (viewport + physics)</p>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-sm font-medium text-gray-300 flex items-center gap-2">
+              <input id="randToggle" type="checkbox" class="accent-indigo-400"> Random Bounce Offset
+            </label>
+            <label class="text-xs text-gray-400">±<span id="randAmtLabel">10</span>°</label>
+            <input id="randAmt" type="range" min="0" max="45" value="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            <label class="text-xs text-gray-400 flex items-center gap-2 mt-1">
+              <input id="randOnEntity" type="checkbox" class="accent-indigo-400"> Apply to entity/boss hits too
+            </label>
+          </div>
         </div>
+      </details>
+
+      <div class="flex items-center justify-center gap-2 mt-1">
+        <span class="chip">Space = Pause/Resume</span>
+        <span class="chip">R = Reset</span>
+        <span class="chip">Boss every 10 levels</span>
       </div>
     </div>
   </div>
@@ -197,6 +237,19 @@
     const bossHpBar = document.getElementById('bossHpBar');
     const bossHpLabel = document.getElementById('bossHpLabel');
 
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlaySubtitle = document.getElementById('overlaySubtitle');
+    const ovTime = document.getElementById('ovTime');
+    const ovScore = document.getElementById('ovScore');
+    const ovNext = document.getElementById('ovNext');
+    const btnNext = document.getElementById('btnNext');
+    const btnRestart = document.getElementById('btnRestart');
+    const autoNext = document.getElementById('autoNext');
+
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+
     // ------- Runtime/state -------
     let shape = 'circle';              // 'circle' | 'ellipse' | 'hexagon' | 'square'
     let ellipseRatio = 0.80;           // Ry / R for ellipse
@@ -204,8 +257,13 @@
     let center, logicalSize, radius;   // boundary size
     let dpr = Math.max(1, window.devicePixelRatio || 1);
 
-    let animationFrameId, lastTs = 0, paused = false;
-    let startTime, timerInterval, levelInterval;
+    let animationFrameId, lastTs = 0;
+    let startTime, timerInterval;
+
+    // gameState: 'playing' | 'paused' | 'interstitial'
+    let gameState = 'playing';
+    let interstitialTimer = null;
+    let nextLevelNumber = null;
 
     // scanning highlighter t in [0..1]
     let scanT = 0;
@@ -220,6 +278,7 @@
 
     // level-clear guard
     let prevRemainingEntities = 0;
+    let levelClearPending = false;
 
     // boss
     let boss = null;                   // {x,y,r, hp, hpMax, angle, speed}
@@ -261,7 +320,6 @@
 
     // ------- Viewport mask alignment -------
     function polygonClipPath(n, rotRad){
-      // percent-space polygon centered at 50%/50%, radius ~48%
       const R = 48; // %
       const pts = [];
       for (let i=0;i<n;i++){
@@ -282,7 +340,7 @@
         const rot = polyRotation - Math.PI/6; // flat-top baseline
         portalWrap.style.clipPath = polygonClipPath(6, rot);
       } else if (shape === 'square'){
-        const rot = polyRotation + Math.PI/4; // 45° baseline for axis-aligned
+        const rot = polyRotation + Math.PI/4; // 45° baseline
         portalWrap.style.clipPath = polygonClipPath(4, rot);
       }
     }
@@ -314,17 +372,20 @@
 
     // ------- Init/reset -------
     function init(){
+      // fully reset run state
       score = 0; currentLevel = 1; particles = []; powerups = []; activeEffects = []; boss = null;
       balls = []; spawnBall();
+      levelClearPending = false;
+      gameState = 'playing';
+      clearTimeout(interstitialTimer); interstitialTimer = null; overlay.classList.remove('show');
 
       loadLevel(currentLevel);
 
       startTime = Date.now();
-      clearInterval(timerInterval); clearInterval(levelInterval);
+      clearInterval(timerInterval);
       timerInterval = setInterval(updateTimer, 1000);
-      levelInterval = setInterval(levelUp, 20000);
 
-      paused = false; lastTs = performance.now();
+      lastTs = performance.now();
       cancelAnimationFrame(animationFrameId);
       animationFrameId = requestAnimationFrame(gameLoop);
 
@@ -369,7 +430,7 @@
           hp: hpBase, hpMax: hpBase,
           angle: Math.random()*TAU, speed: 0.4 + (level/60)
         };
-        prevRemainingEntities = 1; // guard
+        prevRemainingEntities = 1; // guard says "something remains"
       } else {
         boss = null;
         const rows = Math.min(15, 3 + Math.floor(level/5));
@@ -396,7 +457,6 @@
           }
         }
         if (spawned === 0){
-          // ensure at least one target
           entities.push({
             x:center.x, y:center.y - radius*0.35, type: 0,
             size: Math.max(6, radius/28), color: 'hsl(210, 80%, 70%)',
@@ -409,9 +469,42 @@
       updateUI(); updateBossUI();
     }
 
-    function levelUp(){
-      currentLevel++;
+    function onLevelCleared(reason){
+      if (levelClearPending) return;
+      levelClearPending = true;
+      gameState = 'interstitial';
+
+      nextLevelNumber = currentLevel + 1;
+
+      // Show overlay card
+      overlayTitle.textContent = (reason === 'boss') ? `Guardian Defeated!` : `Level ${currentLevel} Cleared!`;
+      overlaySubtitle.textContent = (reason === 'boss') ? `Boss Level` : `Nice!`;
+      ovTime.textContent = timerEl.textContent;
+      ovScore.textContent = String(score);
+      ovNext.textContent = String(nextLevelNumber);
+      overlay.classList.add('show');
+
+      // optional auto-continue
+      clearTimeout(interstitialTimer);
+      if (autoNext.checked){
+        interstitialTimer = setTimeout(()=> proceedNextLevel(), 2000);
+      }
+    }
+
+    function proceedNextLevel(){
+      if (!levelClearPending) return;
+      overlay.classList.remove('show');
+      clearTimeout(interstitialTimer); interstitialTimer = null;
+      levelClearPending = false;
+
+      // (optional) clear transient fx/powerups
+      particles = [];
+      powerups = [];
+
+      currentLevel = nextLevelNumber;
       loadLevel(currentLevel);
+      gameState = 'playing';
+      updateUI(); updateBossUI();
     }
 
     // ------- Background: stars + meteors -------
@@ -422,14 +515,12 @@
         size: Math.random()*1.4 + 0.4, opacity: Math.random()*0.5 + 0.2,
         speed: Math.random()*0.16 + 0.05
       }));
-      meteors = []; // reset meteors on resize
+      meteors = [];
     }
 
     function maybeSpawnMeteor(dt){
-      // ~0.6 meteors/sec on average
       const chance = 0.0006 * dt * logicalSize/600;
       if (Math.random() < chance){
-        // start slightly above/left, fly diagonally down-right
         const m = {
           x: -20 + Math.random()* (logicalSize*0.4),
           y: -30,
@@ -449,7 +540,6 @@
         m.x += m.vx * step;
         m.y += m.vy * step;
         m.life -= step;
-        // draw trail
         ctx.save();
         ctx.globalAlpha = Math.max(0, Math.min(1, m.life));
         ctx.strokeStyle = 'rgba(173,216,255,0.9)';
@@ -459,10 +549,7 @@
         ctx.lineTo(m.x - (m.vx * 0.01) - (m.len * 0.6), m.y - (m.vy * 0.01) - (m.len));
         ctx.stroke();
         ctx.restore();
-
-        if (m.life <= 0 || m.x > logicalSize + 60 || m.y > logicalSize + 60) {
-          meteors.splice(i,1);
-        }
+        if (m.life <= 0 || m.x > logicalSize + 60 || m.y > logicalSize + 60) meteors.splice(i,1);
       }
     }
 
@@ -518,8 +605,8 @@
       }
       else {
         const verts = (shape === 'hexagon')
-          ? regularPolygon(6, radius, polyRotation - Math.PI/6)  // flat-top + rotation
-          : regularPolygon(4, radius, polyRotation + Math.PI/4); // axis-aligned when 45°
+          ? regularPolygon(6, radius, polyRotation - Math.PI/6)
+          : regularPolygon(4, radius, polyRotation + Math.PI/4);
 
         ctx.strokeStyle = 'rgba(137,180,255,0.65)'; ctx.lineWidth = 6;
         ctx.beginPath(); ctx.moveTo(verts[0].x - center.x, verts[0].y - center.y);
@@ -633,14 +720,12 @@
         p.x += p.dx * step;
         p.y += p.dy * step;
 
-        // auto-collect when they touch boundary (aligned to shape)
         if (touchesBoundary(p.x, p.y, PU_RADIUS*0.7)){
           applyPowerup(p.type);
           createParticles(p.x, p.y, '#ffffff');
           p.autoCollected = true;
         }
       }
-      // remove collected
       for (let i=powerups.length-1; i>=0; i--){
         if (powerups[i].autoCollected) powerups.splice(i,1);
       }
@@ -668,7 +753,7 @@
       if (type==='SHIELD') dur = 0; // single-use
 
       if (type==='SHIELD'){
-        activeEffects.push({type:'SHIELD', until: now + 3600000}); // consume on hit
+        activeEffects.push({type:'SHIELD', until: now + 3600000});
       } else {
         const ex = activeEffects.find(e=>e.type===type);
         const until = now + dur;
@@ -759,7 +844,7 @@
           const ex=v2.x-v1.x, ey=v2.y-v1.y;
           let nx=ey, ny=-ex; const len=Math.hypot(nx,ny)||1; nx/=len; ny/=len;
           const dist = (x - v1.x)*nx + (y - v1.y)*ny;
-          if (dist + r > 0) return true; // outside/touching this edge
+          if (dist + r > 0) return true;
         }
         return false;
       }
@@ -880,7 +965,7 @@
       if (d < boss.r + b.radius){
         if (hasShield()){
           consumeShield();
-          boss.hp -= 2; // shielded pass does extra damage
+          boss.hp -= 2; // shielded pass deals more
         } else {
           boss.hp -= 1;
           if (d > 0){
@@ -898,7 +983,7 @@
           score += Math.round(200 * effectScoreMultiplier());
           boss = null;
           updateBossUI(); updateUI();
-          levelUp(); // advance on boss defeat
+          onLevelCleared('boss'); // << interstitial (no direct levelUp)
           return true;
         }
         updateBossUI(); updateUI();
@@ -966,11 +1051,11 @@
     }
 
     function checkLevelClearGuard(){
-      if (boss) { return; }
+      if (gameState !== 'playing') return;
+      if (boss) return;
       const remaining = entities.reduce((c,e)=> c + (e.visible?1:0), 0);
-      // only advance when we transition from >0 to ===0
       if (remaining === 0 && prevRemainingEntities > 0){
-        levelUp();
+        onLevelCleared('clear'); // << interstitial
       }
       prevRemainingEntities = remaining;
     }
@@ -994,7 +1079,6 @@
 
     // ------- Game loop -------
     function gameLoop(ts){
-      if (paused){ animationFrameId = requestAnimationFrame(gameLoop); return; }
       const dt = Math.min(50, ts - lastTs || 16.67); lastTs = ts;
 
       ctx.clearRect(0,0,logicalSize,logicalSize);
@@ -1004,15 +1088,19 @@
       drawBoss();
       drawParticles(dt);
 
-      maybeSpawnPowerup(dt);
-      movePowerups(dt);
-      collectPowerupsByBalls();
-      tickEffects();
-      updateEffectsUI();
+      if (gameState === 'playing'){
+        maybeSpawnPowerup(dt);
+        movePowerups(dt);
+        collectPowerupsByBalls();
+        tickEffects();
+        updateEffectsUI();
 
-      updateBoss(dt);
-      updateBalls(dt);
-      checkLevelClearGuard(); // <-- prevents phantom level-ups
+        updateBoss(dt);
+        updateBalls(dt);
+        checkLevelClearGuard();
+      } else {
+        // Interstitial / paused: no updates, but we still render existing sprites & powerups
+      }
 
       drawPowerups();
       drawBalls();
@@ -1049,10 +1137,27 @@
     randAmt.addEventListener('input', updateUI);
     randOnEntity.addEventListener('change', updateUI);
 
+    // Buttons
+    btnPause.addEventListener('click', ()=>{
+      if (gameState === 'playing'){ gameState = 'paused'; btnPause.textContent = '▶ Resume'; }
+      else if (gameState === 'paused'){ gameState = 'playing'; btnPause.textContent = '⏸ Pause'; }
+    });
+    btnReset.addEventListener('click', ()=> init());
+    btnRestart.addEventListener('click', ()=> init());
+    btnNext.addEventListener('click', ()=> proceedNextLevel());
+
     window.addEventListener('resize', ()=>{ fitCanvas(); loadLevel(currentLevel); });
     window.addEventListener('keydown', (e)=>{
-      if(e.code==='Space') paused = !paused;
-      else if (e.key.toLowerCase()==='r') init();
+      if (overlay.classList.contains('show')){
+        if (e.key === ' ' || e.key === 'Enter') proceedNextLevel();
+        return;
+      }
+      if(e.code==='Space'){
+        if (gameState === 'playing'){ gameState = 'paused'; btnPause.textContent = '▶ Resume'; }
+        else if (gameState === 'paused'){ gameState = 'playing'; btnPause.textContent = '⏸ Pause'; }
+      } else if (e.key.toLowerCase()==='r'){
+        init();
+      }
     });
 
     // ------- Boot -------
