@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Magical Orb Weaver — Portal + Shape Switcher</title>
+  <title>Magical Orb Weaver — Shapes + Powerups</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: dark; }
     body { font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
+    canvas { display:block; width:100%; height:100%; cursor:none; }
 
-    /* ---- Portal base ---- */
+    /* ---- Portal frame (masked viewport) ---- */
     .portal {
       position: relative;
-      overflow: hidden;          /* mask */
+      overflow: hidden;
       isolation: isolate;
       aspect-ratio: 1/1;
       box-shadow:
@@ -22,107 +23,69 @@
       background: transparent;
     }
 
-    /* Shapes (clip-path) */
-    .shape-circle {
-      border-radius: 9999px;
-      clip-path: circle(50% at 50% 50%);
-    }
-    .shape-ellipse {
-      border-radius: 50%/40%;
-      clip-path: ellipse(50% 40% at 50% 50%);
-    }
-    .shape-hexagon {
-      border-radius: 0;
-      /* regular hexagon points */
-      clip-path: polygon(
-        25% 5%, 75% 5%,
-        100% 50%,
-        75% 95%, 25% 95%,
-        0% 50%
-      );
-    }
-    .shape-square {
-      border-radius: 1rem;
-      clip-path: inset(0 round 1rem);
-    }
+    /* Mask shapes */
+    .shape-circle { border-radius: 9999px; clip-path: circle(50% at 50% 50%); }
+    .shape-ellipse { border-radius: 50%/40%; clip-path: ellipse(50% 40% at 50% 50%); }
+    .shape-hexagon { clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%); }
+    .shape-square  { border-radius: 1rem; clip-path: inset(0 round 1rem); }
 
-    /* Animated neon halo (two spinning conic gradients) */
+    /* Neon halo (two spinning layers) */
     .portal::before, .portal::after {
-      content: "";
-      position: absolute; inset: -3%;
-      z-index: -1; border-radius: 50%;
-      filter: blur(22px);
-      animation: spin 18s linear infinite;
-      background:
-        conic-gradient(
-          from 0deg,
-          rgba(168,85,247,0.0) 0deg,
-          rgba(99,102,241,0.9) 60deg,
-          rgba(34,211,238,0.9) 140deg,
-          rgba(20,184,166,0.9) 220deg,
-          rgba(168,85,247,0.9) 300deg,
-          rgba(168,85,247,0.0) 360deg
-        );
-      opacity: 0.55;
-      pointer-events: none;
+      content:""; position:absolute; inset:-3%; z-index:-1; border-radius:50%;
+      filter: blur(22px); animation: spin 18s linear infinite;
+      background: conic-gradient(from 0deg,
+                  rgba(168,85,247,0.0) 0deg,
+                  rgba(99,102,241,0.9) 60deg,
+                  rgba(34,211,238,0.9) 140deg,
+                  rgba(20,184,166,0.9) 220deg,
+                  rgba(168,85,247,0.9) 300deg,
+                  rgba(168,85,247,0.0) 360deg);
+      opacity:.55; pointer-events:none;
     }
-    .portal::after {
-      inset: -6%; filter: blur(40px);
-      animation-duration: 28s; animation-direction: reverse;
-      opacity: 0.35;
-    }
+    .portal::after { inset:-6%; filter: blur(40px); animation-duration:28s; animation-direction:reverse; opacity:.35; }
 
-    /* Breathing halo overlay */
+    /* Breathing inner aura */
     .breath {
-      position: absolute; inset: -8%;
-      pointer-events: none;
-      border-radius: 50%;
-      background:
-        radial-gradient(closest-side,
-          rgba(168,85,247,0.25),
-          rgba(99,102,241,0.15) 45%,
-          rgba(34,211,238,0.08) 70%,
-          rgba(0,0,0,0) 100%);
-      filter: blur(10px);
-      animation: breathe 3.8s ease-in-out infinite;
+      position:absolute; inset:-8%; pointer-events:none; border-radius:50%;
+      background: radial-gradient(closest-side,
+                  rgba(168,85,247,0.25),
+                  rgba(99,102,241,0.15) 45%,
+                  rgba(34,211,238,0.08) 70%,
+                  rgba(0,0,0,0) 100%);
+      filter: blur(10px); animation: breathe 3.8s ease-in-out infinite;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes breathe {
-      0%,100% { opacity: 0.55; transform: scale(1.00); }
-      50%     { opacity: 0.85; transform: scale(1.03); }
-    }
+    @keyframes breathe { 0%,100% { opacity:.55; transform:scale(1.00); } 50% { opacity:.85; transform:scale(1.03); } }
 
-    canvas { display:block; width:100%; height:100%; cursor:none; }
-
-    .chip { font-size: 0.70rem; padding: .35rem .55rem; border-radius: .5rem; background: rgba(31,41,55,.6); color:#d1d5db; }
+    .chip { font-size:.70rem; padding:.35rem .55rem; border-radius:.5rem; background: rgba(31,41,55,.6); color:#d1d5db; }
+    .badge { font-size:.70rem; padding:.20rem .45rem; border-radius:.375rem; background: rgba(31,41,55,.85); color:#e5e7eb; border:1px solid rgba(148,163,184,.25); }
   </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
   <div class="w-full max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold text-center mb-4">
       <span class="bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-400 via-indigo-400 to-cyan-300">
-        Magical Orb Weaver
+        Magical Orbs Weaver
       </span>
     </h1>
 
     <!-- HUD -->
-    <div class="grid grid-cols-3 gap-4 mb-4 text-center bg-gray-800/60 p-4 rounded-xl shadow-lg">
-      <div>
-        <p class="text-sm font-medium text-gray-400">Score</p>
-        <p id="score" class="text-2xl font-bold text-emerald-400">0</p>
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-400">Level</p>
-        <p id="level" class="text-2xl font-bold text-purple-400">1</p>
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-400">Time</p>
-        <p id="timer" class="text-2xl font-bold text-cyan-400">00:00</p>
+    <div class="grid grid-cols-3 gap-4 mb-2 text-center bg-gray-800/60 p-4 rounded-xl shadow-lg">
+      <div><p class="text-sm font-medium text-gray-400">Score</p><p id="score" class="text-2xl font-bold text-emerald-400">0</p></div>
+      <div><p class="text-sm font-medium text-gray-400">Level</p><p id="level" class="text-2xl font-bold text-purple-400">1</p></div>
+      <div><p class="text-sm font-medium text-gray-400">Time</p><p id="timer" class="text-2xl font-bold text-cyan-400">00:00</p></div>
+    </div>
+
+    <!-- Active effects -->
+    <div class="mb-4 bg-gray-800/60 p-3 rounded-xl shadow-lg">
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="text-xs text-gray-400">Active:</span>
+        <div id="effectsBar" class="flex flex-wrap gap-2"></div>
       </div>
     </div>
 
-    <!-- Portal with halo layers -->
+    <!-- Portal viewport -->
     <div id="portalWrap" class="portal shape-circle mx-auto w-full" style="max-width: min(90vw, 640px);">
       <div class="breath"></div>
       <canvas id="gameCanvas"></canvas>
@@ -130,154 +93,176 @@
 
     <!-- Controls -->
     <div class="grid grid-cols-1 mt-5 bg-gray-800/60 p-6 rounded-xl shadow-lg gap-6">
-      <div class="w-full md:w-3/4 mx-auto">
-        <label for="speed" class="text-sm font-medium text-gray-300">Game Speed:
-          <span id="speedValue" class="text-sm font-bold text-white">8</span>
-        </label>
-        <input id="speed" type="range" min="1" max="20" value="8"
-               class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label for="speed" class="text-sm font-medium text-gray-300">Game Speed:
+            <span id="speedValue" class="text-sm font-bold text-white">8</span>
+          </label>
+          <input id="speed" type="range" min="1" max="20" value="8" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <div>
+          <label for="offset" class="text-sm font-medium text-gray-300">Boundary Offset (°):
+            <span id="offsetValue" class="text-sm font-bold text-white">0</span>
+          </label>
+          <input id="offset" type="range" min="-45" max="45" value="0" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+        </div>
       </div>
 
-      <div class="w-full md:w-3/4 mx-auto">
-        <label for="offset" class="text-sm font-medium text-gray-300">Boundary Offset (°):
-          <span id="offsetValue" class="text-sm font-bold text-white">0</span>
-        </label>
-        <input id="offset" type="range" min="-45" max="45" value="0"
-               class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-      </div>
+      <div class="grid md:grid-cols-3 gap-6 items-start">
+        <div>
+          <label class="text-sm font-medium text-gray-300">Viewport Shape:
+            <span id="shapeLabel" class="text-sm font-bold text-white">Circle</span>
+          </label>
+          <select id="shapeSelect" class="mt-2 w-full bg-gray-700/70 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="circle" selected>Circle</option>
+            <option value="ellipse">Ellipse</option>
+            <option value="hexagon">Hexagon</option>
+            <option value="square">Square</option>
+          </select>
+        </div>
 
-      <div class="w-full md:w-3/4 mx-auto">
-        <label for="shape" class="text-sm font-medium text-gray-300">Viewport Shape:
-          <span class="text-sm font-bold text-white" id="shapeLabel">Circle</span>
-        </label>
-        <select id="shape" class="mt-2 w-full bg-gray-700/70 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-          <option value="circle" selected>Circle</option>
-          <option value="ellipse">Ellipse</option>
-          <option value="hexagon">Hexagon</option>
-          <option value="square">Square</option>
-        </select>
-      </div>
+        <div id="ellipsePanel" class="hidden">
+          <label for="ellipseRatio" class="text-sm font-medium text-gray-300">Ellipse Vertical Ratio:
+            <span id="ellipseRatioValue" class="text-sm font-bold text-white">0.80</span>
+          </label>
+          <input id="ellipseRatio" type="range" min="0.50" max="1.00" step="0.01" value="0.80" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+          <p class="text-xs text-gray-400 mt-1">Ry = ratio × R, Rx = R</p>
+        </div>
 
-      <div class="flex items-center justify-center gap-2">
-        <span class="chip">Space = Pause/Resume</span>
-        <span class="chip">R = Reset</span>
-        <span class="chip">Levels auto-advance</span>
+        <div class="flex items-end justify-center gap-2">
+          <span class="chip">Space = Pause/Resume</span>
+          <span class="chip">R = Reset</span>
+          <span class="chip">Levels auto-advance</span>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
+    // ------- DOM refs -------
     const portalWrap = document.getElementById('portalWrap');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // UI
     const scoreEl = document.getElementById('score');
     const levelEl = document.getElementById('level');
     const timerEl = document.getElementById('timer');
-    const speedSlider = document.getElementById('speed');
-    const speedValueEl = document.getElementById('speedValue');
-    const offsetSlider = document.getElementById('offset');
-    const offsetValueEl = document.getElementById('offsetValue');
-    const shapeSelect = document.getElementById('shape');
-    const shapeLabel = document.getElementById('shapeLabel');
+    const effectsBar = document.getElementById('effectsBar');
 
-    // Runtime
-    let center, logicalSize, radius, dpr = Math.max(1, window.devicePixelRatio || 1);
-    let animationFrameId;
-    let lastTs = 0;
+    const speedSlider = document.getElementById('speed');     const speedValueEl = document.getElementById('speedValue');
+    const offsetSlider = document.getElementById('offset');   const offsetValueEl = document.getElementById('offsetValue');
+
+    const shapeSelect = document.getElementById('shapeSelect'); const shapeLabel = document.getElementById('shapeLabel');
+    const ellipsePanel = document.getElementById('ellipsePanel');
+    const ellipseRatioSlider = document.getElementById('ellipseRatio'); const ellipseRatioValue = document.getElementById('ellipseRatioValue');
+
+    // ------- Runtime/state -------
+    let shape = 'circle';              // 'circle' | 'ellipse' | 'hexagon' | 'square'
+    let ellipseRatio = 0.80;           // Ry / R for ellipse
+    let center, logicalSize, radius;   // radius ~ base boundary size
+    let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+    let animationFrameId, lastTs = 0, paused = false;
     let startTime, timerInterval, levelInterval;
-    let paused = false;
 
-    // Game state
-    let ball, entities, particles, stars, score, currentLevel;
+    // scanning highlighter
+    let scanT = 0; // 0..1 position along shape perimeter (used for non-circles)
 
-    // Scanner arc state
-    let scanAngle = 0; // radians, rotates around the boundary
+    // game entities
+    let ball, entities = [], particles = [], stars = [];
+    let powerups = [];                 // on-field powerups
+    let activeEffects = [];            // {type, until}
+    let score = 0, currentLevel = 1;
 
-    // ---------- Helpers ----------
+    // powerup timing
+    let spawnTimer = 0;                // ms countdown to next spawn
+
+    // ------- Helpers -------
     const TAU = Math.PI * 2;
-    function rotateVec(dx, dy, rad) {
-      const c = Math.cos(rad), s = Math.sin(rad);
-      return { dx: dx * c - dy * s, dy: dx * s + dy * c };
-    }
-    function setMagnitude(dx, dy, mag) {
-      const len = Math.hypot(dx, dy) || 1;
-      return { dx: (dx / len) * mag, dy: (dy / len) * mag };
-    }
-    function currentSpeed() { return parseInt(speedSlider.value, 10); }
-    function boundaryOffsetRad() { return (parseInt(offsetSlider.value, 10) || 0) * (Math.PI / 180); }
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
-    // ---------- Canvas / Resize ----------
-    function fitCanvas() {
-      const cssSize = portalWrap.clientWidth; // square via aspect-ratio
+    function rotateVec(dx, dy, rad){ const c=Math.cos(rad), s=Math.sin(rad); return {dx: dx*c - dy*s, dy: dx*s + dy*c}; }
+    function setMagnitude(dx, dy, mag){ const len = Math.hypot(dx,dy) || 1; return {dx: dx/len*mag, dy: dy/len*mag}; }
+
+    function currentSpeedBase(){ return parseInt(speedSlider.value, 10); }
+    function boundaryOffsetRad(){ return (parseInt(offsetSlider.value, 10) || 0) * (Math.PI/180); }
+
+    function effectSpeedMultiplier(){
+      let m = 1.0;
+      for(const e of activeEffects){ if(e.type==='SPEED_UP') m *= 1.8; if(e.type==='SLOW') m *= 0.6; }
+      return m;
+    }
+    function effectScoreMultiplier(){
+      let m = 1.0;
+      for(const e of activeEffects){ if(e.type==='SCORE_X2') m *= 2.0; }
+      return m;
+    }
+    function effectiveSpeed(){ return currentSpeedBase() * effectSpeedMultiplier(); }
+
+    // ------- Canvas/viewport -------
+    function fitCanvas(){
+      const cssSize = portalWrap.clientWidth;
       logicalSize = Math.floor(cssSize);
 
-      // CSS size
-      canvas.style.width  = logicalSize + 'px';
+      canvas.style.width = logicalSize + 'px';
       canvas.style.height = logicalSize + 'px';
 
-      // device pixels
       dpr = Math.max(1, window.devicePixelRatio || 1);
       canvas.width  = Math.floor(logicalSize * dpr);
       canvas.height = Math.floor(logicalSize * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      center = { x: logicalSize / 2, y: logicalSize / 2 };
-      radius = (logicalSize / 2) - 18; // leave room for ring
+      center = { x: logicalSize/2, y: logicalSize/2 };
+      radius = (logicalSize/2) - 18; // leave room for ring
 
       createStars();
-      if (ball) {
+      if (ball){
         ball.x = center.x; ball.y = center.y;
         ball.radius = Math.max(6, radius * 0.03);
       }
     }
 
-    // ---------- Init / Reset ----------
-    function init() {
-      score = 0;
-      currentLevel = 1;
-      particles = [];
+    // ------- Init/reset -------
+    function init(){
+      score = 0; currentLevel = 1; particles = []; powerups = []; activeEffects = [];
       ball = createBall();
       loadLevel(currentLevel);
 
       startTime = Date.now();
-      clearInterval(timerInterval);
-      clearInterval(levelInterval);
+      clearInterval(timerInterval); clearInterval(levelInterval);
       timerInterval = setInterval(updateTimer, 1000);
       levelInterval = setInterval(levelUp, 20000);
 
-      paused = false;
-      lastTs = performance.now();
+      paused = false; lastTs = performance.now();
       cancelAnimationFrame(animationFrameId);
       animationFrameId = requestAnimationFrame(gameLoop);
-      updateUI();
+
+      spawnTimer = 4000; // first powerup in ~4s
+      updateUI(); updateEffectsUI();
     }
 
-    // ---------- Level / Spawning ----------
-    function loadLevel(level) {
+    // ------- Level/Entities -------
+    function loadLevel(level){
       entities = [];
       ball.color = `hsl(${(level * 25) % 360}, 100%, 65%)`;
 
-      const rows = Math.min(15, 3 + Math.floor(level / 5));
-      const cols = 12 + Math.floor(level / 4);
-      const entityType = Math.floor((level - 1) / 10) % 4;
+      const rows = Math.min(15, 3 + Math.floor(level/5));
+      const cols = 12 + Math.floor(level/4);
+      const entityType = Math.floor((level-1)/10) % 4;
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (Math.random() > 0.4) {
-            const angle = (c / cols) * TAU;
-            const dist = radius * 0.18 + (r / rows) * radius * 0.62;
+      for (let r=0; r<rows; r++){
+        for (let c=0; c<cols; c++){
+          if (Math.random() > 0.4){
+            const angle = (c/cols) * TAU;
+            const dist = radius * 0.18 + (r/rows) * radius * 0.62;
             const x = center.x + Math.cos(angle) * dist;
             const y = center.y + Math.sin(angle) * dist;
             entities.push({
-              x, y,
-              type: entityType,
-              size: Math.max(3, (radius / 30) - (r / 2)),
-              color: `hsl(${(r * 20 + c * 5) % 360}, 80%, 70%)`,
-              visible: true,
-              rotation: 0,
-              pulse: Math.random()
+              x,y, type: entityType,
+              size: Math.max(3, (radius/30) - (r/2)),
+              color: `hsl(${(r*20 + c*5) % 360}, 80%, 70%)`,
+              visible: true, rotation:0, pulse: Math.random()
             });
           }
         }
@@ -285,328 +270,460 @@
       updateUI();
     }
 
-    function levelUp() {
-      currentLevel++;
-      loadLevel(currentLevel);
-    }
+    function levelUp(){ currentLevel++; loadLevel(currentLevel); }
 
-    // ---------- Background & Effects ----------
-    function createStars() {
+    // ------- Background & Effects -------
+    function createStars(){
       const count = 220;
-      stars = new Array(count).fill(0).map(() => ({
-        x: Math.random() * logicalSize,
-        y: Math.random() * logicalSize,
-        size: Math.random() * 1.4 + 0.4,
-        opacity: Math.random() * 0.5 + 0.2,
-        speed: Math.random() * 0.16 + 0.05
+      stars = new Array(count).fill(0).map(()=>({
+        x: Math.random()*logicalSize, y: Math.random()*logicalSize,
+        size: Math.random()*1.4 + 0.4, opacity: Math.random()*0.5 + 0.2,
+        speed: Math.random()*0.16 + 0.05
       }));
     }
 
-    function drawBackground(dt) {
-      // vignette gradient
-      const g = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius * 1.3);
-      g.addColorStop(0, '#171338');
-      g.addColorStop(1, '#0A0918');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, logicalSize, logicalSize);
+    function drawBackground(dt){
+      const g = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius*1.3);
+      g.addColorStop(0, '#171338'); g.addColorStop(1, '#0A0918');
+      ctx.fillStyle = g; ctx.fillRect(0,0,logicalSize,logicalSize);
 
-      // star drift
       const px = dt * 0.06;
-      for (const s of stars) {
-        s.x += s.speed * px;
-        if (s.x > logicalSize) s.x = 0;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, TAU);
-        ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-        ctx.fill();
+      for(const s of stars){
+        s.x += s.speed*px; if(s.x > logicalSize) s.x = 0;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, TAU);
+        ctx.fillStyle = `rgba(255,255,255,${s.opacity})`; ctx.fill();
       }
     }
 
-    // ---------- Boundary Ring + Scanner ----------
-    function drawBoundaryRing(dt) {
-      // rotate scanner
-      scanAngle = (scanAngle + dt * 0.0025) % TAU;
+    // ------- Boundary ring + scanner (adapts to shape) -------
+    function drawBoundary(dt){
+      ctx.save(); ctx.translate(center.x, center.y);
+      scanT = (scanT + dt * 0.00025) % 1;
 
-      // main neon ring
-      ctx.save();
-      ctx.translate(center.x, center.y);
+      if (shape === 'circle'){
+        // neon ring
+        const grad = ctx.createRadialGradient(0,0, radius-8, 0,0, radius+8);
+        grad.addColorStop(0,'rgba(99,102,241,0.0)'); grad.addColorStop(0.45,'rgba(99,102,241,0.4)');
+        grad.addColorStop(0.75,'rgba(34,211,238,0.6)'); grad.addColorStop(1,'rgba(20,184,166,0.0)');
+        ctx.strokeStyle = grad; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(0,0, radius, 0, TAU); ctx.stroke();
 
-      const strokeGrad = ctx.createRadialGradient(0,0, radius-8, 0,0, radius+8);
-      strokeGrad.addColorStop(0, 'rgba(99,102,241,0.0)');
-      strokeGrad.addColorStop(0.45, 'rgba(99,102,241,0.4)');
-      strokeGrad.addColorStop(0.75, 'rgba(34,211,238,0.6)');
-      strokeGrad.addColorStop(1, 'rgba(20,184,166,0.0)');
+        // subtle inner glow
+        ctx.globalAlpha = .14; ctx.lineWidth = 18; ctx.beginPath();
+        ctx.arc(0,0, radius-2, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
 
-      ctx.strokeStyle = strokeGrad;
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, TAU);
-      ctx.stroke();
+        // scanning arc
+        const sweep = Math.PI/12, angle = scanT*TAU;
+        const a0 = angle - sweep/2, a1 = angle + sweep/2;
+        const tipX = Math.cos(angle)*radius, tipY = Math.sin(angle)*radius;
+        const lg = ctx.createLinearGradient(0,0, tipX, tipY);
+        lg.addColorStop(0,'rgba(34,211,238,0.0)'); lg.addColorStop(0.4,'rgba(99,102,241,0.45)'); lg.addColorStop(1,'rgba(168,85,247,0.9)');
+        ctx.strokeStyle = lg; ctx.lineCap='round'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(0,0, radius, a0, a1); ctx.stroke();
+      }
+      else if (shape === 'ellipse'){
+        const rx = radius, ry = radius*ellipseRatio;
 
-      // subtle inner glow band
-      ctx.globalAlpha = 0.14;
-      ctx.lineWidth = 18;
-      ctx.beginPath();
-      ctx.arc(0, 0, radius - 2, 0, TAU);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+        // ring
+        ctx.strokeStyle = 'rgba(137,180,255,0.65)'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0, 0, TAU); ctx.stroke();
 
-      // scanning arc (sweeps around)
-      const sweep = Math.PI / 12; // 15°
-      const a0 = scanAngle - sweep / 2;
-      const a1 = scanAngle + sweep / 2;
+        // inner glow
+        ctx.globalAlpha=.12; ctx.lineWidth=18; ctx.beginPath();
+        ctx.ellipse(0,0, rx-2, ry-2, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha=1;
 
-      // gradient along the arc
-      const tipX = Math.cos(scanAngle) * radius;
-      const tipY = Math.sin(scanAngle) * radius;
-      const lg = ctx.createLinearGradient(0,0, tipX, tipY);
-      lg.addColorStop(0, 'rgba(34,211,238,0.0)');
-      lg.addColorStop(0.4, 'rgba(99,102,241,0.45)');
-      lg.addColorStop(1, 'rgba(168,85,247,0.9)');
+        // scanning elliptical arc
+        const sweep = Math.PI/10, angle = scanT*TAU;
+        ctx.strokeStyle = 'rgba(168,85,247,0.95)'; ctx.lineWidth = 7; ctx.lineCap='round';
+        ctx.beginPath(); ctx.ellipse(0,0, rx,ry, 0, angle - sweep/2, angle + sweep/2); ctx.stroke();
+      }
+      else {
+        // polygon (hexagon or square)
+        const verts = (shape === 'hexagon') ? regularPolygon(6, radius, -Math.PI/6)
+                                            : regularPolygon(4, radius, 0); // axis-aligned square
 
-      ctx.strokeStyle = lg;
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, a0, a1);
-      ctx.stroke();
+        // ring
+        ctx.strokeStyle = 'rgba(137,180,255,0.65)'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(verts[0].x - center.x, verts[0].y - center.y);
+        for (let i=1;i<verts.length;i++) ctx.lineTo(verts[i].x - center.x, verts[i].y - center.y);
+        ctx.closePath(); ctx.stroke();
+
+        // inner glow
+        ctx.globalAlpha = .12; ctx.lineWidth = 18;
+        ctx.beginPath(); ctx.moveTo(verts[0].x - center.x, verts[0].y - center.y);
+        for (let i=1;i<verts.length;i++) ctx.lineTo(verts[i].x - center.x, verts[i].y - center.y);
+        ctx.closePath(); ctx.stroke(); ctx.globalAlpha=1;
+
+        // scanning highlight along edges
+        const n = verts.length;
+        const edgeIndex = Math.floor(scanT * n);
+        const v1 = verts[edgeIndex], v2 = verts[(edgeIndex+1)%n];
+        ctx.strokeStyle = 'rgba(168,85,247,0.95)'; ctx.lineWidth=8; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(v1.x - center.x, v1.y - center.y);
+        ctx.lineTo(v2.x - center.x, v2.y - center.y); ctx.stroke();
+      }
 
       ctx.restore();
     }
 
-    // ---------- Particles ----------
-    function createParticles(x, y, color) {
-      particles ??= [];
-      for (let i = 0; i < 15; i++) {
-        particles.push({
-          x, y,
-          dx: (Math.random() - 0.5) * 90,
-          dy: (Math.random() - 0.5) * 90,
-          size: Math.random() * 2 + 1,
-          life: 1,
-          color
-        });
+    // ------- Geometry helpers -------
+    function regularPolygon(n, R, rot=0){
+      const out = [];
+      for(let i=0;i<n;i++){
+        const a = rot + i * TAU/n; // CCW
+        out.push({ x: center.x + R*Math.cos(a), y: center.y + R*Math.sin(a) });
+      }
+      return out;
+    }
+
+    // ------- Particles -------
+    function createParticles(x,y,color){
+      for(let i=0;i<15;i++){
+        particles.push({ x,y, dx:(Math.random()-0.5)*90, dy:(Math.random()-0.5)*90, size:Math.random()*2+1, life:1, color });
       }
       if (particles.length > 900) particles.splice(0, particles.length - 900);
     }
-
-    function drawParticles(dt) {
-      if (!particles) return;
-      const decay = dt * 0.001 * 1.0;
-      for (let i = particles.length - 1; i >= 0; i--) {
+    function drawParticles(dt){
+      const decay = dt * 0.001;
+      for(let i=particles.length-1; i>=0; i--){
         const p = particles[i];
-        p.x += p.dx * (dt * 0.001);
-        p.y += p.dy * (dt * 0.001);
-        p.life -= decay;
-        if (p.life <= 0) {
-          particles.splice(i, 1);
-        } else {
+        p.x += p.dx*(dt*0.001); p.y += p.dy*(dt*0.001); p.life -= decay;
+        if (p.life <= 0) particles.splice(i,1);
+        else {
           ctx.globalAlpha = Math.max(0, p.life);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, TAU);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-          ctx.globalAlpha = 1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU);
+          ctx.fillStyle = p.color; ctx.fill(); ctx.globalAlpha = 1;
         }
       }
     }
 
-    // ---------- Entities / Ball ----------
-    function drawEntities() {
-      for (const e of entities) {
-        if (!e.visible) continue;
-        ctx.save();
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.rotation);
-        e.rotation += 0.005;
-        e.pulse = (e.pulse + 0.02) % TAU;
-        const scale = 1 + Math.sin(e.pulse) * 0.1;
+    // ------- Powerups -------
+    const PU_RADIUS = 12;
+    const PU_TYPES = ['SPEED_UP','SLOW','SCORE_X2'];
 
-        ctx.shadowColor = e.color;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = e.color;
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 1;
+    function maybeSpawnPowerup(dt){
+      spawnTimer -= dt;
+      if (spawnTimer <= 0 && powerups.length < 2){
+        spawnTimer = 7000 + Math.random()*4000; // next in 7–11s
+        const a = Math.random()*TAU; const r = radius*0.50;
+        const x = center.x + Math.cos(a)*r; const y = center.y + Math.sin(a)*r;
+        const type = PU_TYPES[Math.floor(Math.random()*PU_TYPES.length)];
+        powerups.push({x,y,type, born: performance.now(), ttl: 12000});
+      }
+      // expire
+      const now = performance.now();
+      for (let i=powerups.length-1;i>=0;i--){
+        if (now - powerups[i].born > powerups[i].ttl) powerups.splice(i,1);
+      }
+    }
 
-        const s = e.size * scale;
-        switch (e.type) {
-          case 0: ctx.beginPath(); ctx.arc(0, 0, s, 0, TAU); ctx.fill(); break;
-          case 1: ctx.fillRect(-s / 2, -s / 2, s, s); break;
-          case 2:
-            ctx.beginPath();
-            ctx.moveTo(0, -s); ctx.lineTo(s, s); ctx.lineTo(-s, s);
-            ctx.closePath(); ctx.fill();
-            break;
-          case 3:
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-              const a = (i / 5) * TAU;
-              const rr = i % 2 === 0 ? s : s * 0.5;
-              ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-            }
-            ctx.closePath(); ctx.stroke();
-            break;
+    function drawPowerups(){
+      for(const p of powerups){
+        ctx.save(); ctx.translate(p.x, p.y); ctx.shadowBlur=12;
+        let color = '#a855f7';
+        if (p.type==='SPEED_UP') color = '#22d3ee';
+        else if (p.type==='SLOW') color = '#fbbf24';
+        else if (p.type==='SCORE_X2') color = '#34d399';
+        ctx.shadowColor = color; ctx.fillStyle = color; ctx.strokeStyle='white'; ctx.lineWidth=1;
+
+        // icon per type
+        if (p.type==='SPEED_UP'){ // ⚡ lightning
+          ctx.beginPath();
+          ctx.moveTo(-5,-8); ctx.lineTo(2,-8); ctx.lineTo(-1,0);
+          ctx.lineTo(6,0); ctx.lineTo(0,8); ctx.lineTo(2,0); ctx.lineTo(-5,-8);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        } else if (p.type==='SLOW'){ // pause snowflake-ish
+          ctx.beginPath(); ctx.arc(0,0, PU_RADIUS*0.7, 0, TAU); ctx.globalAlpha=.12; ctx.fill(); ctx.globalAlpha=1;
+          ctx.fillRect(-5,-8,4,16); ctx.fillRect(1,-8,4,16); ctx.strokeRect(-5,-8,4,16); ctx.strokeRect(1,-8,4,16);
+        } else { // SCORE_X2 star
+          ctx.beginPath(); for(let i=0;i<10;i++){
+            const a = i * TAU/10; const rad = (i%2? 5:9);
+            ctx.lineTo(Math.cos(a)*rad, Math.sin(a)*rad);
+          }
+          ctx.closePath(); ctx.fill(); ctx.stroke();
         }
         ctx.restore();
       }
-      ctx.shadowBlur = 0;
     }
 
-    function drawBall() {
-      ctx.shadowColor = ball.color;
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, TAU);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+    function collectPowerups(){
+      for (let i=powerups.length-1; i>=0; i--){
+        const p = powerups[i];
+        const d = Math.hypot(ball.x - p.x, ball.y - p.y);
+        if (d < ball.radius + PU_RADIUS*0.7){
+          applyPowerup(p.type);
+          createParticles(p.x, p.y, '#ffffff');
+          powerups.splice(i,1);
+        }
+      }
     }
 
-    function createBall() {
-      const sp = currentSpeed();
-      const angle = Math.random() * TAU;
+    function applyPowerup(type){
+      const now = performance.now();
+      let dur = 8000;
+      if (type==='SCORE_X2') dur = 12000;
+      const until = now + dur;
+      // refresh if exists, else add
+      const existing = activeEffects.find(e => e.type===type);
+      if (existing) existing.until = until; else activeEffects.push({type, until});
+      updateEffectsUI();
+    }
+
+    function tickEffects(){
+      const now = performance.now();
+      for (let i=activeEffects.length-1;i>=0;i--){
+        if (now >= activeEffects[i].until) activeEffects.splice(i,1);
+      }
+    }
+
+    function updateEffectsUI(){
+      const now = performance.now();
+      effectsBar.innerHTML = activeEffects.map(e=>{
+        const remain = Math.max(0, Math.ceil((e.until - now)/1000));
+        const label = e.type==='SPEED_UP' ? '⚡ Speed +'
+                    : e.type==='SLOW' ? '🐢 Slow'
+                    : '⭐ Score x2';
+        return `<span class="badge">${label} · ${remain}s</span>`;
+      }).join('');
+    }
+
+    // ------- Draw Entities + Ball -------
+    function drawEntities(){
+      for(const e of entities){
+        if(!e.visible) continue;
+        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.rotation);
+        e.rotation += 0.005; e.pulse = (e.pulse + 0.02) % TAU;
+        const scale = 1 + Math.sin(e.pulse)*0.1;
+
+        ctx.shadowColor = e.color; ctx.shadowBlur=10;
+        ctx.fillStyle = e.color; ctx.strokeStyle='white'; ctx.lineWidth=1;
+
+        const s = e.size * scale;
+        switch(e.type){
+          case 0: ctx.beginPath(); ctx.arc(0,0,s,0,TAU); ctx.fill(); break;
+          case 1: ctx.fillRect(-s/2, -s/2, s, s); break;
+          case 2: ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(s,s); ctx.lineTo(-s,s); ctx.closePath(); ctx.fill(); break;
+          case 3:
+            ctx.beginPath();
+            for(let i=0;i<5;i++){ const a=i*TAU/5; const rr = (i%2? s*0.5:s); ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); }
+            ctx.closePath(); ctx.stroke(); break;
+        }
+        ctx.restore();
+      }
+      ctx.shadowBlur=0;
+    }
+
+    function drawBall(){
+      ctx.shadowColor = ball.color; ctx.shadowBlur=20;
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, TAU);
+      ctx.fillStyle = ball.color; ctx.fill(); ctx.shadowBlur=0;
+    }
+
+    // ------- Ball & Physics -------
+    function createBall(){
+      const sp = effectiveSpeed();
+      const angle = Math.random()*TAU;
       return {
-        x: center.x,
-        y: center.y,
-        radius: Math.max(6, radius * 0.03),
-        dx: Math.cos(angle) * sp,
-        dy: Math.sin(angle) * sp,
-        color: '#FFFFFF'
+        x:center.x, y:center.y,
+        radius: Math.max(6, radius*0.03),
+        dx: Math.cos(angle)*sp, dy: Math.sin(angle)*sp,
+        color:'#FFFFFF'
       };
     }
 
-    function updateBall(dt) {
-      const scale = dt * (60 / 1000);
+    function reflectWithOffset(vx, vy, nx, ny){
+      // reflect v about normal n, then rotate by boundary offset, and reapply effective speed
+      const dot = vx*nx + vy*ny;
+      let rx = vx - 2*dot*nx, ry = vy - 2*dot*ny;
+      const rot = rotateVec(rx, ry, boundaryOffsetRad());
+      const set = setMagnitude(rot.dx, rot.dy, effectiveSpeed());
+      return set;
+    }
+
+    function collideCircleBoundary(){
+      const vx = ball.x - center.x, vy = ball.y - center.y;
+      const dist = Math.hypot(vx, vy);
+      if (dist + ball.radius <= radius) return false;
+
+      if (dist === 0){
+        const a = Math.random()*TAU, sp = effectiveSpeed();
+        ball.dx = Math.cos(a)*sp; ball.dy = Math.sin(a)*sp; return true;
+      }
+      const nx = vx/dist, ny = vy/dist;
+      const rv = reflectWithOffset(ball.dx, ball.dy, nx, ny);
+      ball.dx = rv.dx; ball.dy = rv.dy;
+      // reposition just inside
+      ball.x = center.x + nx*(radius - ball.radius - 0.5);
+      ball.y = center.y + ny*(radius - ball.radius - 0.5);
+      return true;
+    }
+
+    function collideEllipseBoundary(){
+      const rx = radius, ry = radius*ellipseRatio;
+      const px = ball.x - center.x, py = ball.y - center.y;
+
+      const normX = px/rx, normY = py/ry;
+      const distNorm = Math.hypot(normX, normY);
+      if (distNorm + (ball.radius/Math.min(rx,ry)) <= 1) return false;
+
+      // normal from gradient of implicit ellipse: (x/rx^2, y/ry^2)
+      let nx = px/(rx*rx), ny = py/(ry*ry);
+      const nlen = Math.hypot(nx, ny) || 1; nx/=nlen; ny/=nlen;
+
+      const rv = reflectWithOffset(ball.dx, ball.dy, nx, ny);
+      ball.dx = rv.dx; ball.dy = rv.dy;
+
+      // Reposition: project to ellipse boundary along radial direction
+      const scale = 1/distNorm;
+      const bx = center.x + px*scale, by = center.y + py*scale;
+      ball.x = bx - nx*(ball.radius + 0.5);
+      ball.y = by - ny*(ball.radius + 0.5);
+      return true;
+    }
+
+    function collidePolygonBoundary(n, rot){
+      // convex regular polygon with circumradius = radius, CCW verts
+      const verts = regularPolygon(n, radius, rot);
+      // find max penetration across edges
+      let maxPen = -Infinity, hitN = null, hitV1 = null;
+
+      for(let i=0;i<n;i++){
+        const v1 = verts[i], v2 = verts[(i+1)%n];
+        const ex = v2.x - v1.x, ey = v2.y - v1.y;
+        // outward normal (rotate CW)
+        let nx = ey, ny = -ex;
+        const nlen = Math.hypot(nx, ny) || 1; nx/=nlen; ny/=nlen;
+        // signed distance (positive = outside)
+        const dist = (ball.x - v1.x)*nx + (ball.y - v1.y)*ny;
+        const pen = dist - (-ball.radius);
+        if (pen > maxPen){ maxPen = pen; hitN = {nx,ny}; hitV1 = v1; }
+      }
+
+      if (maxPen > 0 && hitN){
+        // push inside and reflect
+        ball.x -= hitN.nx * (maxPen + 0.5);
+        ball.y -= hitN.ny * (maxPen + 0.5);
+
+        const rv = reflectWithOffset(ball.dx, ball.dy, hitN.nx, hitN.ny);
+        ball.dx = rv.dx; ball.dy = rv.dy;
+        return true;
+      }
+      return false;
+    }
+
+    function updateBall(dt){
+      // Keep magnitude in sync with current effective speed
+      const set = setMagnitude(ball.dx, ball.dy, effectiveSpeed());
+      ball.dx = set.dx; ball.dy = set.dy;
+
+      const scale = dt * (60/1000);
       ball.x += ball.dx * scale;
       ball.y += ball.dy * scale;
 
-      // circular wall collision
-      const vx = ball.x - center.x;
-      const vy = ball.y - center.y;
-      const dist = Math.hypot(vx, vy);
-
-      if (dist + ball.radius > radius) {
-        if (dist === 0) {
-          const a = Math.random() * TAU;
-          ball.dx = Math.cos(a) * currentSpeed();
-          ball.dy = Math.sin(a) * currentSpeed();
-        } else {
-          const nx = vx / dist, ny = vy / dist;
-          const dot = ball.dx * nx + ball.dy * ny;
-          let rx = ball.dx - 2 * dot * nx;
-          let ry = ball.dy - 2 * dot * ny;
-
-          // apply user offset to reflection
-          const rot = rotateVec(rx, ry, boundaryOffsetRad());
-          const mag = currentSpeed();
-          const set = setMagnitude(rot.dx, rot.dy, mag);
-          ball.dx = set.dx; ball.dy = set.dy;
-
-          // pull slightly inside
-          ball.x = center.x + nx * (radius - ball.radius - 0.5);
-          ball.y = center.y + ny * (radius - ball.radius - 0.5);
-        }
-      }
+      // boundary collide by shape
+      let collided = false;
+      if (shape === 'circle')   collided = collideCircleBoundary();
+      else if (shape === 'ellipse') collided = collideEllipseBoundary();
+      else if (shape === 'hexagon') collided = collidePolygonBoundary(6, -Math.PI/6); // flat-top
+      else if (shape === 'square')  collided = collidePolygonBoundary(4,  Math.PI/4); // axis-aligned
 
       // entity collisions
-      for (let i = entities.length - 1; i >= 0; i--) {
-        const e = entities[i];
-        if (!e.visible) continue;
-        const dx = e.x - ball.x;
-        const dy = e.y - ball.y;
-        const d = Math.hypot(dx, dy);
-        if (d < e.size + ball.radius) {
+      for (let i=entities.length-1; i>=0; i--){
+        const e = entities[i]; if(!e.visible) continue;
+        const dx = e.x - ball.x, dy = e.y - ball.y, d = Math.hypot(dx, dy);
+        if (d < e.size + ball.radius){
           e.visible = false;
-          score += 10;
+          score += Math.round(10 * effectScoreMultiplier());
           createParticles(ball.x, ball.y, e.color);
           updateUI();
 
-          if (d > 0) {
-            const nx = -dx / d, ny = -dy / d;
-            const proj = ball.dx * nx + ball.dy * ny;
-            let rx = ball.dx - 2 * proj * nx;
-            let ry = ball.dy - 2 * proj * ny;
-            const set = setMagnitude(rx, ry, currentSpeed());
-            ball.dx = set.dx; ball.dy = set.dy;
+          if (d > 0){
+            const nx = -dx/d, ny = -dy/d;
+            const rv = reflectWithOffset(ball.dx, ball.dy, nx, ny);
+            ball.dx = rv.dx; ball.dy = rv.dy;
           } else {
-            const a = Math.random() * TAU;
-            const sp = currentSpeed();
-            ball.dx = Math.cos(a) * sp;
-            ball.dy = Math.sin(a) * sp;
+            const a = Math.random()*TAU, sp = effectiveSpeed();
+            ball.dx = Math.cos(a)*sp; ball.dy = Math.sin(a)*sp;
           }
           break;
         }
       }
 
-      // next level when cleared
-      if (!entities.some(e => e.visible)) levelUp();
+      if (!entities.some(e=>e.visible)) levelUp();
     }
 
-    // ---------- UI / Timer ----------
-    function updateUI() {
+    // ------- Powerup collision & UI -------
+    function updateEffectsUI(){
+      const now = performance.now();
+      effectsBar.innerHTML = activeEffects.map(e=>{
+        const remain = Math.max(0, Math.ceil((e.until - now)/1000));
+        const label = e.type==='SPEED_UP' ? '⚡ Speed +' : e.type==='SLOW' ? '🐢 Slow' : '⭐ Score x2';
+        return `<span class="badge">${label} · ${remain}s</span>`;
+      }).join('');
+    }
+
+    // ------- Timer & UI -------
+    function updateUI(){
       scoreEl.textContent = score;
       levelEl.textContent = currentLevel;
-      speedValueEl.textContent = currentSpeed();
-      offsetValueEl.textContent = parseInt(offsetSlider.value, 10);
+      speedValueEl.textContent = currentSpeedBase();
+      offsetValueEl.textContent = parseInt(offsetSlider.value,10);
       shapeLabel.textContent = shapeSelect.options[shapeSelect.selectedIndex].text;
     }
-
-    function updateTimer() {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-      const ss = String(elapsed % 60).padStart(2, '0');
+    function updateTimer(){
+      const elapsed = Math.floor((Date.now() - startTime)/1000);
+      const mm = String(Math.floor(elapsed/60)).padStart(2,'0');
+      const ss = String(elapsed%60).padStart(2,'0');
       timerEl.textContent = `${mm}:${ss}`;
     }
 
-    // ---------- Loop ----------
-    function gameLoop(ts) {
-      if (paused) { animationFrameId = requestAnimationFrame(gameLoop); return; }
-      const dt = Math.min(50, ts - lastTs || 16.67);
-      lastTs = ts;
+    // ------- Game loop -------
+    function gameLoop(ts){
+      if (paused){ animationFrameId = requestAnimationFrame(gameLoop); return; }
+      const dt = Math.min(50, ts - lastTs || 16.67); lastTs = ts;
 
-      ctx.clearRect(0, 0, logicalSize, logicalSize);
+      ctx.clearRect(0,0,logicalSize,logicalSize);
       drawBackground(dt);
-      drawBoundaryRing(dt);
+      drawBoundary(dt);
       drawEntities();
       drawParticles(dt);
+      maybeSpawnPowerup(dt);
+      collectPowerups();
+      tickEffects();
+      updateEffectsUI();
       updateBall(dt);
+      drawPowerups();
       drawBall();
 
       animationFrameId = requestAnimationFrame(gameLoop);
     }
 
-    // ---------- Events ----------
-    speedSlider.addEventListener('input', () => {
-      const set = setMagnitude(ball.dx, ball.dy, currentSpeed());
-      ball.dx = set.dx; ball.dy = set.dy;
-      updateUI();
+    // ------- Events -------
+    speedSlider.addEventListener('input', ()=>{
+      const set = setMagnitude(ball.dx, ball.dy, effectiveSpeed());
+      ball.dx = set.dx; ball.dy = set.dy; updateUI();
     });
     offsetSlider.addEventListener('input', updateUI);
 
-    shapeSelect.addEventListener('change', () => {
-      const v = shapeSelect.value;
+    shapeSelect.addEventListener('change', (e)=>{
+      shape = e.target.value;
       portalWrap.classList.remove('shape-circle','shape-ellipse','shape-hexagon','shape-square');
-      portalWrap.classList.add(`shape-${v}`);
-      updateUI();
-      // keep sizing consistent
-      fitCanvas();
+      portalWrap.classList.add(`shape-${shape}`);
+      ellipsePanel.classList.toggle('hidden', shape!=='ellipse');
+      fitCanvas(); updateUI();
     });
 
-    window.addEventListener('resize', () => {
-      fitCanvas();
-      loadLevel(currentLevel);
-    });
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') paused = !paused;
-      else if (e.key.toLowerCase() === 'r') init();
+    ellipseRatioSlider.addEventListener('input', (e)=>{
+      ellipseRatio = parseFloat(e.target.value); ellipseRatioValue.textContent = ellipseRatio.toFixed(2);
+      // update ellipse mask visually
+      if (shape==='ellipse'){ const ryPct = Math.round(ellipseRatio*100); portalWrap.style.clipPath = `ellipse(50% ${ryPct}% at 50% 50%)`; }
     });
 
-    // ---------- Boot ----------
-    window.onload = () => {
-      fitCanvas();
-      startTime = Date.now();
-      init();
-    };
+    window.addEventListener('resize', ()=>{ fitCanvas(); loadLevel(currentLevel); });
+    window.addEventListener('keydown', (e)=>{ if(e.code==='Space') paused = !paused; else if (e.key.toLowerCase()==='r') init(); });
+
+    // ------- Boot -------
+    window.onload = ()=>{ fitCanvas(); startTime = Date.now(); init(); setInterval(updateTimer, 1000); };
   </script>
 </body>
 </html>
