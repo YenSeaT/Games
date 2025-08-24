@@ -1,455 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Magical Orb Weaver — Autoplay w/ Speed & Offset Control</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root { color-scheme: dark; }
-    body { font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
-    canvas { display:block; border-radius:0.75rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magical Orb Weaver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            border-radius: 0.75rem; /* rounded-xl */
+            cursor: none;
+        }
+        .control-label {
+            @apply text-sm font-medium text-gray-300;
+        }
+        .control-value {
+             @apply text-sm font-bold text-white;
+        }
+        .slider {
+            @apply w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer;
+        }
+        .slider::-webkit-slider-thumb {
+            @apply w-5 h-5 bg-indigo-500 rounded-full appearance-none;
+        }
+        .slider::-moz-range-thumb {
+            @apply w-5 h-5 bg-indigo-500 rounded-full border-none;
+        }
+        /* Style for game screens */
+        .game-screen {
+            @apply absolute inset-0 flex flex-col items-center justify-center p-4 transition-opacity duration-500 ease-in-out;
+            background: rgba(12, 10, 29, 0.9);
+            z-index: 10;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
-  <div class="w-full max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-4 text-purple-400">Magical Orb Weaver</h1>
 
-    <!-- HUD -->
-    <div class="grid grid-cols-3 gap-4 mb-4 text-center bg-gray-800/60 p-4 rounded-xl shadow-lg">
-      <div>
-        <p class="text-sm font-medium text-gray-400">Score</p>
-        <p id="score" class="text-2xl font-bold text-green-400">0</p>
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-400">Level</p>
-        <p id="level" class="text-2xl font-bold text-purple-400">1</p>
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-400">Time</p>
-        <p id="timer" class="text-2xl font-bold text-cyan-400">00:00</p>
-      </div>
+    <div class="w-full max-w-4xl mx-auto relative">
+        <h1 class="text-3xl font-bold text-center mb-4 text-purple-400">Magical Orb Weaver</h1>
+
+        <!-- Game Info: Score, Lives, Level, Time -->
+        <div class="grid grid-cols-4 gap-2 md:gap-4 mb-4 text-center bg-gray-800 bg-opacity-50 p-4 rounded-xl shadow-lg">
+            <div>
+                <p class="text-xs md:text-sm font-medium text-gray-400">Score</p>
+                <p id="score" class="text-xl md:text-2xl font-bold text-green-400">0</p>
+            </div>
+            <div>
+                <p class="text-xs md:text-sm font-medium text-gray-400">Lives</p>
+                <p id="lives" class="text-xl md:text-2xl font-bold text-red-400">3</p>
+            </div>
+            <div>
+                <p class="text-xs md:text-sm font-medium text-gray-400">Level</p>
+                <p id="level" class="text-xl md:text-2xl font-bold text-purple-400">1</p>
+            </div>
+            <div>
+                <p class="text-xs md:text-sm font-medium text-gray-400">Time</p>
+                <p id="timer" class="text-xl md:text-2xl font-bold text-cyan-400">00:00</p>
+            </div>
+        </div>
+
+        <!-- Start Game Screen -->
+        <div id="startScreen" class="game-screen">
+            <h2 class="text-4xl font-extrabold text-white mb-4 animate-pulse">Magical Orb Weaver</h2>
+            <p class="text-lg text-gray-300 mb-8 max-w-sm text-center">
+                Collect all the glowing orbs to advance to the next level. Don't let the orb escape the circle!
+            </p>
+            <button id="startButton" class="px-8 py-4 text-lg font-bold text-white bg-purple-600 rounded-full shadow-lg hover:bg-purple-700 transition duration-300">
+                Start Game
+            </button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="game-screen hidden">
+            <h2 class="text-4xl font-extrabold text-red-400 mb-4">Game Over</h2>
+            <p id="finalScore" class="text-lg text-white mb-2">Final Score: 0</p>
+            <p id="levelsCompleted" class="text-lg text-white mb-8">Levels Completed: 0</p>
+            <button id="restartButton" class="px-8 py-4 text-lg font-bold text-white bg-green-600 rounded-full shadow-lg hover:bg-green-700 transition duration-300">
+                Play Again
+            </button>
+        </div>
+
+        <!-- Canvas for the game -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Game Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-gray-800 bg-opacity-50 p-6 rounded-xl shadow-lg">
+            <!-- Orb Speed Slider -->
+            <div class="w-full">
+                <label for="speed" class="control-label">Orb Speed: <span id="speedValue" class="control-value">4</span></label>
+                <input type="range" id="speed" min="1" max="15" value="4" class="slider">
+            </div>
+            
+            <!-- Bounce Offset Slider -->
+            <div class="w-full">
+                <label for="bounceOffset" class="control-label">Bounce Offset: <span id="bounceOffsetValue" class="control-value">0°</span></label>
+                <input type="range" id="bounceOffset" min="-45" max="45" value="0" class="slider">
+            </div>
+        </div>
+        
     </div>
 
-    <!-- Canvas -->
-    <canvas id="gameCanvas" class="shadow-xl"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-    <!-- Controls -->
-    <div class="grid grid-cols-1 mt-4 bg-gray-800/60 p-6 rounded-xl shadow-lg gap-6">
-      <div class="w-full md:w-3/4 mx-auto">
-        <label for="speed" class="text-sm font-medium text-gray-300">Game Speed:
-          <span id="speedValue" class="text-sm font-bold text-white">8</span>
-        </label>
-        <input id="speed" type="range" min="1" max="20" value="8"
-               class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-      </div>
+        // UI Elements
+        const scoreEl = document.getElementById('score');
+        const livesEl = document.getElementById('lives');
+        const levelEl = document.getElementById('level');
+        const timerEl = document.getElementById('timer');
+        const speedSlider = document.getElementById('speed');
+        const speedValueEl = document.getElementById('speedValue');
+        const bounceOffsetSlider = document.getElementById('bounceOffset');
+        const bounceOffsetValueEl = document.getElementById('bounceOffsetValue');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const finalScoreEl = document.getElementById('finalScore');
+        const levelsCompletedEl = document.getElementById('levelsCompleted');
 
-      <div class="w-full md:w-3/4 mx-auto">
-        <label for="offset" class="text-sm font-medium text-gray-300">Boundary Offset (°):
-          <span id="offsetValue" class="text-sm font-bold text-white">0</span>
-        </label>
-        <input id="offset" type="range" min="-45" max="45" value="0"
-               class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
-      </div>
+        let animationFrameId;
+        let startTime, timerInterval;
 
-      <div class="flex items-center justify-center gap-3 text-xs text-gray-300">
-        <span class="px-2 py-1 rounded bg-gray-700/70">Space = Pause/Resume</span>
-        <span class="px-2 py-1 rounded bg-gray-700/70">R = Reset</span>
-        <span class="px-2 py-1 rounded bg-gray-700/70">Levels auto-advance</span>
-      </div>
-    </div>
-  </div>
+        // Game state variables
+        let center, radius, ball, entities, particles, stars;
+        let score, lives, currentLevel, bounceOffsetDegrees = 0;
+        let gameState = 'start'; // 'start', 'playing', 'gameOver'
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // UI
-    const scoreEl = document.getElementById('score');
-    const levelEl = document.getElementById('level');
-    const timerEl = document.getElementById('timer');
-
-    const speedSlider = document.getElementById('speed');
-    const speedValueEl = document.getElementById('speedValue');
-
-    const offsetSlider = document.getElementById('offset');
-    const offsetValueEl = document.getElementById('offsetValue');
-
-    // Runtime
-    let center, logicalSize, radius, dpr = Math.max(1, window.devicePixelRatio || 1);
-    let animationFrameId;
-    let lastTs = 0;
-    let startTime, timerInterval, levelInterval;
-    let paused = false;
-
-    // Game state
-    let ball, entities, particles, stars, score, currentLevel;
-
-    // ---------- Helpers ----------
-    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-
-    function rotateVec(dx, dy, rad) {
-      const c = Math.cos(rad), s = Math.sin(rad);
-      return { dx: dx * c - dy * s, dy: dx * s + dy * c };
-    }
-
-    function setMagnitude(dx, dy, mag) {
-      const len = Math.hypot(dx, dy) || 1;
-      return { dx: (dx / len) * mag, dy: (dy / len) * mag };
-    }
-
-    // ---------- Canvas / Resize ----------
-    function fitCanvas() {
-      const container = canvas.parentElement;
-      const cssSize = Math.min(container.clientWidth, window.innerHeight * 0.6);
-      logicalSize = Math.floor(cssSize);
-      canvas.style.width = logicalSize + 'px';
-      canvas.style.height = logicalSize + 'px';
-      dpr = Math.max(1, window.devicePixelRatio || 1);
-      canvas.width = Math.floor(logicalSize * dpr);
-      canvas.height = Math.floor(logicalSize * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
-
-      center = { x: logicalSize / 2, y: logicalSize / 2 };
-      radius = Math.min(logicalSize, logicalSize) / 2 - 10;
-
-      createStars();
-      if (ball) {
-        ball.x = center.x; ball.y = center.y;
-        ball.radius = Math.max(6, radius * 0.03);
-      }
-    }
-
-    // ---------- Init / Reset ----------
-    function init() {
-      score = 0;
-      currentLevel = 1;
-      particles = [];
-      ball = createBall();
-      loadLevel(currentLevel);
-
-      startTime = Date.now();
-      clearInterval(timerInterval);
-      clearInterval(levelInterval);
-      timerInterval = setInterval(updateTimer, 1000);
-      levelInterval = setInterval(levelUp, 20000);
-
-      paused = false;
-      lastTs = performance.now();
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = requestAnimationFrame(gameLoop);
-      updateUI();
-    }
-
-    // ---------- Level / Spawning ----------
-    function loadLevel(level) {
-      entities = [];
-      ball.color = `hsl(${(level * 25) % 360}, 100%, 65%)`;
-
-      const rows = Math.min(15, 3 + Math.floor(level / 5));
-      const cols = 12 + Math.floor(level / 4);
-      const entityType = Math.floor((level - 1) / 10) % 4;
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (Math.random() > 0.4) {
-            const angle = (c / cols) * Math.PI * 2;
-            const dist = radius * 0.2 + (r / rows) * radius * 0.6;
-            const x = center.x + Math.cos(angle) * dist;
-            const y = center.y + Math.sin(angle) * dist;
-            entities.push({
-              x, y,
-              type: entityType,
-              size: Math.max(3, (radius / 30) - (r / 2)),
-              color: `hsl(${(r * 20 + c * 5) % 360}, 80%, 70%)`,
-              visible: true,
-              rotation: 0,
-              pulse: Math.random()
-            });
-          }
-        }
-      }
-      updateUI();
-    }
-
-    function levelUp() {
-      currentLevel++;
-      loadLevel(currentLevel);
-    }
-
-    // ---------- Background & Effects ----------
-    function createStars() {
-      const count = 200;
-      stars = new Array(count).fill(0).map(() => ({
-        x: Math.random() * logicalSize,
-        y: Math.random() * logicalSize,
-        size: Math.random() * 1.5 + 0.5,
-        opacity: Math.random() * 0.5 + 0.2,
-        speed: Math.random() * 0.15 + 0.05
-      }));
-    }
-
-    function drawBackground(dt) {
-      const g = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius * 1.5);
-      g.addColorStop(0, '#1E1B4B');
-      g.addColorStop(1, '#0C0A1D');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, logicalSize, logicalSize);
-
-      const px = dt * 0.06; // star drift per ms
-      for (const s of stars) {
-        s.x += s.speed * px;
-        if (s.x > logicalSize) s.x = 0;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-        ctx.fill();
-      }
-    }
-
-    function createParticles(x, y, color) {
-      for (let i = 0; i < 15; i++) {
-        particles.push({
-          x, y,
-          dx: (Math.random() - 0.5) * 90,
-          dy: (Math.random() - 0.5) * 90,
-          size: Math.random() * 2 + 1,
-          life: 1,
-          color
-        });
-      }
-      if (particles.length > 800) particles.splice(0, particles.length - 800);
-    }
-
-    function drawParticles(dt) {
-      const decay = dt * 0.001 * 1.0;
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.dx * (dt * 0.001);
-        p.y += p.dy * (dt * 0.001);
-        p.life -= decay;
-        if (p.life <= 0) {
-          particles.splice(i, 1);
-        } else {
-          ctx.globalAlpha = Math.max(0, p.life);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
-
-    // ---------- Drawing ----------
-    function drawBall() {
-      ctx.shadowColor = ball.color;
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-
-    function drawEntities() {
-      for (const e of entities) {
-        if (!e.visible) continue;
-        ctx.save();
-        ctx.translate(e.x, e.y);
-        ctx.rotate(e.rotation);
-        e.rotation += 0.005;
-        e.pulse = (e.pulse + 0.02) % (Math.PI * 2);
-        const scale = 1 + Math.sin(e.pulse) * 0.1;
-
-        ctx.shadowColor = e.color;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = e.color;
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 1;
-
-        const s = e.size * scale;
-        switch (e.type) {
-          case 0: ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); break;
-          case 1: ctx.fillRect(-s / 2, -s / 2, s, s); break;
-          case 2:
-            ctx.beginPath();
-            ctx.moveTo(0, -s); ctx.lineTo(s, s); ctx.lineTo(-s, s);
-            ctx.closePath(); ctx.fill();
-            break;
-          case 3:
-            ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-              const a = (i / 5) * Math.PI * 2;
-              const r = i % 2 === 0 ? s : s * 0.5;
-              ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        // --- Audio Setup (using Tone.js) ---
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
+        const effectSynth = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: {
+                attack: 0.005,
+                decay: 0.1,
+                sustain: 0.2,
+                release: 0.5
             }
-            ctx.closePath(); ctx.stroke();
-            break;
+        }).connect(feedbackDelay);
+        
+        function playHitSound() {
+             const note = "C4";
+             const duration = "8n";
+             effectSynth.triggerAttackRelease(note, duration);
         }
-        ctx.restore();
-      }
-      ctx.shadowBlur = 0;
-    }
-
-    // ---------- Logic ----------
-    function currentSpeed() {
-      return parseInt(speedSlider.value, 10);
-    }
-
-    function boundaryOffsetRad() {
-      return (parseInt(offsetSlider.value, 10) || 0) * (Math.PI / 180);
-    }
-
-    function createBall() {
-      const sp = currentSpeed();
-      const angle = Math.random() * Math.PI * 2;
-      return {
-        x: center.x,
-        y: center.y,
-        radius: Math.max(6, radius * 0.03),
-        dx: Math.cos(angle) * sp,
-        dy: Math.sin(angle) * sp,
-        color: '#FFFFFF'
-      };
-    }
-
-    function updateBall(dt) {
-      // normalize “speed” to ~pixels per 1/60s
-      const scale = dt * (60 / 1000);
-      ball.x += ball.dx * scale;
-      ball.y += ball.dy * scale;
-
-      // circular wall collision
-      const vx = ball.x - center.x;
-      const vy = ball.y - center.y;
-      const dist = Math.hypot(vx, vy);
-
-      if (dist + ball.radius > radius) {
-        if (dist === 0) {
-          // edge case: at center — give a tiny nudge
-          const a = Math.random() * Math.PI * 2;
-          ball.dx = Math.cos(a) * currentSpeed();
-          ball.dy = Math.sin(a) * currentSpeed();
-        } else {
-          // reflect over normal
-          const nx = vx / dist, ny = vy / dist;
-          const dot = ball.dx * nx + ball.dy * ny;
-          let rx = ball.dx - 2 * dot * nx;
-          let ry = ball.dy - 2 * dot * ny;
-
-          // apply boundary offset rotation (in radians)
-          const { dx: ox, dy: oy } = rotateVec(rx, ry, boundaryOffsetRad());
-
-          // re-apply chosen speed
-          const { dx, dy } = setMagnitude(ox, oy, currentSpeed());
-          ball.dx = dx;
-          ball.dy = dy;
-
-          // reposition just inside
-          ball.x = center.x + nx * (radius - ball.radius);
-          ball.y = center.y + ny * (radius - ball.radius);
+        
+        function playMissSound() {
+             const note = "F#2";
+             const duration = "4n";
+             effectSynth.triggerAttackRelease(note, duration);
         }
-      }
 
-      // entity collisions
-      for (let i = entities.length - 1; i >= 0; i--) {
-        const e = entities[i];
-        if (!e.visible) continue;
-        const dx = e.x - ball.x;
-        const dy = e.y - ball.y;
-        const d = Math.hypot(dx, dy);
-        if (d < e.size + ball.radius) {
-          e.visible = false;
-          score += 10;
-          createParticles(ball.x, ball.y, e.color);
-          updateUI();
-
-          // reflect off entity center normal (simple & fast)
-          if (d > 0) {
-            const nx = -dx / d, ny = -dy / d;
-            const proj = ball.dx * nx + ball.dy * ny;
-            let rx = ball.dx - 2 * proj * nx;
-            let ry = ball.dy - 2 * proj * ny;
-
-            // keep magnitude consistent
-            const { dx: ndx, dy: ndy } = setMagnitude(rx, ry, currentSpeed());
-            ball.dx = ndx;
-            ball.dy = ndy;
-          } else {
-            const a = Math.random() * Math.PI * 2;
-            const sp = currentSpeed();
-            ball.dx = Math.cos(a) * sp;
-            ball.dy = Math.sin(a) * sp;
-          }
-          break;
+        // --- Game Setup ---
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const size = Math.min(container.clientWidth, window.innerHeight * 0.6);
+            canvas.width = size;
+            canvas.height = size;
+            center = { x: canvas.width / 2, y: canvas.height / 2 };
+            radius = Math.min(canvas.width, canvas.height) / 2 - 10;
+            createStars();
+            // Re-initialize game elements on resize to keep them relative to the new size
+            if (ball) {
+                ball.radius = Math.max(6, radius * 0.03);
+            }
         }
-      }
 
-      // next level when cleared
-      if (!entities.some(e => e.visible)) levelUp();
-    }
+        function init() {
+            // Reset game state
+            score = 0;
+            lives = 3;
+            currentLevel = 1;
+            particles = [];
+            
+            ball = createBall();
+            
+            loadLevel(currentLevel);
+            
+            startTime = Date.now();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            updateUI();
+            
+            // Start the game loop
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
 
-    function updateUI() {
-      scoreEl.textContent = score;
-      levelEl.textContent = currentLevel;
-      speedValueEl.textContent = currentSpeed();
-      offsetValueEl.textContent = parseInt(offsetSlider.value, 10);
-    }
+        function loadLevel(level) {
+            entities = [];
+            ball.color = `hsl(${(level * 25) % 360}, 100%, 65%)`;
+            
+            const orbCount = 10 + level * 2;
+            const entityType = Math.floor((level -1) / 5) % 4;
 
-    function updateTimer() {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-      const ss = String(elapsed % 60).padStart(2, '0');
-      timerEl.textContent = `${mm}:${ss}`;
-    }
+            for (let i = 0; i < orbCount; i++) {
+                // Ensure entities are placed randomly within the circular play area
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * (radius * 0.8) + (radius * 0.1);
+                const x = center.x + Math.cos(angle) * dist;
+                const y = center.y + Math.sin(angle) * dist;
+                
+                entities.push({
+                    x, y,
+                    type: entityType,
+                    size: Math.max(3, (radius / 30) - (Math.random()*2)),
+                    color: `hsl(${Math.random() * 360}, 80%, 70%)`,
+                    visible: true,
+                    rotation: 0,
+                    pulse: Math.random()
+                });
+            }
+            updateUI();
+        }
 
-    // ---------- Loop ----------
-    function gameLoop(ts) {
-      if (paused) { animationFrameId = requestAnimationFrame(gameLoop); return; }
-      const dt = Math.min(50, ts - lastTs || 16.67);
-      lastTs = ts;
+        // --- Background and Effects ---
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 1.5 + 0.5,
+                    opacity: Math.random() * 0.5 + 0.2,
+                    speed: Math.random() * 0.1 + 0.05
+                });
+            }
+        }
+        
+        function drawBackground() {
+            ctx.fillStyle = 'rgba(12, 10, 29, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius * 1.5);
+            gradient.addColorStop(0, '#1E1B4B');
+            gradient.addColorStop(1, '#0C0A1D');
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.restore();
 
-      // trail + background
-      ctx.fillStyle = 'rgba(12,10,29,0.15)';
-      ctx.fillRect(0, 0, logicalSize, logicalSize);
-      drawBackground(dt);
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+            ctx.clip();
+            
+            stars.forEach(star => {
+                star.x += star.speed;
+                if (star.x > canvas.width) star.x = 0;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                ctx.fill();
+            });
+            ctx.restore();
+        }
 
-      drawEntities();
-      drawParticles(dt);
-      updateBall(dt);
-      drawBall();
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x, y,
+                    dx: (Math.random() - 0.5) * 3,
+                    dy: (Math.random() - 0.5) * 3,
+                    size: Math.random() * 2 + 1,
+                    life: 1,
+                    color: color
+                });
+            }
+        }
 
-      animationFrameId = requestAnimationFrame(gameLoop);
-    }
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.dx;
+                p.y += p.dy;
+                p.life -= 0.03;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.globalAlpha = p.life;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
 
-    // ---------- Events ----------
-    speedSlider.addEventListener('input', () => {
-      // keep direction, adjust magnitude
-      const { dx, dy } = setMagnitude(ball.dx, ball.dy, currentSpeed());
-      ball.dx = dx; ball.dy = dy;
-      updateUI();
-    });
+        // --- Drawing Functions ---
+        function drawBall() {
+            ctx.shadowColor = ball.color;
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
 
-    offsetSlider.addEventListener('input', updateUI);
+        function drawEntities() {
+            entities.forEach(e => {
+                if (e.visible) {
+                    ctx.save();
+                    ctx.translate(e.x, e.y);
+                    ctx.rotate(e.rotation);
+                    e.rotation += 0.005;
+                    e.pulse = (e.pulse + 0.02) % (Math.PI * 2);
+                    const scale = 1 + Math.sin(e.pulse) * 0.1;
+                    
+                    ctx.shadowColor = e.color;
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = e.color;
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 1;
 
-    window.addEventListener('resize', () => {
-      fitCanvas();
-      loadLevel(currentLevel);
-    });
+                    switch(e.type) {
+                        case 0: // Pulsating Orbs
+                            ctx.beginPath();
+                            ctx.arc(0, 0, e.size * scale, 0, Math.PI * 2);
+                            ctx.fill();
+                            break;
+                        case 1: // Rotating Squares
+                            ctx.fillRect(-e.size * scale / 2, -e.size * scale / 2, e.size * scale, e.size * scale);
+                            break;
+                        case 2: // Rotating Triangles
+                            ctx.beginPath();
+                            ctx.moveTo(0, -e.size * scale);
+                            ctx.lineTo(e.size * scale, e.size * scale);
+                            ctx.lineTo(-e.size * scale, e.size * scale);
+                            ctx.closePath();
+                            ctx.fill();
+                            break;
+                        case 3: // Crystalline Shards
+                             ctx.beginPath();
+                             for(let i = 0; i < 5; i++) {
+                                let angle = (i / 5) * Math.PI * 2;
+                                let size = i % 2 === 0 ? e.size * scale : e.size * scale * 0.5;
+                                ctx.lineTo(Math.cos(angle) * size, Math.sin(angle) * size);
+                             }
+                             ctx.closePath();
+                             ctx.stroke();
+                             break;
+                    }
+                    ctx.restore();
+                }
+            });
+            ctx.shadowBlur = 0;
+        }
+        
+        // --- Game Logic ---
+        function updateBallPosition() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+        }
+        
+        function handleBallBoundary() {
+            const distFromCenter = Math.sqrt((ball.x - center.x) ** 2 + (ball.y - center.y) ** 2);
 
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space') paused = !paused;
-      else if (e.key.toLowerCase() === 'r') init();
-    });
+            // Check for game over (if ball goes too far outside)
+            if (distFromCenter > radius + ball.radius + 5) {
+                playMissSound();
+                lives--;
+                updateUI();
+                if (lives > 0) {
+                    resetBall();
+                } else {
+                    endGame();
+                }
+                return;
+            }
 
-    // ---------- Boot ----------
-    window.onload = () => {
-      fitCanvas();
-      startTime = Date.now();
-      init();
-    };
-  </script>
+            // Outer wall bounce collision
+            if (distFromCenter + ball.radius > radius) {
+                // Calculate the normal vector of the collision point
+                const normalX = (ball.x - center.x) / distFromCenter;
+                const normalY = (ball.y - center.y) / distFromCenter;
+
+                // Calculate the dot product of the velocity and the normal
+                const dotProduct = ball.dx * normalX + ball.dy * normalY;
+
+                // Calculate the perfect reflection vector
+                let reflectedDx = ball.dx - 2 * dotProduct * normalX;
+                let reflectedDy = ball.dy - 2 * dotProduct * normalY;
+
+                // Apply a rotation offset to the reflected vector
+                const angleInRadians = bounceOffsetDegrees * Math.PI / 180;
+                const cos = Math.cos(angleInRadians);
+                const sin = Math.sin(angleInRadians);
+                
+                // Rotate the vector
+                ball.dx = reflectedDx * cos - reflectedDy * sin;
+                ball.dy = reflectedDx * sin + reflectedDy * cos;
+
+                // Nudge ball back inside to prevent getting stuck
+                ball.x = center.x + normalX * (radius - ball.radius);
+                ball.y = center.y + normalY * (radius - ball.radius);
+            }
+        }
+
+        function handleEntityCollisions() {
+            let orbsRemaining = false;
+            for (let i = entities.length - 1; i >= 0; i--) {
+                const e = entities[i];
+                if (e.visible) {
+                    const dx = e.x - ball.x;
+                    const dy = e.y - ball.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < e.size + ball.radius) {
+                        e.visible = false;
+                        score += 10;
+                        createParticles(ball.x, ball.y, e.color);
+                        updateUI();
+                        playHitSound();
+                        
+                        // Simple reflection on entity collision
+                        ball.dx *= -1;
+                        ball.dy *= -1;
+                        //break; // Collide with one at a time
+                    } else {
+                        orbsRemaining = true;
+                    }
+                }
+            }
+            if (!orbsRemaining) {
+                 winLevel();
+            }
+        }
+        
+        function createBall() {
+            const speed = parseInt(speedSlider.value, 10);
+            const angle = Math.random() * Math.PI * 2;
+            return {
+                x: center.x,
+                y: center.y,
+                radius: Math.max(6, radius * 0.03),
+                speed: speed,
+                dx: Math.cos(angle) * speed,
+                dy: Math.sin(angle) * speed,
+                color: '#FFFFFF'
+            };
+        }
+
+        function resetBall() {
+            const speed = parseInt(speedSlider.value, 10);
+            const angle = Math.random() * Math.PI * 2;
+            ball.x = center.x;
+            ball.y = center.y;
+            ball.dx = Math.cos(angle) * speed;
+            ball.dy = Math.sin(angle) * speed;
+        }
+
+        function winLevel() {
+            currentLevel++;
+            loadLevel(currentLevel);
+        }
+
+        function endGame() {
+            gameState = 'gameOver';
+            cancelAnimationFrame(animationFrameId);
+            clearInterval(timerInterval);
+            finalScoreEl.textContent = `Final Score: ${score}`;
+            levelsCompletedEl.textContent = `Levels Completed: ${currentLevel - 1}`;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function updateUI() {
+            scoreEl.textContent = score;
+            livesEl.textContent = lives;
+            levelEl.textContent = currentLevel;
+        }
+
+        function updateTimer() {
+            if (gameState === 'playing') {
+                const now = Date.now();
+                const elapsed = Math.floor((now - startTime) / 1000);
+                const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const seconds = String(elapsed % 60).padStart(2, '0');
+                timerEl.textContent = `${minutes}:${seconds}`;
+            }
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (gameState === 'playing') {
+                drawBackground();
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+                ctx.clip();
+                drawBall();
+                drawEntities();
+                drawParticles();
+                ctx.restore();
+                updateBallPosition();
+                handleBallBoundary();
+                handleEntityCollisions();
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Event Listeners ---
+        speedSlider.addEventListener('input', (e) => {
+            const newSpeed = parseInt(e.target.value, 10);
+            speedValueEl.textContent = newSpeed;
+            if (ball) {
+                const currentSpeed = Math.sqrt(ball.dx ** 2 + ball.dy ** 2);
+                if (currentSpeed > 0) {
+                    const ratio = newSpeed / currentSpeed;
+                    ball.dx *= ratio;
+                    ball.dy *= ratio;
+                }
+                ball.speed = newSpeed;
+            }
+        });
+
+        bounceOffsetSlider.addEventListener('input', (e) => {
+            bounceOffsetDegrees = parseInt(e.target.value, 10);
+            bounceOffsetValueEl.textContent = `${bounceOffsetDegrees}°`;
+        });
+
+        startButton.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            gameState = 'playing';
+            init();
+        });
+
+        restartButton.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            gameState = 'playing';
+            init();
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initial setup
+        window.onload = () => {
+            resizeCanvas();
+            gameLoop();
+        };
+    </script>
 </body>
 </html>
+
