@@ -2,42 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Cosmic Glider 2D — AutoSim</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Cosmic Glider 2D — AutoSim v1.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Canvas -->
   <canvas id="game"></canvas>
 
   <!-- HUD -->
   <div class="nanohud">
-    <div class="chip"><b>Mode</b><span id="uiMode">&nbsp;B • Balanced</span></div>
+    <div class="chip"><b>Mode</b><span id="uiMode">&nbsp;—</span></div>
     <div class="chip"><b>Lvl</b><span id="uiLevel">&nbsp;1</span>&nbsp;&nbsp;<b>Score</b><span id="uiScore">&nbsp;0</span></div>
-    <div class="chip"><b>Rings</b><span id="uiRings">&nbsp;0/0</span>&nbsp;&nbsp;<b>Enemies</b><span id="uiEnemies">&nbsp;0</span>&nbsp;&nbsp;<b>Kills</b><span id="uiKills">&nbsp;0</span>&nbsp;&nbsp;<b>Res</b><span id="uiRes">&nbsp;0</span></div>
+    <div class="chip"><b>Progress</b><span id="uiProg">&nbsp;0%</span>&nbsp;&nbsp;<b>Rings</b><span id="uiRings">&nbsp;0/0</span></div>
+    <div class="chip"><b>Enemies</b><span id="uiEnemies">&nbsp;0</span>&nbsp;&nbsp;<b>Kills</b><span id="uiKills">&nbsp;0</span>&nbsp;&nbsp;<b>Res</b><span id="uiRes">&nbsp;0</span></div>
     <div class="chip"><b>Beam</b><span id="uiBeam">&nbsp;Auto</span>&nbsp;&nbsp;<b>FPS</b><span id="uiFPS">&nbsp;—</span></div>
   </div>
 
-  <!-- Simulated controls (non-interactive) -->
-  <div id="pad" class="disabled">
-    <div id="stick"></div>
+  <!-- Progress bar -->
+  <div id="progWrap"><div id="progBar"></div></div>
+
+  <!-- Bottom paddle bar (simulated, non-interactive) -->
+  <div id="paddlebar" class="disabled">
+    <div id="pad"><div id="stick"></div></div>
+    <div id="actions">
+      <button class="act" id="warpBtn">⚡ Warp</button>
+      <button class="act" id="beamBtn">🧲 Beam: Auto</button>
+    </div>
+    <div id="paddles">
+      <button class="act" id="wingLBtn">⟵ Wing L: Auto</button>
+      <button class="act" id="wingRBtn">Wing R: Auto ⟶</button>
+      <button class="act" id="harvBtn">🚜 Harvester: Auto</button>
+    </div>
   </div>
 
-  <div id="paddles" class="disabled">
-    <button class="act" id="wingLBtn">⟵ Wing L: Auto</button>
-    <button class="act" id="wingRBtn">Wing R: Auto ⟶</button>
-    <button class="act" id="harvBtn">🚜 Harvester: Auto</button>
+  <!-- Mode Menu -->
+  <div id="menu" class="menu">
+    <div class="menu-inner">
+      <h1>Cosmic Glider 2D</h1>
+      <p class="subtitle">Choose a mode (AutoSim only)</p>
+      <div class="mode-grid">
+        <button class="mode-card" data-mode="A">
+          <div class="mode-title">A • Arcade</div>
+          <div class="mode-desc">Faster, denser rings & enemies, high energy.</div>
+        </button>
+        <button class="mode-card" data-mode="B">
+          <div class="mode-title">B • Balanced</div>
+          <div class="mode-desc">Well-rounded baseline experience.</div>
+        </button>
+        <button class="mode-card" data-mode="C">
+          <div class="mode-title">C • Chill</div>
+          <div class="mode-desc">Relaxed pacing, fewer enemies.</div>
+        </button>
+        <button class="mode-card perf" data-mode="D">
+          <div class="mode-title">D • Performance</div>
+          <div class="mode-desc">Mobile-optimized visuals & FPS.</div>
+        </button>
+      </div>
+      <button id="startBtn" class="start" disabled>Start</button>
+    </div>
   </div>
 
-  <div id="actions" class="disabled">
-    <button class="act" id="warpBtn">⚡ Warp</button>
-    <button class="act" id="beamBtn">🧲 Beam: Auto</button>
+  <!-- Level Complete Overlay -->
+  <div id="levelStats" class="overlay hidden">
+    <div class="panel">
+      <div class="head">Level Complete</div>
+      <div class="body" id="levelStatsBody">—</div>
+      <div class="foot">Warping to next in <span id="nextIn">3</span>…</div>
+    </div>
   </div>
 
-  <div class="legend">AutoSim active — no manual input. The UI mirrors what the AI is doing.</div>
+  <div class="legend">AutoSim active — no manual input. The UI mirrors AI behavior.</div>
 
-  <!-- Order matters: render first (defines draw helpers), then core (game loop), then ai (director hooks). -->
   <script src="render.js"></script>
   <script src="core.js"></script>
   <script src="ai.js"></script>
