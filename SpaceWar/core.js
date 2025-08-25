@@ -233,7 +233,7 @@
     else { S.objective = null; }
   }
 
-  // Wingmen + Harvester (same logic as earlier build, kept compact)
+  // Wingmen + Harvester
   function updateWingman(w, dt, t) {
     const CFG = S.CFG;
     w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); w.tpT=Math.max(0,w.tpT-dt);
@@ -341,8 +341,13 @@
 
     // Skip updates if menu open (but allow background draw)
     if (S.menuOpen) {
-      if (window.Cosmic.render && window.Cosmic.render.draw) window.Cosmic.render.draw(ctx, S, S.CFG, t);
-      requestAnimationFrame(tick); return;
+      // Ensure background patterns exist before the very first render
+      if (!S.bg || !S.bg.deepPattern) buildBackgroundPatterns();
+      if (window.Cosmic.render && window.Cosmic.render.draw) {
+        window.Cosmic.render.draw(ctx, S, S.CFG, t);
+      }
+      requestAnimationFrame(tick);
+      return;
     }
 
     // Spawns
