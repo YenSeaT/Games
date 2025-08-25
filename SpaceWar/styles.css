@@ -1,30 +1,61 @@
-:root { --bg1:#050a1a; --bg2:#020612; --fg:#E5E7EB; --chip:#0b1020; }
+:root {
+  --bg1:#050a1a; --bg2:#020612; --fg:#E5E7EB;
+  --chip:#0b1020; --accent1:#6ee7ff; --accent2:#a78bfa;
+}
 *{ box-sizing:border-box }
 html,body{ margin:0; height:100%; overflow:hidden; background:linear-gradient(180deg,var(--bg1),var(--bg2)); color:var(--fg); font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif }
 #game{ display:block; width:100vw; height:100vh }
 
 /* HUD */
 .nanohud{ position:fixed; top:10px; right:10px; z-index:30; display:grid; gap:6px }
-.chip{ display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
-  background:rgba(8,10,20,.6); border:1px solid rgba(255,255,255,.12);
-  backdrop-filter:blur(8px); box-shadow:0 10px 25px rgba(0,0,0,.35); font-size:12px }
+.chip{ display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:rgba(8,10,20,.6); border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(8px); box-shadow:0 10px 25px rgba(0,0,0,.35); font-size:12px }
 .chip b{ font-weight:800; color:#cbd5e1 }
 
-/* Simulated joystick */
-#pad{ position:fixed; left:14px; bottom:18px; width:120px; height:120px; border-radius:16px;
-  background:rgba(7,9,18,.6); border:1px solid rgba(255,255,255,.12); z-index:14; pointer-events:none }
-#stick{ position:absolute; left:50%; top:50%; width:28px; height:28px; margin-left:-14px; margin-top:-14px;
-  border-radius:50%; background:radial-gradient(circle,#a5b4fc,#6366f1); box-shadow:0 6px 18px rgba(99,102,241,.45) }
+/* Progress bar */
+#progWrap{ position:fixed; top:10px; left:10px; width:min(40vw,360px); height:10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); z-index:30; overflow:hidden }
+#progBar{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent1),var(--accent2)); box-shadow:0 0 18px rgba(124,58,237,.45) inset }
 
-/* Paddles & actions */
-#paddles{ position:fixed; right:12px; bottom:168px; z-index:13; display:grid; gap:8px; pointer-events:none }
-#actions{ position:fixed; right:12px; bottom:18px; z-index:13; display:flex; gap:8px; pointer-events:none }
-.act{ padding:8px 12px; font-weight:800; border-radius:10px; background:rgba(255,255,255,.06);
-  color:var(--fg); border:1px solid rgba(255,255,255,.15); box-shadow:0 6px 18px rgba(0,0,0,.35) }
-.act.hot{ background:linear-gradient(90deg,#6ee7ff,#a78bfa); color:#0b1020; box-shadow:0 12px 30px rgba(124,58,237,.35); border:none }
+/* Bottom paddle bar (compact / non-blocking) */
+#paddlebar{ position:fixed; left:0; right:0; bottom:0; z-index:14; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 12px; background:linear-gradient(180deg,rgba(7,9,18,.0),rgba(7,9,18,.55)) }
+#pad{ width:110px; height:64px; border-radius:14px; background:rgba(7,9,18,.6); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; pointer-events:none }
+#stick{ width:22px; height:22px; border-radius:50%; background:radial-gradient(circle,#a5b4fc,#6366f1); box-shadow:0 6px 18px rgba(99,102,241,.45) }
+#actions{ display:flex; gap:8px }
+#paddles{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+.act{ padding:6px 10px; font-weight:800; border-radius:10px; background:rgba(255,255,255,.06); color:var(--fg); border:1px solid rgba(255,255,255,.15); box-shadow:0 6px 18px rgba(0,0,0,.35); font-size:12px }
+.act.hot{ background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#0b1020; border:none }
+.disabled{ pointer-events:none }
 
 /* Legend */
-.legend{ position:fixed; left:50%; bottom:10px; transform:translateX(-50%); z-index:12;
-  background:rgba(7,9,18,.7); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:6px 10px; font-size:12px }
+.legend{ position:fixed; left:50%; bottom:74px; transform:translateX(-50%); z-index:12; background:rgba(7,9,18,.6); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:6px 10px; font-size:12px }
 
-.disabled{ pointer-events:none }
+/* Menu */
+.menu{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(3,6,17,.8); backdrop-filter:blur(6px) }
+.menu-inner{ width:min(880px,92vw); background:rgba(9,12,24,.9); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:18px; box-shadow:0 18px 60px rgba(0,0,0,.5) }
+.menu h1{ margin:0 0 6px; font-size:28px; font-weight:800 }
+.subtitle{ margin:0 0 12px; opacity:.8; font-size:13px }
+.mode-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px }
+.mode-card{ position:relative; text-align:left; padding:12px; border-radius:14px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.15); color:var(--fg); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; outline:none }
+.mode-card .mode-title{ font-weight:800; margin-bottom:4px }
+.mode-card .mode-desc{ font-size:12px; opacity:.85 }
+.mode-card:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35) }
+.mode-card.selected{ box-shadow:0 0 0 2px rgba(255,255,255,.15), 0 0 0 6px rgba(110,231,255,.25), 0 0 0 9px rgba(167,139,250,.25); background:linear-gradient(180deg,rgba(110,231,255,.08),rgba(167,139,250,.08)) }
+.mode-card.perf{ border:1px solid rgba(110,231,255,.25) }
+.start{ margin-top:14px; width:100%; padding:12px; border-radius:12px; font-weight:800; background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#0b1020; border:none; box-shadow:0 12px 30px rgba(124,58,237,.35) }
+.start:disabled{ opacity:.5; filter:grayscale(100%) }
+
+/* Level complete overlay */
+.overlay{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; background:rgba(3,6,17,.6); backdrop-filter:blur(4px) }
+.overlay.hidden{ display:none }
+.overlay .panel{ width:min(520px,92vw); background:rgba(9,12,24,.95); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:14px }
+.overlay .head{ font-weight:800; font-size:18px; margin-bottom:8px }
+.overlay .body{ font-size:13px; opacity:.9 }
+.overlay .foot{ margin-top:10px; font-size:12px; opacity:.8 }
+
+/* Mobile tweaks */
+@media (max-width: 720px) {
+  .mode-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #paddlebar{ padding:6px 8px }
+  .legend{ bottom:66px }
+  #pad{ width:88px; height:52px }
+  .act{ font-size:11px; padding:5px 8px }
+}
