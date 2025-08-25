@@ -10,7 +10,7 @@
     // stats
     level: 1, score: 0, kills: 0, resources: 0,
 
-    // progress
+    // progress (now driven by ring count, distProgress is derived)
     distProgress: 0, ringsCleared: 0, ringsGoal: 0, nextRingAt: 0,
 
     // systems
@@ -44,7 +44,10 @@
     fpsAcc: 0, fpsFrames: 0, lastT: performance.now(), fpsRolling: 58,
 
     // overlays
-    menuOpen: true, selectedMode: null, statsTimer: 0
+    menuOpen: true, selectedMode: null, statsTimer: 0,
+
+    // platform
+    isMobile: false
   });
 
   // Base + modes
@@ -67,7 +70,7 @@
 
     BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 900,
 
-    // NEW: line-lock the ship (center lane)
+    // Line-lock center lane
     SHIP_LINE_LOCK: true
   };
   const MODES = {
@@ -241,7 +244,7 @@
   function fireRadial(x,y,count,speed){ for(let i=0;i<count;i++){ const a=(i/count)*Math.PI*2; fireOrb(x,y,a,speed); } }
   Cosmic.util = { clamp, lerp, rand, R, fireOrb, fireRadial };
 
-  // Objective selection by time-to-intercept (rings preferred)
+  // Objective selection (rings preferred)
   function chooseObjective(t) {
     if (objValid(S.objective) && t < S.objectiveLockUntil) {
       const ref = S.objective.ref;
@@ -254,7 +257,7 @@
       const r = S.rings[i], dy = S.ship.y - r.y;
       if (dy <= 0) continue; // ahead only
       const t_ring = dy / scroll; if (t_ring <= 0) continue;
-      // If line-locked, penalize lateral distance strongly to avoid jitter
+      // penalize lateral distance (more if line-locked)
       const dx = Math.abs(r.x - S.W*0.5);
       const lateralPenalty = S.CFG.SHIP_LINE_LOCK ? 1.2 : 0.6;
       const cost = t_ring + lateralPenalty * (dx / S.W);
@@ -272,7 +275,7 @@
     else { S.objective = null; }
   }
 
-  // Wingmen + Harvester
+  // Wingmen + Harvester (unchanged behavior)
   function updateWingman(w, dt, t) {
     const CFG = S.CFG;
     w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); w.tpT=Math.max(0,w.tpT-dt);
@@ -344,6 +347,10 @@
   // Menu
   const menuEl = document.getElementById('menu');
   const startBtn = document.getElementById('startBtn');
+
+  function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+  S.isMobile = isMobile();
+
   document.querySelectorAll('.mode-card').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.mode-card').forEach(b=>b.classList.remove('selected'));
@@ -353,11 +360,10 @@
     });
   });
   startBtn.addEventListener('click', ()=>{
-    const sel = S.selectedMode || (isMobile()? 'D':'B');
+    const sel = S.selectedMode || (S.isMobile ? 'D':'B');
     applyMode(sel); S.menuOpen = false; menuEl.style.display='none';
   });
-  function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
-  if (isMobile()) {
+  if (S.isMobile) {
     const perf = document.querySelector('.mode-card.perf');
     if (perf) perf.click();
   }
@@ -365,8 +371,7 @@
   function applyMode(key) {
     const cfg = Object.assign({}, BASE, MODES[key] || MODES.B);
     if (key==='D') { S.DPR = Math.min(window.devicePixelRatio || 1, 1.15); }
-    // keep ship line-locked across all modes per your request
-    cfg.SHIP_LINE_LOCK = true;
+    cfg.SHIP_LINE_LOCK = true; // keep line-lock across modes
 
     S.CFG = cfg;
     if (UI.uiMode) UI.uiMode.textContent = ` ${cfg.name}`;
@@ -392,14 +397,14 @@
     let dt = t - S.lastT; if (dt > 60) dt = 60; S.lastT = t;
     const dtSec = dt / 1000;
 
-    // Skip updates if menu open (but allow background draw)
+    // Menu render path
     if (S.menuOpen) {
       if (!S.bg || !S.bg.deepPattern) buildBackgroundPatterns();
       if (window.Cosmic.render && window.Cosmic.render.draw) window.Cosmic.render.draw(ctx, S, S.CFG, t);
       requestAnimationFrame(tick); return;
     }
 
-    // === Intermission gate: freeze sim while stats overlay is shown ===
+    // Intermission gate
     const intermission = S.statsTimer > 0;
 
     // Spawns (only during play)
@@ -415,61 +420,66 @@
     // AI preUpdate
     if (!intermission) for (let i = 0; i < Cosmic.hooks.preUpdate.length; i++) Cosmic.hooks.preUpdate[i](S, t, dt);
 
-    // Objective + ship (line-lock keeps X at center)
+    // === Ship movement: center line + vertical sway band (20–30% from bottom) ===
     const centerX = S.W * 0.5;
+    const bandTop = S.H * 0.70;   // 30% from bottom
+    const bandBottom = S.H * 0.80; // 20% from bottom
     if (!intermission) {
       chooseObjective(t);
 
-      // vertical pursuit only; X stays centered
-      const desiredX = centerX;
-      const hasObj = objValid(S.objective);
-      const desiredY = hasObj ? (S.objective.type==='ring'
-            ? clamp(S.objective.ref.y + 40, S.H*0.35, S.H*0.85)
-            : clamp(S.objective.ref.y + 20, S.H*0.35, S.H*0.85))
-          : S.H * 0.7;
+      // Smooth idle sway inside band
+      const sway = (Math.sin(t * 0.0018) * 0.5 + 0.5); // 0..1
+      const baselineY = bandTop + (bandBottom - bandTop) * sway;
+      let desiredY = baselineY;
 
-      const far = hasObj ? Math.abs(desiredY - S.ship.y) > S.CFG.CATCHUP_DIST*0.6 : false;
-      const boost = far ? S.CFG.CATCHUP_BOOST : 1;
+      // Slight bias toward objective's y (still confined to band)
+      if (objValid(S.objective)) {
+        const oy = (S.objective.type==='ring') ? S.objective.ref.y + 28 : S.objective.ref.y + 14;
+        desiredY = clamp(lerp(baselineY, oy, 0.25), bandTop, bandBottom);
+      }
 
-      // lock X to center with light spring, no lateral chasing
-      S.ship.vx += (desiredX - S.ship.x) * (S.CFG.SHIP_ACC_X*1.1) * dtSec;
-      S.ship.vy += (desiredY - S.ship.y) * S.CFG.SHIP_ACC_Y * boost * dtSec;
+      // lock X to center with light spring; Y follows band/objective
+      S.ship.vx += (centerX - S.ship.x) * (S.CFG.SHIP_ACC_X*1.1) * dtSec;
+      S.ship.vy += (desiredY - S.ship.y) * (S.CFG.SHIP_ACC_Y*1.2) * dtSec;
 
-      S.ship.vx = clamp(S.ship.vx, -S.CFG.SHIP_MAX_VX*0.3, S.CFG.SHIP_MAX_VX*0.3); // narrow band
-      S.ship.vy = clamp(S.ship.vy, -S.CFG.SHIP_MAX_VY*boost, S.CFG.SHIP_MAX_VY*boost);
+      S.ship.vx = clamp(S.ship.vx, -S.CFG.SHIP_MAX_VX*0.3, S.CFG.SHIP_MAX_VX*0.3);
+      S.ship.vy = clamp(S.ship.vy, -S.CFG.SHIP_MAX_VY, S.CFG.SHIP_MAX_VY);
 
       S.ship.vx *= 0.86; S.ship.vy *= S.CFG.SHIP_DAMP;
 
-      S.ship.x = lerp(S.ship.x + S.ship.vx * dtSec, centerX, 0.2); // bias to exact center
-      S.ship.y = clamp(S.ship.y + S.ship.vy * dtSec, S.H*0.2, S.H*0.9);
+      S.ship.x = lerp(S.ship.x + S.ship.vx * dtSec, centerX, 0.22);
+      S.ship.y = clamp(S.ship.y + S.ship.vy * dtSec, bandTop, bandBottom);
       S.ship.rot = lerp(S.ship.rot, clamp(S.ship.vx,-200,200)/1000, 0.18);
     }
 
     const scroll = (BASE.SPEED + (S.ship.warp?220:0)) * dtSec; S.ship.warp = 0;
 
-    // Background offsets (still move in intermission to keep life)
+    // Background offsets
     S.bg.offY_deep += scroll * 0.18;
     S.bg.offY_mid  += scroll * 0.45;
     S.bg.offY_near += scroll * 0.9;
     S.bg.offY_bokeh+= scroll * 0.22;
 
-    // Rings with magnet & capture + Distance Progress (play only)
+    // Rings (play only) — faster magnet on desktop
+    const magnetRadiusFactor = S.isMobile ? 2.0 : 2.8;
+    const magnetGrow = dt / (S.isMobile ? 240 : 160);
+    const pullX = S.isMobile ? 0.10 : 0.18;
+    const pullY = S.isMobile ? 0.12 : 0.20;
+
     if (!intermission) {
       for (let i = S.rings.length - 1; i >= 0; i--) {
         const r = S.rings[i]; r.y += scroll * 0.8;
 
-        // expand magnet window so center-locked ship still captures
         const isObj = (objValid(S.objective) && S.objective.type==='ring' && S.objective.ref===r);
         if (isObj) {
           const d = Math.hypot(r.x - centerX, r.y - S.ship.y);
-          if (d < r.r * 2.2) { // was 1.6
-            r.mT = Math.min(1, (r.mT || 0) + dt / 220);
-            r.x = lerp(r.x, centerX, 0.10); r.y = lerp(r.y, S.ship.y - 8, 0.12);
+          if (d < r.r * magnetRadiusFactor) {
+            r.mT = Math.min(1, (r.mT || 0) + magnetGrow);
+            r.x = lerp(r.x, centerX, pullX);
+            r.y = lerp(r.y, S.ship.y - 8, pullY);
             if (d < 14) {
               S.rings.splice(i, 1);
               S.ringsCleared++; S.score += (r.kind==='chain'?12:10);
-              S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
-              if (R() < 0.6) spawnShard();
               S.objective = null; S.objectiveLockUntil = 0;
               continue;
             }
@@ -477,11 +487,9 @@
         }
 
         const d2 = Math.hypot(r.x - centerX, r.y - S.ship.y);
-        if (d2 < r.r * 0.95) { // proximity capture (slightly wider)
+        if (d2 < r.r * 1.0) {
           S.rings.splice(i, 1);
           S.ringsCleared++; S.score += (r.kind==='chain'?12:10);
-          S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
-          if (R() < 0.6) spawnShard();
           S.objective = null; S.objectiveLockUntil = 0;
         } else if (r.y - r.r > S.H + 60) {
           S.rings.splice(i, 1);
@@ -554,9 +562,11 @@
       }
     }
 
-    // Level complete & intermission countdown
-    if (!intermission && S.distProgress >= 1) {
-      // stop active entities to avoid carry-over affecting next level counters
+    // === Progress & Level completion ===
+    S.distProgress = (S.ringsGoal > 0) ? Math.min(1, S.ringsCleared / S.ringsGoal) : 1;
+
+    if (!intermission && S.ringsCleared >= S.ringsGoal) {
+      // stop active entities to avoid carry-over
       S.enemies.length = 0; S.bullets.length = 0; S.effects.length = 0; S.rings.length = 0; S.shards.length = 0;
       showLevelStats();
     }
@@ -567,7 +577,7 @@
       if (S.statsTimer <= 0) {
         hideLevelStats();
         S.level++;
-        resetLevel(); // clean re-init (fixes ring counter at level 2+)
+        resetLevel(); // clean re-init (fixes Level 2+ completion)
       }
     }
 
@@ -605,6 +615,7 @@
         <div><b>Rings:</b> ${S.ringsCleared}/${S.ringsGoal}</div>
         <div><b>Kills:</b> ${S.kills}</div>
         <div><b>Resources:</b> ${S.resources}</div>
+        <div style="opacity:.75">Next in <span id="nextIn">3</span>s…</div>
       `;
       el.classList.remove('hidden');
       S.statsTimer = 3000; // 3s intermission
