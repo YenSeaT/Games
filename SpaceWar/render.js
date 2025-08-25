@@ -192,7 +192,7 @@
   function draw(ctx, S, CFG, t) {
     drawBackground(ctx, S);
 
-    // Rings (both lane gates & chain rings look similar; chain rings may be smaller)
+    // Rings (lane gates & chain rings)
     for (let i = 0; i < S.rings.length; i++) {
       const r = S.rings[i];
       if (r.mT) ringBeam(ctx, S.ship.x, S.ship.y - 8, r.x, r.y, r.mT);
@@ -259,6 +259,7 @@
     if (UI.uiKills) UI.uiKills.textContent = String(S.kills);
     if (UI.uiRes) UI.uiRes.textContent = String(S.resources);
     if (UI.uiBeam) UI.uiBeam.textContent = 'Auto';
-    drawProgressBar(S.distProgress);
+    const progBar = document.getElementById('progBar');
+    if (progBar) progBar.style.width = `${Math.max(0, Math.min(100, S.distProgress * 100))}%`;
   }
 })();
