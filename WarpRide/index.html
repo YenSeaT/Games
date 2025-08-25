@@ -50,7 +50,7 @@
   <div class="hud-btn" id="hudBtn">☰ Controls</div>
   <div class="panel collapsed" id="panel">
     <div class="head">
-      <div class="title">Cosmic Glider Plus</div>
+      <div class="title">Cosmic Glider</div>
       <div style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;">Autoplay++</div>
     </div>
     <div class="body">
@@ -232,6 +232,9 @@
 
   // State
   var SPEED=parseFloat(speedRange.value), speedTarget=SPEED, time=0; var mouse={x:0,y:0,tx:0,ty:0}; var level=1, score=0; var wobbleAmp=0.35;
+  // centralized scoring helper
+  function addScore(n){ score += n; scoreEl.textContent=String(score); nhScore.textContent=String(score); }
+
   function wrapZ(z){ if(z>2) z-=LENGTH; return z; }
 
   // Audio (lightweight WebAudio beeps — unlocked on first interaction)
@@ -278,7 +281,7 @@
     else if(fpsRolling>58){ dustDraw=Math.min(COUNT_DUST_MAX, Math.floor(dustDraw*1.05)); sparkDraw=Math.min(COUNT_SPARK_MAX, Math.floor(sparkDraw*1.05)); DPRTarget=Math.min(Math.min(window.devicePixelRatio||1,1.6), DPRTarget+0.05); renderer.setPixelRatio(DPRTarget); }
     dust.geometry.setDrawRange(0, dustDraw); sparks.geometry.setDrawRange(0, sparkDraw); }
 
-  var SPEED=parseFloat(speedRange.value), speedTarget=SPEED; var wobbleAmp=0.35; var mouse={x:0,y:0,tx:0,ty:0}; var level=1, score=0;
+  
   function wrapZ(z){ if(z>2) z-=LENGTH; return z; }
 
   function animate(){ requestAnimationFrame(animate); var dt=clock.getDelta(); if(dt>0.1) dt=0.1; time+=dt;
@@ -317,7 +320,7 @@
     var cineR=5.2, cineAng=time*0.35; cameraCine.position.set(ship.position.x+Math.cos(cineAng)*cineR, ship.position.y+1.0, ship.position.z+Math.sin(cineAng)*cineR+1.2); cameraCine.lookAt(ship.position.x, ship.position.y+0.2, ship.position.z-0.2);
 
     // Obstacles spawn/move
-    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.02){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*55)*1.02; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += dt*oSpeed; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var d2=dx*dx+dy*dy+dz*dz; if(o.userData.type==='ring' && dz> -0.2 && dz< 0.6 && Math.sqrt(dx*dx+dy*dy)<2.0){ score += 10; scoreEl.textContent=String(score); nhScore.textContent=String(score); obstaclesGroup.remove(o); if(Math.random()<0.7) ping(); } else if(o.userData.type==='asteroid' && d2< (shield.visible? 2.2:1.4)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); } speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o); }
+    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.02){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*55)*1.02; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += dt*oSpeed; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var d2=dx*dx+dy*dy+dz*dz; if(o.userData.type==='ring' && dz> -0.2 && dz< 0.6 && Math.sqrt(dx*dx+dy*dy)<2.0){ addScore(10); obstaclesGroup.remove(o); if(Math.random()<0.7) ping(); } else if(o.userData.type==='asteroid' && d2< (shield.visible? 2.2:1.4)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); } speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o); }
       }
       cleanupGroup(obstaclesGroup);
     }
@@ -327,9 +330,16 @@
     if(Math.random()<0.01){ spawnShard(-LENGTH+rand(60,220)); }
     var sSpeed=(8+SPEED*55)*1.0; for(var si=collectibles.children.length-1;si>=0;si--){ var s=collectibles.children[si]; s.position.z += dt*sSpeed; s.rotation.x += dt*0.6; s.rotation.y += dt*0.5;
       // passive pickup when very close
-      var dxs=s.position.x-ship.position.x, dys=s.position.y-ship.position.y, dzs=s.position.z-ship.position.z; if(dzs>-0.1 && dzs<0.4 && Math.sqrt(dxs*dxs+dys*dys)<0.8){ score+=25; collectibles.remove(s); scoreEl.textContent=String(score); nhScore.textContent=String(score); if(Math.random()<0.8) ping(); continue; }
+      var dxs=s.position.x-ship.position.x, dys=s.position.y-ship.position.y, dzs=s.position.z-ship.position.z; if(dzs>-0.1 && dzs<0.4 && Math.sqrt(dxs*dxs+dys*dys)<0.8){ addScore(25); collectibles.remove(s); if(Math.random()<0.8) ping(); continue; }
       // tractor beam pull
-      if(beamActive){ var bx=ship.position.x, by=ship.position.y+0.0, bz=ship.position.z+1.2; var toBeamX=s.position.x-bx, toBeamY=s.position.y-by, toBeamZ=(s.position.z-bz); var rxy=Math.sqrt(toBeamX*toBeamX+toBeamY*toBeamY); var inCone = (rxy < 2.6*(1 + toBeamZ/6)) && (toBeamZ>0) && (toBeamZ<6.2); if(inCone){ s.position.x = lerp(s.position.x, bx, 0.18); s.position.y = lerp(s.position.y, by, 0.18); s.position.z = lerp(s.position.z, ship.position.z+0.2, 0.20); }
+      if(beamActive){ var bx=ship.position.x, by=ship.position.y+0.0, bz=ship.position.z+1.2; var toBeamX=s.position.x-bx, toBeamY=s.position.y-by, toBeamZ=(s.position.z-bz); var rxy=Math.sqrt(toBeamX*toBeamX+toBeamY*toBeamY); var inCone = (rxy < 2.6*(1 + toBeamZ/6)) && (toBeamZ>0) && (toBeamZ<6.2); if(inCone){
+        s.position.x = lerp(s.position.x, bx, 0.18);
+        s.position.y = lerp(s.position.y, by, 0.18);
+        s.position.z = lerp(s.position.z, ship.position.z+0.2, 0.20);
+        var dxy=Math.sqrt((s.position.x-bx)*(s.position.x-bx)+(s.position.y-by)*(s.position.y-by));
+        var dzc=(s.position.z-(ship.position.z+0.2));
+        if(dxy<0.6 && dzc<0.8){ addScore(25); collectibles.remove(s); if(Math.random()<0.8) ping(); continue; }
+      }
       }
       if(s.position.z>20){ collectibles.remove(s); }
     }
@@ -346,7 +356,7 @@
   }
 
   // Init
-  function init(){ applyWorldBG(world); worldEl.textContent=world.name; nhWorld.textContent=world.name; levelEl.textContent='1'; nhLvl.textContent='1'; setCamera('pilot'); ship.position.set(0,0,0); gate.position.set(0,0,-LENGTH + 300); resize(); animate(); }
+  function init(){ applyWorldBG(world); worldEl.textContent=world.name; nhWorld.textContent=world.name; levelEl.textContent='1'; nhLvl.textContent='1'; score=0; scoreEl.textContent='0'; nhScore.textContent='0'; setCamera('pilot'); ship.position.set(0,0,0); gate.position.set(0,0,-LENGTH + 300); resize(); animate(); }
   document.addEventListener('visibilitychange',function(){ if(document.hidden){ speedTarget=Math.max(0.3, speedTarget*0.6); }});
   init();
 })();
