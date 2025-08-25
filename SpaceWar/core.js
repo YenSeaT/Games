@@ -22,11 +22,16 @@
 
     // player
     ship: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, warp: 0 },
+
+    // helpers
     wingmen: [
       { side: -1, state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0 },
       { side: 1,  state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0 }
     ],
-    wingCtl: { L:'auto', R:'auto' }, harvester: { state:'dock', x:0, y:0, target:-1, grab:false, cd:0, beamT:0 },
+    wingCtl: { L:'auto', R:'auto' },
+    harvester: { state:'dock', x:0, y:0, target:-1, grab:false, cd:0, beamT:0 },
+
+    // targeting
     objective: null, objectiveLockUntil: 0,
 
     // engagement band (random each wave)
@@ -46,15 +51,24 @@
   const BASE = {
     SPEED: 210,
     STAR_DEEP: 140, STAR_MID: 160, STAR_NEAR: 220, BOKEH: 44,
+
     ENEMY_WAVE_CHANCE: 0.1, ENEMY_WAVE_SIZE: [2,3], ENEMY_HP: 3,
     FIRE_COOLDOWN: 220, MAX_FIRE_RANGE: 560,
+
     RINGS_MIN: 15, RINGS_MAX: 30,
     RING_INTERVAL: [1.6, 2.8], RING_RADIUS: [30, 44],
+
     RES_SPAWN_CHANCE: 0.035,
+
     SHIP_ACC_X: 3.2, SHIP_ACC_Y: 2.6, SHIP_DAMP: 0.88,
     SHIP_MAX_VX: 620, SHIP_MAX_VY: 520, CATCHUP_DIST: 220, CATCHUP_BOOST: 1.25,
+
     WING_OFFSET: 46, WING_COOLDOWN: 1000,
-    BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 900
+
+    BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 900,
+
+    // NEW: line-lock the ship (center lane)
+    SHIP_LINE_LOCK: true
   };
   const MODES = {
     A: { name:'A • Arcade', RING_INTERVAL:[1.2,2.2], SHIP_ACC_X:3.8, SHIP_ACC_Y:3.2, SHIP_MAX_VX:700, SHIP_MAX_VY:560, CATCHUP_BOOST:1.4, ENEMY_WAVE_CHANCE:0.14, ENEMY_WAVE_SIZE:[2,4], RES_SPAWN_CHANCE:0.04 },
@@ -159,26 +173,47 @@
     S.bg.theme = themes[(Math.random()*themes.length)|0];
   }
   function resetLevel() {
+    // clear systems
     S.rings.length = 0; S.enemies.length = 0; S.bullets.length = 0; S.effects.length = 0; S.shards.length = 0;
-    S.ringsCleared = 0; S.ringsGoal = Math.floor(rand(S.CFG.RINGS_MIN, S.CFG.RINGS_MAX+1));
-    S.distProgress = 0; S.nextRingAt = performance.now() + rand(S.CFG.RING_INTERVAL[0], S.CFG.RING_INTERVAL[1]) * 1000;
+
+    // reset counters
+    S.ringsCleared = 0;
+    S.ringsGoal = Math.floor(rand(S.CFG.RINGS_MIN, S.CFG.RINGS_MAX + 1));
+    S.distProgress = 0;
+
+    // timing
+    S.nextRingAt = performance.now() + rand(S.CFG.RING_INTERVAL[0], S.CFG.RING_INTERVAL[1]) * 1000;
+
+    // targeting/engagement
     S.objective = null; S.objectiveLockUntil = 0;
     S.engageBandY = S.H * rand(0.2, 0.6);
+
     if (UI.uiLevel) UI.uiLevel.textContent = String(S.level);
+
+    // world visuals
     pickWorldTheme(); buildBackgroundPatterns();
   }
 
   // Spawners: Distance Progress with Lane Gates (R2) & Ring Chains (R3)
   function spawnLaneGate() {
-    const lanes = [-1,0,1];
-    const lane = lanes[(Math.random()*lanes.length)|0];
-    const laneX = S.W * (0.5 + lane * 0.28); // left/center/right
+    // If line-locked, bias to center lane (70%), otherwise equal lanes
+    let lane = 0;
+    if (S.CFG.SHIP_LINE_LOCK) {
+      const r = R();
+      lane = r < 0.15 ? -1 : r < 0.30 ? 1 : 0; // 70% center, 15% left, 15% right
+    } else {
+      const lanes = [-1,0,1];
+      lane = lanes[(Math.random()*lanes.length)|0];
+    }
+    const laneX = S.W * (0.5 + lane * 0.28);
     const r = rand(S.CFG.RING_RADIUS[0], S.CFG.RING_RADIUS[1]);
     S.rings.push({ x: clamp(laneX, S.W*0.08, S.W*0.92), y: -r-20, r, kind:'gate', mT:0 });
   }
   function spawnRingChain() {
     const count = (Math.random()*3|0) + 3; // 3..5
-    let x = clamp(S.ship.x + rand(-S.W*0.2, S.W*0.2), S.W*0.12, S.W*0.88);
+    // If line-locked, start near center corridor
+    const corridor = S.CFG.SHIP_LINE_LOCK ? S.W*0.1 : S.W*0.2;
+    let x = clamp(S.W*0.5 + rand(-corridor, corridor), S.W*0.12, S.W*0.88);
     for (let i = 0; i < count; i++) {
       const r = rand(26, 40), y = -r - 20 - i * 40;
       S.rings.push({ x, y, r, kind:'chain', mT:0 });
@@ -192,11 +227,13 @@
       const ex = side < 0 ? rand(S.W*0.05, S.W*0.4) : rand(S.W*0.6, S.W*0.95);
       S.enemies.push({ x: ex, y: -40 - i*30, vx: rand(-40,40), vy: rand(100,150), hp: S.CFG.ENEMY_HP, phase: rand(0,6.28), ttl: 12000, drift: rand(0.6,1.2) });
     }
-    // randomize engage band each wave
+    // randomize engage band each wave (20–60% of screen)
     S.engageBandY = S.H * rand(0.2, 0.6);
   }
   function spawnShard() {
-    S.shards.push({ x: rand(S.W*0.25, S.W*0.75), y: -20, vx: rand(-20,20), vy: rand(40,80), rot: R()*Math.PI*2 });
+    // Line-locked: spawn closer to center so harvester/beam can reach without ship roaming
+    const centerBias = S.CFG.SHIP_LINE_LOCK ? S.W*0.15 : S.W*0.25;
+    S.shards.push({ x: S.W*0.5 + rand(-centerBias, centerBias), y: -20, vx: rand(-20,20), vy: rand(40,80), rot: R()*Math.PI*2 });
   }
 
   // Bullets
@@ -204,7 +241,7 @@
   function fireRadial(x,y,count,speed){ for(let i=0;i<count;i++){ const a=(i/count)*Math.PI*2; fireOrb(x,y,a,speed); } }
   Cosmic.util = { clamp, lerp, rand, R, fireOrb, fireRadial };
 
-  // Objective selection by time-to-intercept
+  // Objective selection by time-to-intercept (rings preferred)
   function chooseObjective(t) {
     if (objValid(S.objective) && t < S.objectiveLockUntil) {
       const ref = S.objective.ref;
@@ -216,17 +253,19 @@
     for (let i = 0; i < S.rings.length; i++) {
       const r = S.rings[i], dy = S.ship.y - r.y;
       if (dy <= 0) continue; // ahead only
-      const t_ring = dy / scroll; // approximate ETA
-      if (t_ring <= 0) continue;
-      const dx = Math.abs(r.x - S.ship.x);
-      const cost = t_ring + 0.6 * (dx / S.W);
+      const t_ring = dy / scroll; if (t_ring <= 0) continue;
+      // If line-locked, penalize lateral distance strongly to avoid jitter
+      const dx = Math.abs(r.x - S.W*0.5);
+      const lateralPenalty = S.CFG.SHIP_LINE_LOCK ? 1.2 : 0.6;
+      const cost = t_ring + lateralPenalty * (dx / S.W);
       if (cost < bestCost) { bestCost = cost; best = r; }
     }
-    // secondary: shard close-by
+    // secondary: shard close-by and roughly centered
     let bestS = null, bestDS = 1e9;
     for (let i = 0; i < S.shards.length; i++) {
       const s = S.shards[i], dy2 = S.ship.y - s.y; if (dy2 <= 0 || dy2 > 260) continue;
-      const d = Math.hypot(s.x - S.ship.x, dy2); if (d < bestDS) { bestDS = d; bestS = s; }
+      const dx = Math.abs(s.x - S.W*0.5); if (S.CFG.SHIP_LINE_LOCK && dx > S.W*0.18) continue;
+      const d = Math.hypot(s.x - S.W*0.5, dy2); if (d < bestDS) { bestDS = d; bestS = s; }
     }
     if (bestS && bestDS < 140) { S.objective = { type:'shard', ref:bestS }; S.objectiveLockUntil = t + 900; }
     else if (best) { S.objective = { type:'ring', ref:best }; S.objectiveLockUntil = t + 1100; }
@@ -237,7 +276,8 @@
   function updateWingman(w, dt, t) {
     const CFG = S.CFG;
     w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); w.tpT=Math.max(0,w.tpT-dt);
-    const dockX=S.ship.x + w.side*CFG.WING_OFFSET, dockY=S.ship.y+8;
+    const dockX=S.W*0.5 + w.side*CFG.WING_OFFSET; // dock at center line
+    const dockY=S.ship.y+8;
     const ctrl=(w.side<0? S.wingCtl.L : S.wingCtl.R);
 
     if(ctrl==='deploy' && (w.state==='dock'||w.state==='cool')) w.state='launch';
@@ -251,8 +291,8 @@
         if(w.target<0 || w.target>=S.enemies.length){
           let idx=-1,best=1e9;
           for(let j=0;j<S.enemies.length;j++){
-            const e=S.enemies[j]; if(!(e.y<S.engageBandY)) continue; // earlier engage band
-            const lateral=e.x-S.ship.x; if(w.side<0 && lateral>-8) continue; if(w.side>0 && lateral<8) continue;
+            const e=S.enemies[j]; if(!(e.y<S.engageBandY)) continue; // early engage
+            const lateral=e.x-(S.W*0.5); if(w.side<0 && lateral>-8) continue; if(w.side>0 && lateral<8) continue;
             const sscore=Math.abs(lateral) - Math.max(0, S.ship.y - e.y)*0.2;
             if(sscore<best){ best=sscore; idx=j; }
           }
@@ -264,7 +304,6 @@
           if(w.tpT<=0){
             const ang=(t*0.002 + (w.side>0?0:Math.PI))%(Math.PI*2); const radius=48; w.x=tar.x + Math.cos(ang)*radius; w.y=tar.y + Math.sin(ang)*radius; w.tpT=220;
             if(w.fireCd<=0){
-              // aimed with simple lead more often at long range
               const tau = 0.18 + Math.random()*0.06;
               const a = Math.atan2((tar.y+tar.vy*tau)-w.y, (tar.x+tar.vx*tau)-w.x);
               if(Math.random()<0.6){ fireOrb(w.x,w.y,a,280); fireOrb(w.x,w.y,a+0.12,260); fireOrb(w.x,w.y,a-0.12,260); }
@@ -280,11 +319,17 @@
   }
   function updateHarvester(h,dt){
     h.cd=Math.max(0,h.cd-dt); h.beamT=Math.max(0,h.beamT-dt);
-    const dockX=S.ship.x, dockY=S.ship.y-16; const ctrl=S.harvCtl || 'auto';
+    const dockX=S.W*0.5, dockY=S.ship.y-16; const ctrl=S.harvCtl || 'auto';
     if(ctrl==='recall' && h.state!=='dock') h.state='return';
     if(h.state==='dock'){ h.x=dockX; h.y=dockY; h.grab=false;
       if((ctrl==='deploy' || (S.shards.length>0 && h.cd<=0 && ctrl!=='recall'))){
-        let idx=-1,bestDy=0; for(let i=0;i<S.shards.length;i++){ const s=S.shards[i]; const ahead=s.y<S.ship.y-10; if(!ahead) continue; const dy=S.ship.y-s.y; if(dy>bestDy){ bestDy=dy; idx=i; } }
+        let idx=-1,bestDy=0;
+        for(let i=0;i<S.shards.length;i++){
+          const s=S.shards[i];
+          const ahead=s.y<S.ship.y-10; if(!ahead) continue;
+          const lateral=Math.abs(s.x - S.W*0.5); if(S.CFG.SHIP_LINE_LOCK && lateral>S.W*0.18) continue;
+          const dy=S.ship.y-s.y; if(dy>bestDy){ bestDy=dy; idx=i; }
+        }
         if(idx>=0){ h.target=idx; h.state='seek'; }
       }
     } else if(h.state==='seek'){ const s=S.shards[h.target]; if(!s){ h.state='return'; }
@@ -313,20 +358,28 @@
   });
   function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
   if (isMobile()) {
-    // pre-select Performance on mobile
     const perf = document.querySelector('.mode-card.perf');
-    if (perf) { perf.click(); }
+    if (perf) perf.click();
   }
 
   function applyMode(key) {
     const cfg = Object.assign({}, BASE, MODES[key] || MODES.B);
     if (key==='D') { S.DPR = Math.min(window.devicePixelRatio || 1, 1.15); }
+    // keep ship line-locked across all modes per your request
+    cfg.SHIP_LINE_LOCK = true;
+
     S.CFG = cfg;
     if (UI.uiMode) UI.uiMode.textContent = ` ${cfg.name}`;
     resize();
-    S.ship.x = S.W * 0.5; S.ship.y = S.H * 0.78; S.ship.vx = S.ship.vy = 0; S.kills = S.score = S.resources = 0;
-    S.wingmen[0].x = S.ship.x - S.CFG.WING_OFFSET; S.wingmen[0].y = S.ship.y + 8;
-    S.wingmen[1].x = S.ship.x + S.CFG.WING_OFFSET; S.wingmen[1].y = S.ship.y + 8;
+
+    // place ship on center line
+    S.ship.x = S.W * 0.5; S.ship.y = S.H * 0.78; S.ship.vx = S.ship.vy = 0;
+    S.kills = 0; S.score = 0; S.resources = 0;
+
+    // dock wingmen relative to center
+    S.wingmen[0].x = S.W*0.5 - S.CFG.WING_OFFSET; S.wingmen[0].y = S.ship.y + 8;
+    S.wingmen[1].x = S.W*0.5 + S.CFG.WING_OFFSET; S.wingmen[1].y = S.ship.y + 8;
+
     resetLevel();
   }
 
@@ -341,139 +394,170 @@
 
     // Skip updates if menu open (but allow background draw)
     if (S.menuOpen) {
-      // Ensure background patterns exist before the very first render
       if (!S.bg || !S.bg.deepPattern) buildBackgroundPatterns();
-      if (window.Cosmic.render && window.Cosmic.render.draw) {
-        window.Cosmic.render.draw(ctx, S, S.CFG, t);
-      }
-      requestAnimationFrame(tick);
-      return;
+      if (window.Cosmic.render && window.Cosmic.render.draw) window.Cosmic.render.draw(ctx, S, S.CFG, t);
+      requestAnimationFrame(tick); return;
     }
 
-    // Spawns
-    if (t >= S.nextRingAt) {
-      if (R() < 0.5) spawnLaneGate(); else spawnRingChain();
-      S.nextRingAt = t + rand(S.CFG.RING_INTERVAL[0]*1000, S.CFG.RING_INTERVAL[1]*1000);
+    // === Intermission gate: freeze sim while stats overlay is shown ===
+    const intermission = S.statsTimer > 0;
+
+    // Spawns (only during play)
+    if (!intermission) {
+      if (t >= S.nextRingAt) {
+        if (R() < 0.5) spawnLaneGate(); else spawnRingChain();
+        S.nextRingAt = t + rand(S.CFG.RING_INTERVAL[0]*1000, S.CFG.RING_INTERVAL[1]*1000);
+      }
+      if (R() < S.CFG.ENEMY_WAVE_CHANCE * dtSec) spawnEnemyWave();
+      if (R() < S.CFG.RES_SPAWN_CHANCE * dtSec) spawnShard();
     }
-    if (R() < S.CFG.ENEMY_WAVE_CHANCE * dtSec) spawnEnemyWave();
-    if (R() < S.CFG.RES_SPAWN_CHANCE * dtSec) spawnShard();
 
     // AI preUpdate
-    for (let i = 0; i < Cosmic.hooks.preUpdate.length; i++) Cosmic.hooks.preUpdate[i](S, t, dt);
+    if (!intermission) for (let i = 0; i < Cosmic.hooks.preUpdate.length; i++) Cosmic.hooks.preUpdate[i](S, t, dt);
 
-    // Objective + ship
-    chooseObjective(t);
-    const hasObj = objValid(S.objective);
-    const desiredX = hasObj ? S.objective.ref.x : S.W * 0.5;
-    const desiredY = hasObj ? (S.objective.type==='ring'
-        ? clamp(S.objective.ref.y + 40, S.H*0.35, S.H*0.85)
-        : clamp(S.objective.ref.y + 20, S.H*0.35, S.H*0.85))
-      : S.H * 0.7;
-    const far = hasObj ? Math.hypot(desiredX - S.ship.x, desiredY - S.ship.y) > S.CFG.CATCHUP_DIST : false;
-    const boost = far ? S.CFG.CATCHUP_BOOST : 1;
+    // Objective + ship (line-lock keeps X at center)
+    const centerX = S.W * 0.5;
+    if (!intermission) {
+      chooseObjective(t);
 
-    S.ship.vx += (desiredX - S.ship.x) * S.CFG.SHIP_ACC_X * boost * dtSec;
-    S.ship.vy += (desiredY - S.ship.y) * S.CFG.SHIP_ACC_Y * boost * dtSec;
-    S.ship.vx = clamp(S.ship.vx, -S.CFG.SHIP_MAX_VX*boost, S.CFG.SHIP_MAX_VX*boost);
-    S.ship.vy = clamp(S.ship.vy, -S.CFG.SHIP_MAX_VY*boost, S.CFG.SHIP_MAX_VY*boost);
-    S.ship.vx *= S.CFG.SHIP_DAMP; S.ship.vy *= S.CFG.SHIP_DAMP;
-    S.ship.x = clamp(S.ship.x + S.ship.vx * dtSec, S.W*0.08, S.W*0.92);
-    S.ship.y = clamp(S.ship.y + S.ship.vy * dtSec, S.H*0.2, S.H*0.9);
-    S.ship.rot = lerp(S.ship.rot, clamp(S.ship.vx,-260,260)/1000, 0.2);
+      // vertical pursuit only; X stays centered
+      const desiredX = centerX;
+      const hasObj = objValid(S.objective);
+      const desiredY = hasObj ? (S.objective.type==='ring'
+            ? clamp(S.objective.ref.y + 40, S.H*0.35, S.H*0.85)
+            : clamp(S.objective.ref.y + 20, S.H*0.35, S.H*0.85))
+          : S.H * 0.7;
+
+      const far = hasObj ? Math.abs(desiredY - S.ship.y) > S.CFG.CATCHUP_DIST*0.6 : false;
+      const boost = far ? S.CFG.CATCHUP_BOOST : 1;
+
+      // lock X to center with light spring, no lateral chasing
+      S.ship.vx += (desiredX - S.ship.x) * (S.CFG.SHIP_ACC_X*1.1) * dtSec;
+      S.ship.vy += (desiredY - S.ship.y) * S.CFG.SHIP_ACC_Y * boost * dtSec;
+
+      S.ship.vx = clamp(S.ship.vx, -S.CFG.SHIP_MAX_VX*0.3, S.CFG.SHIP_MAX_VX*0.3); // narrow band
+      S.ship.vy = clamp(S.ship.vy, -S.CFG.SHIP_MAX_VY*boost, S.CFG.SHIP_MAX_VY*boost);
+
+      S.ship.vx *= 0.86; S.ship.vy *= S.CFG.SHIP_DAMP;
+
+      S.ship.x = lerp(S.ship.x + S.ship.vx * dtSec, centerX, 0.2); // bias to exact center
+      S.ship.y = clamp(S.ship.y + S.ship.vy * dtSec, S.H*0.2, S.H*0.9);
+      S.ship.rot = lerp(S.ship.rot, clamp(S.ship.vx,-200,200)/1000, 0.18);
+    }
 
     const scroll = (BASE.SPEED + (S.ship.warp?220:0)) * dtSec; S.ship.warp = 0;
 
-    // Background offsets
+    // Background offsets (still move in intermission to keep life)
     S.bg.offY_deep += scroll * 0.18;
     S.bg.offY_mid  += scroll * 0.45;
     S.bg.offY_near += scroll * 0.9;
     S.bg.offY_bokeh+= scroll * 0.22;
 
-    // Rings with magnet & capture + Distance Progress
-    for (let i = S.rings.length - 1; i >= 0; i--) {
-      const r = S.rings[i]; r.y += scroll * 0.8;
-      const isObj = (objValid(S.objective) && S.objective.type==='ring' && S.objective.ref===r);
-      if (isObj) {
-        const d = Math.hypot(r.x - S.ship.x, r.y - S.ship.y);
-        if (d < r.r * 1.6) {
-          r.mT = Math.min(1, (r.mT || 0) + dt / 250);
-          r.x = lerp(r.x, S.ship.x, 0.12); r.y = lerp(r.y, S.ship.y - 8, 0.12);
-          if (d < 14) {
-            S.rings.splice(i, 1); S.ringsCleared++; S.score += (r.kind==='chain'?12:10); S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
-            if (R() < 0.6) spawnShard();
-            S.objective = null; S.objectiveLockUntil = 0;
-            continue;
-          }
-        } else r.mT = Math.max(0, (r.mT || 0) - dt / 350);
-      }
-      const d2 = Math.hypot(r.x - S.ship.x, r.y - S.ship.y);
-      if (d2 < r.r * 0.85) {
-        S.rings.splice(i, 1); S.ringsCleared++; S.score += (r.kind==='chain'?12:10); S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
-        if (R() < 0.6) spawnShard();
-        S.objective = null; S.objectiveLockUntil = 0;
-      } else if (r.y - r.r > S.H + 60) {
-        S.rings.splice(i, 1);
-        if (objValid(S.objective) && S.objective.type==='ring' && S.objective.ref===r) { S.objective=null; S.objectiveLockUntil=0; }
+    // Rings with magnet & capture + Distance Progress (play only)
+    if (!intermission) {
+      for (let i = S.rings.length - 1; i >= 0; i--) {
+        const r = S.rings[i]; r.y += scroll * 0.8;
+
+        // expand magnet window so center-locked ship still captures
+        const isObj = (objValid(S.objective) && S.objective.type==='ring' && S.objective.ref===r);
+        if (isObj) {
+          const d = Math.hypot(r.x - centerX, r.y - S.ship.y);
+          if (d < r.r * 2.2) { // was 1.6
+            r.mT = Math.min(1, (r.mT || 0) + dt / 220);
+            r.x = lerp(r.x, centerX, 0.10); r.y = lerp(r.y, S.ship.y - 8, 0.12);
+            if (d < 14) {
+              S.rings.splice(i, 1);
+              S.ringsCleared++; S.score += (r.kind==='chain'?12:10);
+              S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
+              if (R() < 0.6) spawnShard();
+              S.objective = null; S.objectiveLockUntil = 0;
+              continue;
+            }
+          } else r.mT = Math.max(0, (r.mT || 0) - dt / 350);
+        }
+
+        const d2 = Math.hypot(r.x - centerX, r.y - S.ship.y);
+        if (d2 < r.r * 0.95) { // proximity capture (slightly wider)
+          S.rings.splice(i, 1);
+          S.ringsCleared++; S.score += (r.kind==='chain'?12:10);
+          S.distProgress = Math.min(1, S.distProgress + 1/Math.max(1,S.ringsGoal));
+          if (R() < 0.6) spawnShard();
+          S.objective = null; S.objectiveLockUntil = 0;
+        } else if (r.y - r.r > S.H + 60) {
+          S.rings.splice(i, 1);
+          if (objValid(S.objective) && S.objective.type==='ring' && S.objective.ref===r) { S.objective=null; S.objectiveLockUntil=0; }
+        }
       }
     }
 
-    // Enemies
-    for (let i = S.enemies.length - 1; i >= 0; i--) {
-      const e = S.enemies[i];
-      e.ttl -= dt;
-      const swayX = Math.sin((t * 0.002 + e.phase) * 2.0) * 40 * e.drift;
-      const swayY = Math.cos((t * 0.002 + e.phase) * 1.6) * 10 * e.drift;
-      e.x += (e.vx * dtSec) + swayX * dtSec;
-      e.y += (e.vy * dtSec) + (scroll * 0.25) + swayY * dtSec;
-      if (e.x < 20 || e.x > S.W - 20) e.vx *= -1;
-      if (e.y > S.H + 60 || e.ttl <= 0) S.enemies.splice(i, 1);
+    // Enemies (play only)
+    if (!intermission) {
+      for (let i = S.enemies.length - 1; i >= 0; i--) {
+        const e = S.enemies[i];
+        e.ttl -= dt;
+        const swayX = Math.sin((t * 0.002 + e.phase) * 2.0) * 40 * e.drift;
+        const swayY = Math.cos((t * 0.002 + e.phase) * 1.6) * 10 * e.drift;
+        e.x += (e.vx * dtSec) + swayX * dtSec;
+        e.y += (e.vy * dtSec) + (scroll * 0.25) + swayY * dtSec;
+        if (e.x < 20 || e.x > S.W - 20) e.vx *= -1;
+        if (e.y > S.H + 60 || e.ttl <= 0) S.enemies.splice(i, 1);
+      }
     }
 
-    // Auto call wingmen if ahead targets exist
-    for (let i = 0; i < S.wingmen.length; i++) {
-      const w = S.wingmen[i];
-      if ((w.state==='dock'||w.state==='cool') && w.cool<=0) {
-        for (let j = 0; j < S.enemies.length; j++) { if (S.enemies[j].y < S.engageBandY) { w.state='launch'; break; } }
+    // Auto call wingmen if ahead targets exist (play only)
+    if (!intermission) {
+      for (let i = 0; i < S.wingmen.length; i++) {
+        const w = S.wingmen[i];
+        if ((w.state==='dock'||w.state==='cool') && w.cool<=0) {
+          for (let j = 0; j < S.enemies.length; j++) { if (S.enemies[j].y < S.engageBandY) { w.state='launch'; break; } }
+        }
       }
     }
 
     // Wingmen + Harvester
-    for (let i = 0; i < S.wingmen.length; i++) updateWingman(S.wingmen[i], dt, t);
-    updateHarvester(S.harvester, dt);
-
-    // Bullets
-    for (let i = S.bullets.length - 1; i >= 0; i--) {
-      const b = S.bullets[i];
-      b.x += b.vx * dtSec; b.y += b.vy * dtSec - scroll * 0.05; b.life -= dt;
-      if (b.life <= 0 || b.x < -80 || b.x > S.W + 80 || b.y < -120 || b.y > S.H + 120) { S.bullets.splice(i, 1); continue; }
-      for (let j = S.enemies.length - 1; j >= 0; j--) {
-        const en = S.enemies[j]; const hitR = 18;
-        const d2 = (en.x - b.x)*(en.x - b.x) + (en.y - b.y)*(en.y - b.y);
-        if (d2 < hitR*hitR) {
-          en.hp--; S.bullets.splice(i, 1); S.score += 15; if (en.hp <= 0) { S.enemies.splice(j, 1); S.kills++; S.effects.push({ x: en.x, y: en.y, t: 260 }); }
-          break;
-        }
-      }
-    }
-    // Effects fade
-    for (let i = S.effects.length - 1; i >= 0; i--) { const fx = S.effects[i]; fx.t -= dt; if (fx.t <= 0) S.effects.splice(i, 1); }
-
-    // Ship-beam assisted shard pull
-    for (let i = S.shards.length - 1; i >= 0; i--) {
-      const s = S.shards[i]; if (S.harvester.grab && i===S.harvester.target) continue;
-      s.x += s.vx * dtSec; s.y += s.vy * dtSec + scroll * 0.4; s.rot += 0.02;
-      if (S.beamActiveVisual) {
-        const bx=S.ship.x, by=S.ship.y-8, dx=s.x-bx, dy=s.y-by;
-        if (dy<0 && -dy<S.CFG.BEAM_LEN) {
-          const half=S.CFG.BEAM_HALF_W * (-dy/S.CFG.BEAM_LEN);
-          if (Math.abs(dx)<half) { s.x=lerp(s.x,bx,0.18); s.y=lerp(s.y,by,0.18); if (Math.hypot(s.x-bx,s.y-by)<12) { S.shards.splice(i,1); S.score+=25; S.resources++; } }
-        }
-      }
-      if (s.y > S.H + 40) S.shards.splice(i, 1);
+    if (!intermission) {
+      for (let i = 0; i < S.wingmen.length; i++) updateWingman(S.wingmen[i], dt, t);
+      updateHarvester(S.harvester, dt);
     }
 
-    // Level complete?
-    if (S.distProgress >= 1 && S.statsTimer === 0) {
+    // Bullets / effects (play only)
+    if (!intermission) {
+      for (let i = S.bullets.length - 1; i >= 0; i--) {
+        const b = S.bullets[i];
+        b.x += b.vx * dtSec; b.y += b.vy * dtSec - scroll * 0.05; b.life -= dt;
+        if (b.life <= 0 || b.x < -80 || b.x > S.W + 80 || b.y < -120 || b.y > S.H + 120) { S.bullets.splice(i, 1); continue; }
+        for (let j = S.enemies.length - 1; j >= 0; j--) {
+          const en = S.enemies[j]; const hitR = 18;
+          const d2 = (en.x - b.x)*(en.x - b.x) + (en.y - b.y)*(en.y - b.y);
+          if (d2 < hitR*hitR) {
+            en.hp--; S.bullets.splice(i, 1); S.score += 15; if (en.hp <= 0) { S.enemies.splice(j, 1); S.kills++; S.effects.push({ x: en.x, y: en.y, t: 260 }); }
+            break;
+          }
+        }
+      }
+      for (let i = S.effects.length - 1; i >= 0; i--) { const fx = S.effects[i]; fx.t -= dt; if (fx.t <= 0) S.effects.splice(i, 1); }
+    }
+
+    // Ship-beam assisted shard pull (play only)
+    if (!intermission) {
+      for (let i = S.shards.length - 1; i >= 0; i--) {
+        const s = S.shards[i]; if (S.harvester.grab && i===S.harvester.target) continue;
+        s.x += s.vx * dtSec; s.y += s.vy * dtSec + scroll * 0.4; s.rot += 0.02;
+        if (S.beamActiveVisual) {
+          const bx=centerX, by=S.ship.y-8, dx=s.x-bx, dy=s.y-by;
+          if (dy<0 && -dy<S.CFG.BEAM_LEN) {
+            const half=S.CFG.BEAM_HALF_W * (-dy/S.CFG.BEAM_LEN);
+            if (Math.abs(dx)<half) { s.x=lerp(s.x,bx,0.18); s.y=lerp(s.y,by,0.18); if (Math.hypot(s.x-bx,s.y-by)<12) { S.shards.splice(i,1); S.score+=25; S.resources++; } }
+          }
+        }
+        if (s.y > S.H + 40) S.shards.splice(i, 1);
+      }
+    }
+
+    // Level complete & intermission countdown
+    if (!intermission && S.distProgress >= 1) {
+      // stop active entities to avoid carry-over affecting next level counters
+      S.enemies.length = 0; S.bullets.length = 0; S.effects.length = 0; S.rings.length = 0; S.shards.length = 0;
       showLevelStats();
     }
     if (S.statsTimer > 0) {
@@ -482,12 +566,13 @@
       if (nextIn) nextIn.textContent = String(Math.max(1, Math.ceil(S.statsTimer / 1000)));
       if (S.statsTimer <= 0) {
         hideLevelStats();
-        S.level++; resetLevel();
+        S.level++;
+        resetLevel(); // clean re-init (fixes ring counter at level 2+)
       }
     }
 
     // AI postUpdate
-    for (let i = 0; i < Cosmic.hooks.postUpdate.length; i++) Cosmic.hooks.postUpdate[i](S, t, dt);
+    if (!intermission) for (let i = 0; i < Cosmic.hooks.postUpdate.length; i++) Cosmic.hooks.postUpdate[i](S, t, dt);
 
     // Render
     if (Cosmic.render && Cosmic.render.draw) Cosmic.render.draw(ctx, S, S.CFG, t);
@@ -522,7 +607,7 @@
         <div><b>Resources:</b> ${S.resources}</div>
       `;
       el.classList.remove('hidden');
-      S.statsTimer = 3000; // 3s
+      S.statsTimer = 3000; // 3s intermission
     }
   }
   function hideLevelStats() {
