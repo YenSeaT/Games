@@ -144,29 +144,48 @@
     if (txt) txt.textContent = ` ${Math.round(Math.max(0, Math.min(100, pct * 100)))}%`;
   }
 
+  // DEFENSIVE: background draw safe when patterns are not built yet
   function drawBackground(ctx, S) {
-    // offscreen pattern layers with y offsets
+    // Fallbacks if state or patterns not ready yet
+    if (!S || !S.bg) {
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.fillStyle = '#050a1a';
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      return;
+    }
+    const W = S.W, H = S.H;
+    const deep  = S.bg.deepPattern  || null;
+    const mid   = S.bg.midPattern   || null;
+    const near  = S.bg.nearPattern  || null;
+    const bokeh = S.bg.bokehPattern || null;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, S.W, S.H);
+    ctx.clearRect(0, 0, W, H);
 
-    ctx.fillStyle = S.bg.deepPattern;
-    ctx.save(); ctx.translate(0, S.bg.offY_deep % S.H);
-    ctx.fillRect(0, -S.H, S.W, S.H * 2); ctx.restore();
+    // Layer helper that still paints even when pattern is missing
+    const paintLayer = (pattern, offY, alpha) => {
+      ctx.save();
+      if (pattern) {
+        ctx.fillStyle = pattern;
+      } else {
+        ctx.fillStyle = `rgba(10,14,30,${alpha})`;
+      }
+      ctx.translate(0, offY % H);
+      ctx.fillRect(0, -H, W, H * 2);
+      ctx.restore();
+    };
 
-    ctx.fillStyle = S.bg.midPattern;
-    ctx.save(); ctx.translate(0, S.bg.offY_mid % S.H);
-    ctx.fillRect(0, -S.H, S.W, S.H * 2); ctx.restore();
+    paintLayer(deep,  S.bg.offY_deep || 0, 0.35);
+    paintLayer(mid,   S.bg.offY_mid  || 0, 0.55);
+    paintLayer(near,  S.bg.offY_near || 0, 0.75);
 
-    ctx.fillStyle = S.bg.nearPattern;
-    ctx.save(); ctx.translate(0, S.bg.offY_near % S.H);
-    ctx.fillRect(0, -S.H, S.W, S.H * 2); ctx.restore();
-
-    if (S.bg.bokehPattern) {
+    if (bokeh) {
+      ctx.save();
       ctx.globalAlpha = 0.8;
-      ctx.fillStyle = S.bg.bokehPattern;
-      ctx.save(); ctx.translate(0, S.bg.offY_bokeh % S.H);
-      ctx.fillRect(0, -S.H, S.W, S.H * 2); ctx.restore();
-      ctx.globalAlpha = 1;
+      ctx.fillStyle = bokeh;
+      ctx.translate(0, (S.bg.offY_bokeh || 0) % H);
+      ctx.fillRect(0, -H, W, H * 2);
+      ctx.restore();
     }
   }
 
