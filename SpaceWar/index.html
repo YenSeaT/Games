@@ -3,288 +3,273 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cosmic Glider 2D — v0.4.1 (Cosmic Menu + Input Fix)</title>
+<title>Cosmic Glider 2D — v0.5 (No‑Keyboard + Contrast Fix)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#030611;color:#e5e7eb;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif}
-  canvas{display:block;width:100vw;height:100vh;outline:none}
-  #ui{position:fixed;inset:10px auto auto 10px;z-index:10;display:grid;gap:6px}
-  .chip{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(8,10,20,.6);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);box-shadow:0 10px 25px rgba(0,0,0,.35);font-size:12px}
-  .chip b{font-weight:900;color:#cbd5e1;letter-spacing:.2px}
-  #legend{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;background:rgba(7,9,18,.7);border:1px solid rgba(255,255,255,.12);padding:6px 10px;border-radius:10px}
-  #menuBtn{position:fixed;top:10px;right:10px;z-index:12;background:rgba(9,12,24,.86);border:1px solid rgba(255,255,255,.14);padding:8px 12px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.45)}
-  /* Cosmic menu */
-  .menu{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:radial-gradient(1200px 700px at 50% 20%,rgba(30,41,59,.35),rgba(2,6,18,.9))}
-  .menu.open{display:flex}
-  .menu .wrap{position:relative;display:grid;gap:16px;width:min(980px,92vw)}
-  .menu h1{margin:0 0 6px;font-size:26px;letter-spacing:.3px}
-  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .card{position:relative;background:rgba(10,14,28,.75);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:14px;cursor:pointer;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
-  .card:hover{transform:translateY(-2px)}
-  .card .title{font-weight:900;margin-bottom:4px}
-  .card .desc{font-size:12px;opacity:.8}
-  .card .tag{position:absolute;top:10px;right:10px;font-size:11px;font-weight:800;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;padding:2px 8px;border-radius:999px}
-  .stars{position:absolute;inset:0;pointer-events:none}
-  .stars span{position:absolute;width:2px;height:2px;background:#fff;opacity:.6;box-shadow:0 0 8px rgba(180,200,255,.8);filter:blur(0.3px)}
-  .gal{position:absolute;width:140px;height:140px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.45),rgba(255,255,255,0)),conic-gradient(from 0deg,rgba(170,190,255,.15),rgba(170,190,255,0) 50%,rgba(170,190,255,.15));mix-blend-mode:screen;opacity:.7;left:60%;top:-20%}
-  .menu .row{display:flex;gap:10px;align-items:center}
-  .btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:8px 10px;border-radius:10px;font-weight:800;cursor:pointer}
+  :root{--bg:#030611;--panel:rgba(8,10,20,.78);--panel2:rgba(10,14,28,.86);--br:rgba(255,255,255,.14);--ink:#e5e7eb;--mut:#cbd5e1}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  canvas{display:block;width:100vw;height:100vh;outline:none}
+  /* HUD */
+  #ui{position:fixed;inset:10px auto auto 10px;z-index:12;display:grid;gap:6px}
+  .chip{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--br);backdrop-filter:blur(8px);box-shadow:0 10px 25px rgba(0,0,0,.35);font-size:12px;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+  .chip b{font-weight:900;color:var(--mut);letter-spacing:.2px}
+  #menuBtn{position:fixed;top:10px;right:10px;z-index:14;background:var(--panel2);border:1px solid var(--br);padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.45)}
+  /* Cosmic menu */
+  .menu{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:radial-gradient(1200px 700px at 50% 20%,rgba(30,41,59,.4),rgba(2,6,18,.92))}
+  .menu.open{display:flex}
+  .menu .wrap{position:relative;display:grid;gap:16px;width:min(980px,92vw);color:var(--ink)}
+  .menu h1{margin:0 0 6px;font-size:26px;letter-spacing:.3px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{position:relative;background:var(--panel2);border:1px solid var(--br);border-radius:16px;padding:14px;cursor:pointer;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .card:hover{transform:translateY(-2px)}
+  .card .title{font-weight:900;margin-bottom:4px}
+  .card .desc{font-size:12px;opacity:.9}
+  .card .tag{position:absolute;top:10px;right:10px;font-size:11px;font-weight:800;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;padding:2px 8px;border-radius:999px}
+  .stars{position:absolute;inset:0;pointer-events:none}
+  .stars span{position:absolute;width:2px;height:2px;background:#fff;opacity:.7;box-shadow:0 0 8px rgba(180,200,255,.9);filter:blur(.3px)}
+  .gal{position:absolute;width:140px;height:140px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.45),rgba(255,255,255,0)),conic-gradient(from 0deg,rgba(170,190,255,.15),rgba(170,190,255,0) 50%,rgba(170,190,255,.15));mix-blend-mode:screen;opacity:.8;left:60%;top:-20%}
+  .row{display:flex;gap:10px;align-items:center}
+  .btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);padding:10px 12px;border-radius:12px;font-weight:800;cursor:pointer}
+  .primary{background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;border:none;box-shadow:0 12px 30px rgba(124,58,237,.35)}
+  /* On‑screen controls */
+  #pad{position:fixed;left:12px;bottom:12px;z-index:13;width:132px;height:132px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--br);backdrop-filter:blur(6px);box-shadow:0 10px 25px rgba(0,0,0,.35)}
+  #pad:after{content:"";position:absolute;inset:8px;border-radius:50%;border:1px dashed rgba(255,255,255,.18)}
+  #stick{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px; border-radius:50%;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.28);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  #actions{position:fixed;right:12px;bottom:12px;z-index:13;display:grid;gap:10px}
+  .act{min-width:120px;background:var(--panel2);border:1px solid var(--br);padding:10px 14px;border-radius:12px;font-weight:900;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.45)}
+  .act:hover{transform:translateY(-1px)}
+  .tagline{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:11;background:var(--panel);border:1px solid var(--br);padding:6px 10px;border-radius:10px;font-size:12px;text-shadow:0 1px 0 rgba(0,0,0,.6)}
 </style>
 </head>
 <body>
-  <button id="menuBtn">☄️ Cosmic Menu</button>
-  <div id="ui">
-    <div class="chip"><b>Mode</b><span id="uiMode">B • Balanced</span>&nbsp;&nbsp;<b>Lvl</b><span id="uiLevel">1</span>&nbsp;&nbsp;<b>Score</b><span id="uiScore">0</span></div>
-    <div class="chip"><b>Rings</b><span id="uiRings">0/0</span>&nbsp;&nbsp;<b>Enemies</b><span id="uiEnemies">0</span>&nbsp;&nbsp;<b>Kills</b><span id="uiKills">0</span></div>
-    <div class="chip"><b>Beam</b><span id="uiBeam">Auto</span>&nbsp;&nbsp;<b>FPS</b><span id="uiFPS">—</span></div>
-  </div>
-  <div id="legend">Ship focuses rings • Wingmen defend • <b>V</b>=tractor beam, Space=warp • Use <b>☄️ Cosmic Menu</b> to pick A/B/C</div>
+  <button id="menuBtn" aria-label="Open Cosmic Menu">☄️ Cosmic Menu</button>
+  <div id="ui">
+    <div class="chip"><b>Mode</b><span id="uiMode">B • Balanced</span>&nbsp;&nbsp;<b>Lvl</b><span id="uiLevel">1</span>&nbsp;&nbsp;<b>Score</b><span id="uiScore">0</span></div>
+    <div class="chip"><b>Rings</b><span id="uiRings">0/0</span>&nbsp;&nbsp;<b>Enemies</b><span id="uiEnemies">0</span>&nbsp;&nbsp;<b>Kills</b><span id="uiKills">0</span></div>
+    <div class="chip"><b>Beam</b><span id="uiBeam">Auto</span>&nbsp;&nbsp;<b>FPS</b><span id="uiFPS">—</span></div>
+  </div>
+  <div class="tagline">Ship auto‑collects rings • Wingmen defend • Use on‑screen pad to nudge • Beam & Warp buttons on the right</div>
 
-    <div id="cosmicMenu" class="menu open">
-    <div class="wrap">
-      <h1>Choose Your Flight Style</h1>
-      <div class="cards">
-        <div class="card" data-mode="A">
-          <div class="tag">A</div>
-          <div class="title">Arcade</div>
-          <div class="desc">Fast rings • Strong catch‑up • Aggressive wingmen • Auto beam</div>
-          <div class="stars"></div><div class="gal"></div>
-        </div>
-        <div class="card" data-mode="B">
-          <div class="tag">B</div>
-          <div class="title">Balanced</div>
-          <div class="desc">Steady cadence • Smooth glide • Standard defense • Auto beam</div>
-          <div class="stars"></div><div class="gal"></div>
-        </div>
-        <div class="card" data-mode="C">
-          <div class="tag">C</div>
-          <div class="title">Chill</div>
-          <div class="desc">Relaxed pace • Bigger rings • Manual beam • Gentle waves</div>
-          <div class="stars"></div><div class="gal"></div>
-        </div>
-      </div>
-      <div class="row"><button class="btn" id="closeMenu">Start Flight</button><button class="btn" id="toggleBeamAuto">Beam: Auto</button></div>
-    </div>
-  </div>
+  <!-- On‑screen controls -->
+  <div id="pad" aria-label="Nudge Pad"><div id="stick"></div></div>
+  <div id="actions">
+    <button class="act" id="warpBtn">⚡ Warp</button>
+    <button class="act" id="beamBtn">🧲 Beam: Auto</button>
+  </div>
 
-  <canvas id="c" tabindex="0"></canvas>
+  <!-- Cosmic Menu Overlay -->
+  <div id="cosmicMenu" class="menu open" aria-modal="true" role="dialog">
+    <div class="wrap">
+      <h1>Choose Your Flight Style</h1>
+      <div class="cards">
+        <div class="card" data-mode="A"><div class="tag">A</div><div class="title">Arcade</div><div class="desc">Fast rings • Strong catch‑up • Aggressive wingmen • Auto beam</div><div class="stars"></div><div class="gal"></div></div>
+        <div class="card" data-mode="B"><div class="tag">B</div><div class="title">Balanced</div><div class="desc">Steady cadence • Smooth glide • Standard defense • Auto beam</div><div class="stars"></div><div class="gal"></div></div>
+        <div class="card" data-mode="C"><div class="tag">C</div><div class="title">Chill</div><div class="desc">Relaxed pace • Bigger rings • Manual beam • Gentle waves</div><div class="stars"></div><div class="gal"></div></div>
+      </div>
+      <div class="row"><button class="btn primary" id="startBtn">Start Flight</button><button class="btn" id="toggleBeamAuto">Beam: Auto</button></div>
+    </div>
+  </div>
+
+  <canvas id="c"></canvas>
 <script>
 (function(){
-  'use strict';
-  function crashOverlay(msg){ try{ const el=document.createElement('div'); el.style.cssText='position:fixed;top:10px;right:10px;z-index:99999;background:#9f1239;color:#fff;padding:6px 10px;border-radius:8px;font:12px/1.2 Inter, sans-serif;max-width:70vw;box-shadow:0 6px 20px rgba(0,0,0,.4)'; el.textContent='JS error: '+msg; document.body.appendChild(el);}catch(_){}}
-  window.addEventListener('error',e=>crashOverlay(e.message));
+  'use strict';
+  function crashOverlay(msg){ try{ const el=document.createElement('div'); el.style.cssText='position:fixed;top:10px;right:10px;z-index:99999;background:#9f1239;color:#fff;padding:6px 10px;border-radius:8px;font:12px/1.2 Inter, sans-serif;max-width:70vw;box-shadow:0 6px 20px rgba(0,0,0,.4)'; el.textContent='JS error: '+msg; document.body.appendChild(el);}catch(_){}}
+  window.addEventListener('error',e=>crashOverlay(e.message));
 
-  // ====== Base Config + Modes ======
-  const BASE={
-    DPR: Math.min(window.devicePixelRatio||1, 2),
-    SPEED: 210,
-    STAR_DEEP: 140, STAR_MID: 160, STAR_NEAR: 220, BOKEH: 40, GALAXIES: 3,
-    ENEMY_WAVE_CHANCE: 0.08, ENEMY_WAVE_SIZE:[2,3], ENEMY_HP: 3,
-    BOLT_SPEED: 640, FIRE_COOLDOWN: 90, MAX_FIRE_RANGE: 500, FORWARD_ZONE_FRAC: 0.22,
-    RINGS_MIN: 15, RINGS_MAX: 30, RING_INTERVAL:[1.6,3.0], RING_RADIUS:[30,44],
-    RES_SPAWN_CHANCE: 0.02,
-    SHIP_X: 0.5, SHIP_Y: 0.78, SHIP_ACC_X: 3.2, SHIP_ACC_Y: 2.6, SHIP_DAMP: 0.88,
-    SHIP_MAX_VX: 620, SHIP_MAX_VY: 520, CATCHUP_DIST: 220, CATCHUP_BOOST: 1.25,
-    WING_OFFSET: 46, WING_COOLDOWN: 1400,
-    BEAM_AUTO: true, BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 1100,
-  };
-  const MODES={
-    A:{ name:'A • Arcade', RING_INTERVAL:[1.2,2.4], SHIP_ACC_X:3.8, SHIP_ACC_Y:3.2, SHIP_MAX_VX:700, SHIP_MAX_VY:560, CATCHUP_BOOST:1.35, ENEMY_WAVE_CHANCE:0.12, ENEMY_WAVE_SIZE:[2,4], RES_SPAWN_CHANCE:0.024, BEAM_AUTO:true },
-    B:{ name:'B • Balanced' },
-    C:{ name:'C • Chill', RING_INTERVAL:[2.2,3.8], SHIP_ACC_X:2.6, SHIP_ACC_Y:2.2, SHIP_MAX_VX:520, SHIP_MAX_VY:460, ENEMY_WAVE_CHANCE:0.06, ENEMY_WAVE_SIZE:[1,2], RES_SPAWN_CHANCE:0.018, BEAM_AUTO:false }
-  };
-  let CFG={...BASE, ...MODES.B};
+  // ====== Base Config + Modes ======
+  const BASE={
+    DPR: Math.min(window.devicePixelRatio||1, 2),
+    SPEED: 210,
+    STAR_DEEP: 140, STAR_MID: 160, STAR_NEAR: 220, BOKEH: 44, GALAXIES: 3,
+    ENEMY_WAVE_CHANCE: 0.08, ENEMY_WAVE_SIZE:[2,3], ENEMY_HP: 3,
+    BOLT_SPEED: 640, FIRE_COOLDOWN: 90, MAX_FIRE_RANGE: 500, FORWARD_ZONE_FRAC: 0.22,
+    RINGS_MIN: 15, RINGS_MAX: 30, RING_INTERVAL:[1.6,3.0], RING_RADIUS:[30,44],
+    RES_SPAWN_CHANCE: 0.02,
+    SHIP_X: 0.5, SHIP_Y: 0.78, SHIP_ACC_X: 3.2, SHIP_ACC_Y: 2.6, SHIP_DAMP: 0.88,
+    SHIP_MAX_VX: 620, SHIP_MAX_VY: 520, CATCHUP_DIST: 220, CATCHUP_BOOST: 1.25,
+    WING_OFFSET: 46, WING_COOLDOWN: 1400,
+    BEAM_AUTO: true, BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 1100,
+  };
+  const MODES={
+    A:{ name:'A • Arcade', RING_INTERVAL:[1.2,2.4], SHIP_ACC_X:3.8, SHIP_ACC_Y:3.2, SHIP_MAX_VX:700, SHIP_MAX_VY:560, CATCHUP_BOOST:1.35, ENEMY_WAVE_CHANCE:0.12, ENEMY_WAVE_SIZE:[2,4], RES_SPAWN_CHANCE:0.024, BEAM_AUTO:true },
+    B:{ name:'B • Balanced' },
+    C:{ name:'C • Chill', RING_INTERVAL:[2.2,3.8], SHIP_ACC_X:2.6, SHIP_ACC_Y:2.2, SHIP_MAX_VX:520, SHIP_MAX_VY:460, ENEMY_WAVE_CHANCE:0.06, ENEMY_WAVE_SIZE:[1,2], RES_SPAWN_CHANCE:0.018, BEAM_AUTO:false }
+  };
+  let CFG={...BASE, ...MODES.B};
 
-  // ====== Canvas ======
-  const canvas=document.getElementById('c');
-  const ctx=canvas.getContext('2d', {alpha:false});
-  if(!ctx){ crashOverlay('2D Canvas unavailable'); return; }
-  let W=1,H=1; function resize(){ W=canvas.width = Math.max(1, Math.floor(window.innerWidth*CFG.DPR)); H=canvas.height = Math.max(1, Math.floor(window.innerHeight*CFG.DPR)); canvas.style.width=window.innerWidth+'px'; canvas.style.height=window.innerHeight+'px'; }
-  window.addEventListener('resize',resize,{passive:true}); resize(); ctx.imageSmoothingEnabled=true;
+  // ====== Canvas ======
+  const canvas=document.getElementById('c');
+  const ctx=canvas.getContext('2d', {alpha:false});
+  if(!ctx){ crashOverlay('2D Canvas unavailable'); return; }
+  let W=1,H=1; function resize(){ W=canvas.width = Math.max(1, Math.floor(window.innerWidth*CFG.DPR)); H=canvas.height = Math.max(1, Math.floor(window.innerHeight*CFG.DPR)); canvas.style.width=window.innerWidth+'px'; canvas.style.height=window.innerHeight+'px'; }
+  window.addEventListener('resize',resize,{passive:true}); resize(); ctx.imageSmoothingEnabled=true;
 
-  // ====== HUD refs ======
-  const uiMode=document.getElementById('uiMode');
-  const uiLevel=document.getElementById('uiLevel');
-  const uiScore=document.getElementById('uiScore');
-  const uiRings=document.getElementById('uiRings');
-  const uiEnemies=document.getElementById('uiEnemies');
-  const uiKills=document.getElementById('uiKills');
-  const uiBeam=document.getElementById('uiBeam');
-  const uiFPS=document.getElementById('uiFPS');
-  const menu=document.getElementById('cosmicMenu');
-  const menuBtn=document.getElementById('menuBtn');
-  const closeMenu=document.getElementById('closeMenu');
-  const toggleBeamAuto=document.getElementById('toggleBeamAuto');
+  // ====== HUD refs ======
+  const uiMode=document.getElementById('uiMode');
+  const uiLevel=document.getElementById('uiLevel');
+  const uiScore=document.getElementById('uiScore');
+  const uiRings=document.getElementById('uiRings');
+  const uiEnemies=document.getElementById('uiEnemies');
+  const uiKills=document.getElementById('uiKills');
+  const uiBeam=document.getElementById('uiBeam');
+  const uiFPS=document.getElementById('uiFPS');
 
-  // ====== Helpers ======
-  const R=()=>Math.random(); const rand=(a,b)=>a+R()*(b-a); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const lerp=(a,b,t)=>a+(b-a)*t; const nowMs=()=>performance.now();
-  function merge(a,b){ const o={...a}; for(const k in b){ if(b[k]!==undefined) o[k]=b[k]; } return o; }
+  // Menu & Controls
+  const menu=document.getElementById('cosmicMenu');
+  const menuBtn=document.getElementById('menuBtn');
+  const startBtn=document.getElementById('startBtn');
+  const toggleBeamAuto=document.getElementById('toggleBeamAuto');
+  const pad=document.getElementById('pad');
+  const stick=document.getElementById('stick');
+  const warpBtn=document.getElementById('warpBtn');
+  const beamBtn=document.getElementById('beamBtn');
 
-  // ====== Offscreen textures ======
-  function makeBoltTex(){ const w=64,h=192, cn=document.createElement('canvas'); cn.width=w; cn.height=h; const g=cn.getContext('2d'); const grad=g.createLinearGradient(w/2,0,w/2,h); grad.addColorStop(0,'rgba(255,255,255,0)'); grad.addColorStop(0.15,'rgba(182,235,255,0.75)'); grad.addColorStop(0.5,'rgba(125,211,252,1)'); grad.addColorStop(0.85,'rgba(192,132,252,0.75)'); grad.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=grad; g.fillRect(w*0.42,0,w*0.16,h); g.globalCompositeOperation='lighter'; const glow=g.createLinearGradient(w/2,0,w/2,h); glow.addColorStop(0,'rgba(125,211,252,0)'); glow.addColorStop(0.5,'rgba(125,211,252,0.35)'); glow.addColorStop(1,'rgba(192,132,252,0)'); g.fillStyle=glow; g.fillRect(0,0,w,h); return cn; }
-  const TEX_BOLT=makeBoltTex();
-  function makeRingTex(r,thick){ const d=Math.ceil((r+thick)*2); const cn=document.createElement('canvas'); cn.width=cn.height=d; const g=cn.getContext('2d'); g.translate(d/2,d/2); g.lineWidth=thick; g.strokeStyle='rgba(150,242,255,0.9)'; g.shadowColor='rgba(54,209,255,0.9)'; g.shadowBlur=thick*1.8; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.stroke(); return cn; }
-  function makeGalaxyTex(size){ const cn=document.createElement('canvas'); cn.width=cn.height=size; const g=cn.getContext('2d'); g.translate(size/2,size/2); const core=g.createRadialGradient(0,0,0,0,0,size*0.22); core.addColorStop(0,'rgba(255,255,255,0.45)'); core.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=core; g.beginPath(); g.arc(0,0,size*0.22,0,6.283); g.fill(); g.globalCompositeOperation='lighter'; g.strokeStyle='rgba(170,190,255,0.12)'; g.lineWidth=1.2; for(let a=0;a<2*Math.PI;a+=Math.PI/6){ g.save(); g.rotate(a); g.beginPath(); for(let r=12;r<size*0.45;r+=3){ const ang= r*0.05; g.lineTo(Math.cos(ang)*r, Math.sin(ang)*r); } g.stroke(); g.restore(); } return cn; }
+  // ====== Helpers ======
+  const R=()=>Math.random(); const rand=(a,b)=>a+R()*(b-a); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const lerp=(a,b,t)=>a+(b-a)*t; const nowMs=()=>performance.now();
+  function merge(a,b){ const o={...a}; for(const k in b){ if(b[k]!==undefined) o[k]=b[k]; } return o; }
 
-  // ====== Drawers ======
-  function drawShip(x,y,rot,scale){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.scale(scale,scale); ctx.globalCompositeOperation='lighter'; const eg=ctx.createRadialGradient(0,28,2,0,28,22); eg.addColorStop(0,'rgba(102,204,255,0.8)'); eg.addColorStop(1,'rgba(102,204,255,0)'); ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(0,28,10,18,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#c6d0e6'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-18); ctx.lineTo(12,6); ctx.quadraticCurveTo(0,12,-12,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#90a8ff'; ctx.beginPath(); ctx.moveTo(0,-12); ctx.quadraticCurveTo(6,-4,0,0); ctx.quadraticCurveTo(-6,-4,0,-12); ctx.fill(); ctx.fillStyle='#9aa7bb'; ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-6,6); ctx.lineTo(-2,16); ctx.lineTo(-22,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(6,6); ctx.lineTo(2,16); ctx.lineTo(22,10); ctx.closePath(); ctx.fill(); ctx.fillStyle='#6f6cf8'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3,12); ctx.lineTo(-3,12); ctx.closePath(); ctx.fill(); ctx.restore(); }
-  function drawEnemy(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin((t+y)*0.01)*0.04); ctx.globalCompositeOperation='lighter'; const g=ctx.createRadialGradient(0,16,2,0,16,18); g.addColorStop(0,'rgba(255,120,150,0.7)'); g.addColorStop(1,'rgba(255,120,150,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,16,8,12,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#ffb4c1'; ctx.strokeStyle='rgba(128,30,60,0.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(10,6); ctx.quadraticCurveTo(0,10,-10,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#7b2942'; ctx.beginPath(); ctx.moveTo(0,-10); ctx.quadraticCurveTo(5,-4,0,0); ctx.quadraticCurveTo(-5,-4,0,-10); ctx.fill(); ctx.fillStyle='#ff87a0'; ctx.beginPath(); ctx.moveTo(-16,2); ctx.lineTo(-4,8); ctx.lineTo(-6,14); ctx.lineTo(-20,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(16,2); ctx.lineTo(4,8); ctx.lineTo(6,14); ctx.lineTo(20,10); ctx.closePath(); ctx.fill(); ctx.restore(); }
-  function drawWingman(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*3)*0.1); ctx.fillStyle='#c7d2fe'; ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(8,7); ctx.quadraticCurveTo(0,11,-8,7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#8aa2ff'; ctx.beginPath(); ctx.moveTo(0,-6); ctx.quadraticCurveTo(4,-2,0,0); ctx.quadraticCurveTo(-4,-2,0,-6); ctx.fill(); ctx.restore(); }
-  function drawShard(x,y,rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.globalCompositeOperation='lighter'; const g=ctx.createLinearGradient(-8,-8,8,8); g.addColorStop(0,'#5eead4'); g.addColorStop(1,'#a7f3d0'); ctx.fillStyle=g; ctx.strokeStyle='rgba(16,94,84,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(8,0); ctx.lineTo(0,10); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  // ====== Offscreen textures ======
+  function makeBoltTex(){ const w=64,h=192, cn=document.createElement('canvas'); cn.width=w; cn.height=h; const g=cn.getContext('2d'); const grad=g.createLinearGradient(w/2,0,w/2,h); grad.addColorStop(0,'rgba(255,255,255,0)'); grad.addColorStop(0.15,'rgba(182,235,255,0.75)'); grad.addColorStop(0.5,'rgba(125,211,252,1)'); grad.addColorStop(0.85,'rgba(192,132,252,0.75)'); grad.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=grad; g.fillRect(w*0.42,0,w*0.16,h); g.globalCompositeOperation='lighter'; const glow=g.createLinearGradient(w/2,0,w/2,h); glow.addColorStop(0,'rgba(125,211,252,0)'); glow.addColorStop(0.5,'rgba(125,211,252,0.35)'); glow.addColorStop(1,'rgba(192,132,252,0)'); g.fillStyle=glow; g.fillRect(0,0,w,h); return cn; }
+  const TEX_BOLT=makeBoltTex();
+  function makeRingTex(r,thick){ const d=Math.ceil((r+thick)*2); const cn=document.createElement('canvas'); cn.width=cn.height=d; const g=cn.getContext('2d'); g.translate(d/2,d/2); g.lineWidth=thick; g.strokeStyle='rgba(150,242,255,0.95)'; g.shadowColor='rgba(54,209,255,1)'; g.shadowBlur=thick*2.0; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.stroke(); return cn; }
+  function makeGalaxyTex(size){ const cn=document.createElement('canvas'); cn.width=cn.height=size; const g=cn.getContext('2d'); g.translate(size/2,size/2); const core=g.createRadialGradient(0,0,0,0,0,size*0.22); core.addColorStop(0,'rgba(255,255,255,0.5)'); core.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=core; g.beginPath(); g.arc(0,0,size*0.22,0,6.283); g.fill(); g.globalCompositeOperation='lighter'; g.strokeStyle='rgba(170,190,255,0.16)'; g.lineWidth=1.2; for(let a=0;a<2*Math.PI;a+=Math.PI/6){ g.save(); g.rotate(a); g.beginPath(); for(let r=12;r<size*0.45;r+=3){ const ang= r*0.05; g.lineTo(Math.cos(ang)*r, Math.sin(ang)*r); } g.stroke(); g.restore(); } return cn; }
 
-  // ====== State ======
-  let level=1, score=0, kills=0; let ringsCleared=0, ringsGoal=0; let nextRingAt=0;
-  let bullets=[], enemies=[], rings=[], deep=[], mid=[], near=[], bokeh=[], effects=[], shards=[], galaxies=[]; let nebulas=[], planets=[]; let targetRing=null;
-  let wingmen=[{state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side:-1,pref:-1},{state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side:1,pref:-1}];
-  let ship={x:W*CFG.SHIP_X,y:H*CFG.SHIP_Y, vx:0, vy:0, rot:0, warp:0};
-  let input={left:0,right:0,up:0,down:0};
-  let beam={auto:CFG.BEAM_AUTO, active:false, cd:0};
+  // ====== Drawers ======
+  function drawShip(x,y,rot,scale){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.scale(scale,scale); ctx.globalCompositeOperation='lighter'; const eg=ctx.createRadialGradient(0,28,2,0,28,22); eg.addColorStop(0,'rgba(102,204,255,0.8)'); eg.addColorStop(1,'rgba(102,204,255,0)'); ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(0,28,10,18,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#c6d0e6'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-18); ctx.lineTo(12,6); ctx.quadraticCurveTo(0,12,-12,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#90a8ff'; ctx.beginPath(); ctx.moveTo(0,-12); ctx.quadraticCurveTo(6,-4,0,0); ctx.quadraticCurveTo(-6,-4,0,-12); ctx.fill(); ctx.fillStyle='#9aa7bb'; ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-6,6); ctx.lineTo(-2,16); ctx.lineTo(-22,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(6,6); ctx.lineTo(2,16); ctx.lineTo(22,10); ctx.closePath(); ctx.fill(); ctx.fillStyle='#6f6cf8'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3,12); ctx.lineTo(-3,12); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  function drawEnemy(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin((t+y)*0.01)*0.04); ctx.globalCompositeOperation='lighter'; const g=ctx.createRadialGradient(0,16,2,0,16,18); g.addColorStop(0,'rgba(255,120,150,0.7)'); g.addColorStop(1,'rgba(255,120,150,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,16,8,12,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#ffb4c1'; ctx.strokeStyle='rgba(128,30,60,0.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(10,6); ctx.quadraticCurveTo(0,10,-10,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#7b2942'; ctx.beginPath(); ctx.moveTo(0,-10); ctx.quadraticCurveTo(5,-4,0,0); ctx.quadraticCurveTo(-5,-4,0,-10); ctx.fill(); ctx.fillStyle='#ff87a0'; ctx.beginPath(); ctx.moveTo(-16,2); ctx.lineTo(-4,8); ctx.lineTo(-6,14); ctx.lineTo(-20,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(16,2); ctx.lineTo(4,8); ctx.lineTo(6,14); ctx.lineTo(20,10); ctx.closePath(); ctx.fill(); ctx.restore(); }
+  function drawWingman(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*3)*0.1); ctx.fillStyle='#c7d2fe'; ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(8,7); ctx.quadraticCurveTo(0,11,-8,7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#8aa2ff'; ctx.beginPath(); ctx.moveTo(0,-6); ctx.quadraticCurveTo(4,-2,0,0); ctx.quadraticCurveTo(-4,-2,0,-6); ctx.fill(); ctx.restore(); }
+  function drawShard(x,y,rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.globalCompositeOperation='lighter'; const g=ctx.createLinearGradient(-8,-8,8,8); g.addColorStop(0,'#5eead4'); g.addColorStop(1,'#a7f3d0'); ctx.fillStyle=g; ctx.strokeStyle='rgba(16,94,84,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(8,0); ctx.lineTo(0,10); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
 
-  // ====== Level / HUD ======
-  function resetLevel(){ ringsCleared=0; ringsGoal = Math.floor(rand(CFG.RINGS_MIN, CFG.RINGS_MAX+1)); nextRingAt = nowMs() + rand(CFG.RING_INTERVAL[0],CFG.RING_INTERVAL[1])*1000; rings.length=0; enemies.length=0; bullets.length=0; effects.length=0; targetRing=null; uiLevel.textContent=level; updateHUD(); }
-  function updateHUD(){ uiScore.textContent=score; uiRings.textContent=`${ringsCleared}/${ringsGoal}`; uiEnemies.textContent=enemies.length; uiKills.textContent=kills; uiBeam.textContent=(beam.auto? 'Auto' : (beam.active? 'On':'Off')); }
+  // ====== State ======
+  let level=1, score=0, kills=0; let ringsCleared=0, ringsGoal=0; let nextRingAt=0;
+  let bullets=[], enemies=[], rings=[], deep=[], mid=[], near=[], bokeh=[], effects=[], shards=[], galaxies=[]; let nebulas=[], planets=[]; let targetRing=null;
+  let wingmen=[{state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side:-1,pref:-1},{state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side:1,pref:-1}];
+  let ship={x:W*CFG.SHIP_X,y:H*CFG.SHIP_Y, vx:0, vy:0, rot:0, warp:0};
+  let input={x:0,y:0};
+  let beam={auto:CFG.BEAM_AUTO, active:false, cd:0};
 
-  // ====== Sky systems ======
-  function makeStars(arr,count){ arr.length=0; for(let i=0;i<count;i++){arr.push({x:R()*W,y:R()*H})} }
-  function makeBokeh(arr,count){ arr.length=0; for(let i=0;i<count;i++){ arr.push({x:R()*W,y:R()*H,r:rand(1.2,3.2),blur:rand(3,10),a:rand(0.22,0.5)}) } }
-  function makeGalaxies(arr,count){ arr.length=0; for(let i=0;i<count;i++){ const size=rand(160,260)|0; arr.push({x:R()*W,y:R()*H, tex:makeGalaxyTex(size), r:size/2, rot:R()*6.283, s:rand(8,18)}); } }
-  function regenSky(){ makeStars(deep, CFG.STAR_DEEP); makeStars(mid, CFG.STAR_MID); makeStars(near, CFG.STAR_NEAR); makeBokeh(bokeh, CFG.BOKEH); makeGalaxies(galaxies, CFG.GALAXIES); }
-  regenSky();
+  // ====== Level / HUD ======
+  function resetLevel(){ ringsCleared=0; ringsGoal = Math.floor(rand(CFG.RINGS_MIN, CFG.RINGS_MAX+1)); nextRingAt = nowMs() + rand(CFG.RING_INTERVAL[0],CFG.RING_INTERVAL[1])*1000; rings.length=0; enemies.length=0; bullets.length=0; effects.length=0; targetRing=null; uiLevel.textContent=level; updateHUD(); }
+  function updateHUD(){ uiScore.textContent=score; uiRings.textContent=`${ringsCleared}/${ringsGoal}`; uiEnemies.textContent=enemies.length; uiKills.textContent=kills; uiBeam.textContent=(beam.auto? 'Auto' : (beam.active? 'On':'Off')); uiMode.textContent=CFG.name||'B • Balanced'; }
 
-  // ====== Menu helpers ======
-  function randomizeStars(el){ const s=el.querySelector('.stars'); if(!s) return; s.innerHTML=''; for(let i=0;i<24;i++){ const sp=document.createElement('span'); sp.style.left=(Math.random()*100)+'%'; sp.style.top=(Math.random()*100)+'%'; s.appendChild(sp);} }
-  for(const c of document.querySelectorAll('.card')) randomizeStars(c);
+  // ====== Sky systems ======
+  function makeStars(arr,count){ arr.length=0; for(let i=0;i<count;i++){arr.push({x:R()*W,y:R()*H})} }
+  function makeBokeh(arr,count){ arr.length=0; for(let i=0;i<count;i++){ arr.push({x:R()*W,y:R()*H,r:rand(1.2,3.2),blur:rand(3,10),a:rand(0.28,0.55)}) } }
+  function makeGalaxies(arr,count){ arr.length=0; for(let i=0;i<count;i++){ const size=rand(160,260)|0; arr.push({x:R()*W,y:R()*H, tex:makeGalaxyTex(size), r:size/2, rot:R()*6.283, s:rand(8,18)}); } }
+  function regenSky(){ makeStars(deep, CFG.STAR_DEEP); makeStars(mid, CFG.STAR_MID); makeStars(near, CFG.STAR_NEAR); makeBokeh(bokeh, CFG.BOKEH); makeGalaxies(galaxies, CFG.GALAXIES); }
+  regenSky();
 
-  function applyModeKey(key){ const sel = (key==='A')? MODES.A : (key==='C')? MODES.C : MODES.B; CFG = merge(BASE, sel); uiMode.textContent = sel.name || 'B • Balanced'; beam.auto = CFG.BEAM_AUTO; updateHUD(); resetLevel(); regenSky(); }
+  // ====== Menu helpers ======
+  function randomizeStars(el){ const s=el.querySelector('.stars'); if(!s) return; s.innerHTML=''; for(let i=0;i<24;i++){ const sp=document.createElement('span'); sp.style.left=(Math.random()*100)+'%'; sp.style.top=(Math.random()*100)+'%'; s.appendChild(sp);} }
+  for(const c of document.querySelectorAll('.card')) randomizeStars(c);
 
-  // Menu interactions
-  menuBtn.addEventListener('click',()=>{ menu.classList.add('open'); });
-  closeMenu.addEventListener('click',()=>{ menu.classList.remove('open'); canvas.focus(); });
-  toggleBeamAuto.addEventListener('click',()=>{ beam.auto=!beam.auto; toggleBeamAuto.textContent='Beam: '+(beam.auto?'Auto':'Manual'); updateHUD(); });
-  for(const card of document.querySelectorAll('.card')){ card.addEventListener('click',()=>{ const m=card.getAttribute('data-mode'); applyModeKey(m||'B'); menu.classList.remove('open'); canvas.focus(); }); }
+  function applyModeKey(key){ const sel = (key==='A')? MODES.A : (key==='C')? MODES.C : MODES.B; CFG = merge(BASE, sel); CFG.name = sel.name || 'B • Balanced'; beam.auto = CFG.BEAM_AUTO; beamBtn.textContent='🧲 Beam: '+(beam.auto?'Auto':'Manual'); updateHUD(); resetLevel(); regenSky(); }
+  let currentModeKey='B';
+  function startGame(){ currentModeKey = currentModeKey || 'B'; applyModeKey(currentModeKey); menu.classList.remove('open'); nextRingAt = nowMs(); spawnRing(); if(enemies.length===0) spawnEnemyWave(); }
 
-  // ====== Input (keyboard) ======
-  // Important: prevent page scroll stealing keys & stop conflicts
-  window.addEventListener('keydown',e=>{
-    const k=e.key.toUpperCase();
-    if(k==='A'||k==='B'||k==='C'){ e.preventDefault(); applyModeKey(k); return; }
-    if(e.code==='ArrowLeft'||e.code==='KeyA'){ e.preventDefault(); input.left=1; }
-    if(e.code==='ArrowRight'||e.code==='KeyD'){ e.preventDefault(); input.right=1; }
-    if(e.code==='ArrowUp'||e.code==='KeyW'){ e.preventDefault(); input.up=1; }
-    if(e.code==='ArrowDown'||e.code==='KeyS'){ e.preventDefault(); input.down=1; }
-    if(e.code==='Space'){ e.preventDefault(); ship.warp=1; }
-    if(e.code==='KeyV'){ e.preventDefault(); beam.active=!beam.active; beam.auto=false; updateHUD(); }
-  }, {passive:false});
-  window.addEventListener('keyup',e=>{
-    if(e.code==='ArrowLeft'||e.code==='KeyA') input.left=0;
-    if(e.code==='ArrowRight'||e.code==='KeyD') input.right=0;
-    if(e.code==='ArrowUp'||e.code==='KeyW') input.up=0;
-    if(e.code==='ArrowDown'||e.code==='KeyS') input.down=0;
-  }, {passive:false});
-  canvas.addEventListener('pointerdown',()=>canvas.focus());
+  // Menu interactions (no keyboard)
+  menuBtn.addEventListener('click',()=>{ menu.classList.add('open'); });
+  startBtn.addEventListener('click',()=> startGame());
+  toggleBeamAuto.addEventListener('click',()=>{ beam.auto=!beam.auto; toggleBeamAuto.textContent='Beam: '+(beam.auto?'Auto':'Manual'); beamBtn.textContent='🧲 Beam: '+(beam.auto?'Auto':'Manual'); updateHUD(); });
+  for(const card of document.querySelectorAll('.card')){ card.addEventListener('click',()=>{ const m=card.getAttribute('data-mode')||'B'; currentModeKey=m; applyModeKey(m); }); }
 
-  // ====== Spawners ======
-  function spawnRing(){ const r=rand(CFG.RING_RADIUS[0],CFG.RING_RADIUS[1]); const tex=makeRingTex(r, Math.max(5, r*0.22)); const bias = clamp(ship.x + rand(-W*0.35, W*0.35), W*0.08, W*0.92); rings.push({x:bias, y:-r-20, r, tex}); }
-  function spawnEnemyWave(){ const n=Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0],CFG.ENEMY_WAVE_SIZE[1]+1)); for(let i=0;i<n;i++){ const side = (R()<0.5)? -1:1; const ex = (side<0)? rand(W*0.05,W*0.4): rand(W*0.6,W*0.95); enemies.push({x:ex, y:-40-i*30, vx:rand(-40,40), vy:rand(120,160), hp:CFG.ENEMY_HP, phase:rand(0,6.28), ttl:10000}); } }
-  function spawnShard(){ shards.push({x:rand(W*0.25,W*0.75), y:-20, vx:rand(-20,20), vy:rand(40,80), rot:R()*6.28}); }
-  function fireBolt(x,y,tx,ty,from){ const dx=tx-x, dy=ty-y; const len=Math.hypot(dx,dy)||1; const vx=dx/len*CFG.BOLT_SPEED, vy=dy/len*CFG.BOLT_SPEED; bullets.push({x,y,vx,vy,life:900, from}); }
+  // ====== On‑screen Nudge Pad ======
+  const padRect=()=>pad.getBoundingClientRect();
+  let dragging=false; let center={x:0,y:0}; const RADIUS=56; // px in CSS space
+  function setStick(dx,dy){ stick.style.transform=`translate(${dx}px,${dy}px)`; }
+  function updateInputFromPoint(px,py){ const rect=padRect(); const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2; const dx=px-cx, dy=py-cy; const dist=Math.min(Math.hypot(dx,dy), RADIUS); const ang=Math.atan2(dy,dx); const nx=Math.cos(ang)*dist/RADIUS; const ny=Math.sin(ang)*dist/RADIUS; input.x=nx; input.y=ny; setStick(nx*RADIUS, ny*RADIUS); }
+  function endDrag(){ dragging=false; input.x=0; input.y=0; setStick(0,0); }
+  pad.addEventListener('pointerdown',e=>{ dragging=true; pad.setPointerCapture(e.pointerId); updateInputFromPoint(e.clientX,e.clientY); });
+  pad.addEventListener('pointermove',e=>{ if(!dragging) return; updateInputFromPoint(e.clientX,e.clientY); });
+  pad.addEventListener('pointerup',()=> endDrag()); pad.addEventListener('pointercancel',()=> endDrag()); pad.addEventListener('lostpointercapture',()=> endDrag());
 
-  // ====== Targeting & Wingmen ======
-  function pickNextRing(){ let best=null, bestDy=1e9; for(const r of rings){ const dy=r.y-ship.y; if(dy>-80 && dy<bestDy){ bestDy=dy; best=r; } } targetRing = best || null; }
-  function updateWingman(w,dt){ w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); const dockX=ship.x + w.side*CFG.WING_OFFSET, dockY=ship.y+8; if(w.state==='dock'){ w.x=dockX; w.y=dockY; if(enemies.length>=1 && w.cool<=0) { w.state='launch'; } } else if(w.state==='launch'){ w.x=lerp(w.x||dockX,dockX,0.07); w.y=lerp(w.y||dockY,ship.y-70,0.07); if(Math.abs((w.y||dockY)-(ship.y-70))<5){ w.state='attack'; w.target=-1; } } else if(w.state==='attack'){ if(enemies.length===0){ w.state='return'; } else { if(w.target<0 || w.target>=enemies.length){ let best=1e9, idx=-1; for(let j=0;j<enemies.length;j++){const e=enemies[j]; const sidePenalty = (((e.x<ship.x)?-1:1)===w.side) ? 0 : 180; const d=Math.hypot(e.x-(w.x||dockX),e.y-(w.y||dockY)) + sidePenalty; if(d<best){best=d; idx=j;} } w.target=idx; } const t=enemies[w.target]; if(!t){ w.state='return'; } else { w.x=lerp(w.x,t.x+(w.side*26),0.1); w.y=lerp(w.y,t.y-24,0.1); if(w.fireCd<=0){ fireBolt(w.x,w.y,t.x,t.y,'wing'); w.fireCd=180; } if(t.y>ship.y+140){ w.state='return'; } } } } else if(w.state==='return'){ w.x=lerp(w.x,dockX,0.1); w.y=lerp(w.y,dockY,0.1); if(Math.hypot(w.x-dockX,w.y-dockY)<4){ w.state='cool'; w.cool=CFG.WING_COOLDOWN; } } else if(w.state==='cool'){ w.x=dockX; w.y=dockY; if(w.cool<=0) { w.state='dock'; } } }
+  // Action buttons
+  warpBtn.addEventListener('click',()=>{ ship.warp=1; });
+  beamBtn.addEventListener('click',()=>{ if(beam.auto){ beam.auto=false; } else { beam.active=!beam.active; } beamBtn.textContent='🧲 Beam: '+(beam.auto?'Auto':(beam.active?'On':'Manual')); updateHUD(); });
 
-  // ====== Loop ======
-  let lastT=nowMs(), accFps=0, frames=0; applyModeKey('B');
-  function tick(){ const t=nowMs(); let dt=Math.min(60, t-lastT); lastT=t; const dtSec=dt/1000;
-    if(t>=nextRingAt){ spawnRing(); nextRingAt = t + rand(CFG.RING_INTERVAL[0],CFG.RING_INTERVAL[1])*1000; }
-    if(!targetRing || rings.indexOf(targetRing)===-1 || targetRing.y>ship.y+60){ pickNextRing(); }
-    if(R() < CFG.ENEMY_WAVE_CHANCE * dt/1000) spawnEnemyWave();
-    if(R() < CFG.RES_SPAWN_CHANCE * dt/1000) spawnShard();
+  // ====== Spawners ======
+  function spawnRing(){ const r=rand(CFG.RING_RADIUS[0],CFG.RING_RADIUS[1]); const tex=makeRingTex(r, Math.max(5, r*0.22)); const bias = clamp(ship.x + rand(-W*0.35, W*0.35), W*0.08, W*0.92); rings.push({x:bias, y:-r-20, r, tex}); }
+  function spawnEnemyWave(){ const n=Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0],CFG.ENEMY_WAVE_SIZE[1]+1)); for(let i=0;i<n;i++){ const side = (R()<0.5)? -1:1; const ex = (side<0)? rand(W*0.05,W*0.4): rand(W*0.6,W*0.95); enemies.push({x:ex, y:-40-i*30, vx:rand(-40,40), vy:rand(120,160), hp:CFG.ENEMY_HP, phase:rand(0,6.28), ttl:10000}); } }
+  function spawnShard(){ shards.push({x:rand(W*0.25,W*0.75), y:-20, vx:rand(-20,20), vy:rand(40,80), rot:R()*6.28}); }
+  function fireBolt(x,y,tx,ty,from){ const dx=tx-x, dy=ty-y; const len=Math.hypot(dx,dy)||1; const vx=dx/len*CFG.BOLT_SPEED, vy=dy/len*CFG.BOLT_SPEED; bullets.push({x,y,vx,vy,life:900, from}); }
 
-    const desiredX = targetRing? targetRing.x : W*0.5; const desiredY = targetRing? clamp(targetRing.y+40, H*0.35, H*0.85) : H*0.7;
-    const far = targetRing? Math.hypot(desiredX-ship.x, desiredY-ship.y) > CFG.CATCHUP_DIST : false; const boost = far? CFG.CATCHUP_BOOST : 1;
-    const nudgeX=(input.right-input.left)*180, nudgeY=(input.down-input.up)*120;
-    ship.vx += ((desiredX - ship.x)*CFG.SHIP_ACC_X*boost + nudgeX)*dtSec; ship.vy += ((desiredY - ship.y)*CFG.SHIP_ACC_Y*boost + nudgeY)*dtSec;
-    ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX*boost, CFG.SHIP_MAX_VX*boost); ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY*boost, CFG.SHIP_MAX_VY*boost);
-    ship.vx *= CFG.SHIP_DAMP; ship.vy *= CFG.SHIP_DAMP; ship.x += ship.vx*dtSec; ship.y += ship.vy*dtSec;
-    ship.x=clamp(ship.x, W*0.08, W*0.92); ship.y=clamp(ship.y, H*0.2, H*0.9); ship.rot = lerp(ship.rot, clamp(ship.vx,-260,260)/1000, 0.2);
+  // ====== Targeting & Wingmen ======
+  function pickNextRing(){ let best=null, bestDy=1e9; for(const r of rings){ const dy=r.y-ship.y; if(dy>-80 && dy<bestDy){ bestDy=dy; best=r; } } targetRing = best || null; }
+  function updateWingman(w,dt){ w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); const dockX=ship.x + w.side*CFG.WING_OFFSET, dockY=ship.y+8; if(w.state==='dock'){ w.x=dockX; w.y=dockY; if(enemies.length>=1 && w.cool<=0) { w.state='launch'; } } else if(w.state==='launch'){ w.x=lerp(w.x||dockX,dockX,0.07); w.y=lerp(w.y||dockY,ship.y-70,0.07); if(Math.abs((w.y||dockY)-(ship.y-70))<5){ w.state='attack'; w.target=-1; } } else if(w.state==='attack'){ if(enemies.length===0){ w.state='return'; } else { if(w.target<0 || w.target>=enemies.length){ let best=1e9, idx=-1; for(let j=0;j<enemies.length;j++){const e=enemies[j]; const sidePenalty = (((e.x<ship.x)?-1:1)===w.side) ? 0 : 180; const d=Math.hypot(e.x-(w.x||dockX),e.y-(w.y||dockY)) + sidePenalty; if(d<best){best=d; idx=j;} } w.target=idx; } const t=enemies[w.target]; if(!t){ w.state='return'; } else { w.x=lerp(w.x,t.x+(w.side*26),0.1); w.y=lerp(w.y,t.y-24,0.1); if(w.fireCd<=0){ fireBolt(w.x,w.y,t.x,t.y,'wing'); w.fireCd=180; } if(t.y>ship.y+140){ w.state='return'; } } } } else if(w.state==='return'){ w.x=lerp(w.x,dockX,0.1); w.y=lerp(w.y,dockY,0.1); if(Math.hypot(w.x-dockX,w.y-dockY)<4){ w.state='cool'; w.cool=CFG.WING_COOLDOWN; } } else if(w.state==='cool'){ w.x=dockX; w.y=dockY; if(w.cool<=0) { w.state='dock'; } } }
 
-    const scroll = (BASE.SPEED + (ship.warp? 220:0)) * dtSec; ship.warp=0;
+  // ====== Loop ======
+  let lastT=nowMs(), accFps=0, frames=0; applyModeKey('B');
+  function tick(){ const t=nowMs(); let dt=Math.min(60, t-lastT); lastT=t; const dtSec=dt/1000;
+    if(t>=nextRingAt){ spawnRing(); nextRingAt = t + rand(CFG.RING_INTERVAL[0],CFG.RING_INTERVAL[1])*1000; }
+    if(!targetRing || rings.indexOf(targetRing)===-1 || targetRing.y>ship.y+60){ pickNextRing(); }
+    if(R() < CFG.ENEMY_WAVE_CHANCE * dt/1000) spawnEnemyWave();
+    if(R() < CFG.RES_SPAWN_CHANCE * dt/1000) spawnShard();
 
-    for(const s of deep){ s.y+=scroll*0.18; if(s.y>H){ s.y=0; s.x=R()*W; } }
-    for(const s of mid){ s.y+=scroll*0.45; if(s.y>H){ s.y=0; s.x=R()*W; } }
-    for(const s of near){ s.y+=scroll*0.9; if(s.y>H){ s.y=0; s.x=R()*W; } }
-    for(const bk of bokeh){ bk.y += scroll*0.22; if(bk.y>H){ bk.y=0; bk.x=R()*W; } }
-    for(const g of galaxies){ g.y += scroll*0.12 + g.s*dtSec*0.02; g.rot += 0.0007; if(g.y-g.r>H+60){ g.y=-g.r; g.x=R()*W; } }
+    const desiredX = targetRing? targetRing.x : W*0.5; const desiredY = targetRing? clamp(targetRing.y+40, H*0.35, H*0.85) : H*0.7;
+    const far = targetRing? Math.hypot(desiredX-ship.x, desiredY-ship.y) > CFG.CATCHUP_DIST : false; const boost = far? CFG.CATCHUP_BOOST : 1;
+    const nudgeX=input.x*220, nudgeY=input.y*180;
+    ship.vx += ((desiredX - ship.x)*CFG.SHIP_ACC_X*boost + nudgeX)*dtSec; ship.vy += ((desiredY - ship.y)*CFG.SHIP_ACC_Y*boost + nudgeY)*dtSec;
+    ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX*boost, CFG.SHIP_MAX_VX*boost); ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY*boost, CFG.SHIP_MAX_VY*boost);
+    ship.vx *= CFG.SHIP_DAMP; ship.vy *= CFG.SHIP_DAMP; ship.x += ship.vx*dtSec; ship.y += ship.vy*dtSec;
+    ship.x=clamp(ship.x, W*0.08, W*0.92); ship.y=clamp(ship.y, H*0.2, H*0.9); ship.rot = lerp(ship.rot, clamp(ship.vx,-260,260)/1000, 0.2);
 
-    for(let i=rings.length-1;i>=0;i--){ const r=rings[i]; r.y+=scroll*0.8; const d=Math.hypot(r.x-ship.x, r.y-ship.y); if(d < r.r*0.85){ rings.splice(i,1); ringsCleared++; score+=10; if(R()<0.6) spawnShard(); updateHUD(); if(ringsCleared>=ringsGoal){ level++; resetLevel(); } } else if(r.y-r.r>H+60){ rings.splice(i,1); } }
+    const scroll = (BASE.SPEED + (ship.warp? 220:0)) * dtSec; ship.warp=0;
 
-    for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; e.ttl-=dt; const sway = Math.sin((t+e.phase*1000)/400)*40; e.x += (e.vx*dtSec) + (sway*dtSec); e.y += (e.vy*dtSec) + (scroll*0.25); if(e.y>ship.y-120) e.vy = Math.max(e.vy, 220); if(e.x<20||e.x>W-20) e.vx*=-1; if(e.y>H+60 || e.ttl<=0){ enemies.splice(i,1); continue; } }
+    for(const s of deep){ s.y+=scroll*0.18; if(s.y>H){ s.y=0; s.x=R()*W; } }
+    for(const s of mid){ s.y+=scroll*0.45; if(s.y>H){ s.y=0; s.x=R()*W; } }
+    for(const s of near){ s.y+=scroll*0.9; if(s.y>H){ s.y=0; s.x=R()*W; } }
+    for(const bk of bokeh){ bk.y += scroll*0.22; if(bk.y>H){ bk.y=0; bk.x=R()*W; } }
+    for(const g of galaxies){ g.y += scroll*0.12 + g.s*dtSec*0.02; g.rot += 0.0007; if(g.y-g.r>H+60){ g.y=-g.r; g.x=R()*W; } }
 
-    const forwardFenceY = ship.y - H*CFG.FORWARD_ZONE_FRAC; for(let j=0;j<enemies.length;j++){ const e=enemies[j]; if(e.y>forwardFenceY && e.y<ship.y){ const idx = (e.x<ship.x)? 0 : 1; const w=wingmen[idx]; if((w.state==='dock'||w.state==='cool') && w.cool<=0){ w.state='launch'; w.pref=j; } } }
+    for(let i=rings.length-1;i>=0;i--){ const r=rings[i]; r.y+=scroll*0.8; const d=Math.hypot(r.x-ship.x, r.y-ship.y); if(d < r.r*0.85){ rings.splice(i,1); ringsCleared++; score+=10; if(R()<0.6) spawnShard(); updateHUD(); if(ringsCleared>=ringsGoal){ level++; resetLevel(); } } else if(r.y-r.r>H+60){ rings.splice(i,1); } }
 
-    for(let i=0;i<wingmen.length;i++){ updateWingman(wingmen[i],dt); }
+    for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; e.ttl-=dt; const sway = Math.sin((t+e.phase*1000)/400)*40; e.x += (e.vx*dtSec) + (sway*dtSec); e.y += (e.vy*dtSec) + (scroll*0.25); if(e.y>ship.y-120) e.vy = Math.max(e.vy, 220); if(e.x<20||e.x>W-20) e.vx*=-1; if(e.y>H+60 || e.ttl<=0){ enemies.splice(i,1); continue; } }
 
-    for(let i=bullets.length-1;i>=0;i--){ const b=bullets[i]; b.x+=b.vx*dtSec; b.y+=b.vy*dtSec - scroll*0.05; b.life-=dt; if(b.life<=0||b.x<-60||b.x>W+60||b.y<-100||b.y>H+100){ bullets.splice(i,1); continue; } for(let j=enemies.length-1;j>=0;j--){ const e=enemies[j]; const d2=(e.x-b.x)*(e.x-b.x)+(e.y-b.y)*(e.y-b.y); if(d2<22*22){ enemies[j].hp--; bullets.splice(i,1); score+=15; if(enemies[j].hp<=0){ enemies.splice(j,1); kills++; updateHUD(); effects.push({x:e.x,y:e.y,t:260}); } break; } } }
+    const forwardFenceY = ship.y - H*CFG.FORWARD_ZONE_FRAC; for(let j=0;j<enemies.length;j++){ const e=enemies[j]; if(e.y>forwardFenceY && e.y<ship.y){ const idx = (e.x<ship.x)? 0 : 1; const w=wingmen[idx]; if((w.state==='dock'||w.state==='cool') && w.cool<=0){ w.state='launch'; w.pref=j; } } }
 
-    beam.cd=Math.max(0,beam.cd-dt); if(beam.auto && shards.length>0 && beam.cd<=0){ beam.active=true; }
-    for(let i=shards.length-1;i>=0;i--){ const s=shards[i]; s.x+=s.vx*dtSec; s.y+=s.vy*dtSec + scroll*0.4; s.rot += 0.02; 
-      if(beam.active){ 
-        const bx=ship.x, by=ship.y-8; 
-        const dx=s.x-bx, dy=s.y-by; 
-        if(dy<0 && -dy<CFG.BEAM_LEN){ 
-          const half = CFG.BEAM_HALF_W * (-dy/CFG.BEAM_LEN); 
-          if(Math.abs(dx) < half){ 
-            s.x = lerp(s.x, bx, 0.16); 
-            s.y = lerp(s.y, by, 0.16); 
-            if(Math.hypot(s.x-bx,s.y-by)<12){ 
-              shards.splice(i,1); 
-              score+=25; 
-              updateHUD(); 
-              continue; 
-            } 
-          } 
-        } 
-        if(s.y>H+40){ shards.splice(i,1); }
-      } else if(s.y>H+40){ shards.splice(i,1); }
-    }
-    if(beam.active){ beam.cd = CFG.BEAM_COOLDOWN; }
+    for(let i=0;i<wingmen.length;i++){ updateWingman(wingmen[i],dt); }
 
-    for(let i=effects.length-1;i>=0;i--){ effects[i].t-=dt; if(effects[i].t<=0) effects.splice(i,1); }
+    for(let i=bullets.length-1;i>=0;i--){ const b=bullets[i]; b.x+=b.vx*dtSec; b.y+=b.vy*dtSec - scroll*0.05; b.life-=dt; if(b.life<=0||b.x<-60||b.x>W+60||b.y<-100||b.y>H+100){ bullets.splice(i,1); continue; } for(let j=enemies.length-1;j>=0;j--){ const e=enemies[j]; const d2=(e.x-b.x)*(e.x-b.x)+(e.y-b.y)*(e.y-b.y); if(d2<22*22){ enemies[j].hp--; bullets.splice(i,1); score+=15; if(enemies[j].hp<=0){ enemies.splice(j,1); kills++; updateHUD(); effects.push({x:e.x,y:e.y,t:260}); } break; } } }
 
-    // ====== Render ======
-    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
-    const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#050a1a'); bg.addColorStop(1,'#020612'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-    for(const g of galaxies){ ctx.save(); ctx.translate(g.x,g.y); ctx.rotate(g.rot); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.7; ctx.drawImage(g.tex, -g.r, -g.r); ctx.restore(); }
-    if(nebulas.length<2 && R()<0.002*dt){ nebulas.push({x:rand(W*0.1,W*0.9), y:-200, r:rand(180,280), s:rand(10,20)}); }
-    for(let i=nebulas.length-1;i>=0;i--){ const n=nebulas[i]; n.y += (scroll*0.1) + n.s*(dtSec*0.2); if(n.y-n.r>H){ nebulas.splice(i,1); continue; } const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r); g.addColorStop(0,'rgba(100,180,255,0.08)'); g.addColorStop(1,'rgba(100,180,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.283); ctx.fill(); }
-    if(planets.length<1 && R()<0.0015*dt){ planets.push({x:rand(W*0.2,W*0.8), y:-160, r:rand(60,120), s:rand(18,28)}); }
-    for(let i=planets.length-1;i>=0;i--){ const p=planets[i]; p.y += (scroll*0.15) + p.s*dtSec; if(p.y-p.r>H+80){ planets.splice(i,1); continue; } const gp=ctx.createRadialGradient(p.x,p.y,p.r*0.1,p.x,p.y,p.r); gp.addColorStop(0,'rgba(255,255,255,0.18)'); gp.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gp; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); }
-    ctx.fillStyle='rgba(150,170,230,0.45)'; for(const s of deep){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
-    for(const bk of bokeh){ ctx.save(); ctx.shadowBlur=bk.blur; ctx.shadowColor='rgba(170,190,255,'+bk.a+')'; ctx.fillStyle='rgba(170,190,255,0)'; ctx.beginPath(); ctx.arc(bk.x,bk.y,bk.r,0,6.283); ctx.fill(); ctx.restore(); }
-    ctx.fillStyle='rgba(190,205,255,0.8)'; for(const s of mid){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
-    ctx.fillStyle='rgba(230,238,255,0.95)'; for(const s of near){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
+    beam.cd=Math.max(0,beam.cd-dt); if(beam.auto && shards.length>0 && beam.cd<=0){ beam.active=true; }
+    for(let i=shards.length-1;i>=0;i--){ const s=shards[i]; s.x+=s.vx*dtSec; s.y+=s.vy*dtSec + scroll*0.4; s.rot += 0.02; if(beam.active){ const bx=ship.x, by=ship.y-8; const dx=s.x-bx, dy=s.y-by; if(dy<0 && -dy<CFG.BEAM_LEN){ const half = CFG.BEAM_HALF_W * (-dy/CFG.BEAM_LEN); if(Math.abs(dx) < half){ s.x = lerp(s.x, bx, 0.16); s.y = lerp(s.y, by, 0.16); if(Math.hypot(s.x-bx,s.y-by)<12){ shards.splice(i,1); score+=25; updateHUD(); continue; } } } if(s.y>H+40){ shards.splice(i,1); } }
+    if(beam.active){ beam.cd = CFG.BEAM_COOLDOWN; }
 
-    for(const r of rings){ const x=(r.x - r.tex.width/2)|0, y=(r.y - r.tex.height/2)|0; ctx.drawImage(r.tex, x, y); }
-    for(const s of shards){ drawShard(s.x,s.y,s.rot); }
-    const tt=t/1000; for(const e of enemies){ drawEnemy(e.x,e.y,tt); }
-    ctx.save(); ctx.globalCompositeOperation='lighter'; for(const b of bullets){ const a=Math.atan2(b.vy,b.vx) - Math.PI/2; ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(a); ctx.drawImage(TEX_BOLT, -TEX_BOLT.width/2, -TEX_BOLT.height*0.55, TEX_BOLT.width, TEX_BOLT.height*0.9); ctx.restore(); } ctx.restore();
-    for(const fx of effects){ const k=fx.t/260; ctx.save(); ctx.globalCompositeOperation='lighter'; const g=ctx.createRadialGradient(fx.x,fx.y,0,fx.x,fx.y,36); g.addColorStop(0,'rgba(255,255,255,'+(0.6*k)+')'); g.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(fx.x,fx.y,36*(1.2-k*0.2),0,6.283); ctx.fill(); ctx.restore(); }
+    for(let i=effects.length-1;i>=0;i--){ effects[i].t-=dt; if(effects[i].t<=0) effects.splice(i,1); }
 
-    // tractor beam
-    if(beam.active){ const bx=ship.x, by=ship.y-8; const len=CFG.BEAM_LEN, half=CFG.BEAM_HALF_W; ctx.save(); ctx.globalCompositeOperation='lighter'; const grad=ctx.createLinearGradient(bx,by, bx, by-len); grad.addColorStop(0,'rgba(125,211,252,0.35)'); grad.addColorStop(1,'rgba(192,132,252,0.0)'); ctx.fillStyle=grad; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx-half,by-len); ctx.lineTo(bx+half,by-len); ctx.closePath(); ctx.fill(); ctx.restore(); beam.active=false; }
+    // ====== Render ======
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
+    const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#050a1a'); bg.addColorStop(1,'#020612'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    for(const g of galaxies){ ctx.save(); ctx.translate(g.x,g.y); ctx.rotate(g.rot); ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.78; ctx.drawImage(g.tex, -g.r, -g.r); ctx.restore(); }
+    if(nebulas.length<2 && R()<0.002*dt){ nebulas.push({x:rand(W*0.1,W*0.9), y:-200, r:rand(180,280), s:rand(10,20)}); }
+    for(let i=nebulas.length-1;i>=0;i--){ const n=nebulas[i]; n.y += (scroll*0.1) + n.s*(dtSec*0.2); if(n.y-n.r>H){ nebulas.splice(i,1); continue; } const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r); g.addColorStop(0,'rgba(100,180,255,0.1)'); g.addColorStop(1,'rgba(100,180,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.283); ctx.fill(); }
+    if(planets.length<1 && R()<0.0015*dt){ planets.push({x:rand(W*0.2,W*0.8), y:-160, r:rand(60,120), s:rand(18,28)}); }
+    for(let i=planets.length-1;i>=0;i--){ const p=planets[i]; p.y += (scroll*0.15) + p.s*dtSec; if(p.y-p.r>H+80){ planets.splice(i,1); continue; } const gp=ctx.createRadialGradient(p.x,p.y,p.r*0.1,p.x,p.y,p.r); gp.addColorStop(0,'rgba(255,255,255,0.2)'); gp.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gp; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); }
+    ctx.fillStyle='rgba(150,170,230,0.5)'; for(const s of deep){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
+    for(const bk of bokeh){ ctx.save(); ctx.shadowBlur=bk.blur; ctx.shadowColor='rgba(170,190,255,'+bk.a+')'; ctx.fillStyle='rgba(170,190,255,0)'; ctx.beginPath(); ctx.arc(bk.x,bk.y,bk.r,0,6.283); ctx.fill(); ctx.restore(); }
+    ctx.fillStyle='rgba(190,205,255,0.85)'; for(const s of mid){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
+    ctx.fillStyle='rgba(230,238,255,1)'; for(const s of near){ ctx.fillRect(s.x|0, s.y|0, 1,1); }
 
-    drawWingman(wingmen[0].x||ship.x-46, wingmen[0].y||ship.y+8, tt); drawWingman(wingmen[1].x||ship.x+46, wingmen[1].y||ship.y+8, tt);
-    drawShip(ship.x, ship.y, ship.rot, 1);
+    for(const r of rings){ const x=(r.x - r.tex.width/2)|0, y=(r.y - r.tex.height/2)|0; ctx.drawImage(r.tex, x, y); }
+    for(const s of shards){ drawShard(s.x,s.y,s.rot); }
+    const tt=t/1000; for(const e of enemies){ drawEnemy(e.x,e.y,tt); }
+    ctx.save(); ctx.globalCompositeOperation='lighter'; for(const b of bullets){ const a=Math.atan2(b.vy,b.vx) - Math.PI/2; ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(a); ctx.drawImage(TEX_BOLT, -TEX_BOLT.width/2, -TEX_BOLT.height*0.55, TEX_BOLT.width, TEX_BOLT.height*0.9); ctx.restore(); } ctx.restore();
+    for(const fx of effects){ const k=fx.t/260; ctx.save(); ctx.globalCompositeOperation='lighter'; const g=ctx.createRadialGradient(fx.x,fx.y,0,fx.x,fx.y,36); g.addColorStop(0,'rgba(255,255,255,'+(0.6*k)+')'); g.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(fx.x,fx.y,36*(1.2-k*0.2),0,6.283); ctx.fill(); ctx.restore(); }
 
-    updateHUD(); frames++; accFps+=dt; if(accFps>250){ uiFPS.textContent=String(Math.round(1000/(accFps/frames))); accFps=0; frames=0; }
-    requestAnimationFrame(tick);
-  }
+    if(beam.active){ const bx=ship.x, by=ship.y-8; const len=CFG.BEAM_LEN, half=CFG.BEAM_HALF_W; ctx.save(); ctx.globalCompositeOperation='lighter'; const grad=ctx.createLinearGradient(bx,by, bx, by-len); grad.addColorStop(0,'rgba(125,211,252,0.45)'); grad.addColorStop(1,'rgba(192,132,252,0.0)'); ctx.fillStyle=grad; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx-half,by-len); ctx.lineTo(bx+half,by-len); ctx.closePath(); ctx.fill(); ctx.restore(); beam.active=false; }
 
-  // First paint & focus
-  (function firstPaint(){ ctx.fillStyle='#070a18'; ctx.fillRect(0,0,W,H); })();
-  requestAnimationFrame(tick);
-}();
+    drawWingman(wingmen[0].x||ship.x-46, wingmen[0].y||ship.y+8, tt); drawWingman(wingmen[1].x||ship.x+46, wingmen[1].y||ship.y+8, tt);
+    drawShip(ship.x, ship.y, ship.rot, 1);
+
+    updateHUD(); frames++; accFps+=dt; if(accFps>250){ uiFPS.textContent=String(Math.round(1000/(accFps/frames))); accFps=0; frames=0; }
+    requestAnimationFrame(tick);
+  }
+
+  // First paint & show menu by default
+  (function firstPaint(){ ctx.fillStyle='#070a18'; ctx.fillRect(0,0,W,H); })();
+  requestAnimationFrame(tick);
+})();
 </script>
 </body>
 </html>
