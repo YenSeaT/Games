@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Cosmic Glider — Worlds Run (ES5)</title>
+<title>Cosmic Glider — Worlds Run+</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <!-- Three.js UMD -->
 <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
@@ -10,42 +10,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  html, body { margin:0; height:100%; background:#05060d; color:#E5E7EB; font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif; overflow:hidden;}
-  /* HUD toggle */
-  .hud-toggle {
-    position: fixed; top: 12px; left: 12px; z-index: 30;
-    background: rgba(7,9,18,.85); border:1px solid rgba(255,255,255,.12);
-    padding:8px 10px; border-radius:10px; cursor:pointer; user-select:none; font-weight:800;
-    box-shadow:0 10px 25px rgba(0,0,0,.35);
-  }
-  .hud-toggle:active { transform: translateY(1px); }
-
-  /* Panel */
-  .panel {
-    position: fixed; top: 56px; left: 12px; z-index: 25; width: 280px; max-width: 85vw;
-    background: rgba(7,9,18,.85); border:1px solid rgba(255,255,255,.12); border-radius:14px;
-    box-shadow:0 18px 50px rgba(0,0,0,.45); overflow:hidden; transform-origin: top left;
-    transition: transform .25s ease, opacity .25s ease;
-  }
-  .panel.collapsed { transform: scale(.98) translateY(-8px); opacity:0; pointer-events:none; }
-  .panel .head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); }
-  .panel .title { font-weight:800; letter-spacing:.2px; }
-  .panel .body { padding:10px 12px; display:grid; gap:10px; }
-  .row { display:flex; align-items:center; gap:8px; }
-  .row label { font-size: 12px; opacity:.85; min-width: 80px; }
-  .row select, .row input[type=range], .row button {
-    width:100%; background:rgba(255,255,255,.06); color:#E5E7EB; border:1px solid rgba(255,255,255,.15);
-    border-radius:10px; padding:8px 10px; outline:none; font-size:13px;
-  }
-  .row button { cursor:pointer; font-weight:800; background:linear-gradient(90deg,#7DD3FC,#C084FC); color:#0B1020; box-shadow:0 6px 18px rgba(124,58,237,.35); }
-  .stats { display:grid; gap:6px; font-size:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); padding:8px 10px; border-radius:10px; }
-  .hint { font-size:11px; opacity:.75; }
-  /* Bottom legend */
-  .legend {
-    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
-    background: rgba(7,9,18,.75); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:6px 10px; font-size:12px;
-  }
-  canvas { display:block; width:100vw; height:100vh; }
+  html,body{margin:0;height:100%;background:#05060d;color:#E5E7EB;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  .hud-toggle{position:fixed;top:12px;left:12px;z-index:30;background:rgba(7,9,18,.85);border:1px solid rgba(255,255,255,.12);padding:8px 10px;border-radius:10px;cursor:pointer;user-select:none;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.35)}
+  .hud-toggle:active{transform:translateY(1px)}
+  .panel{position:fixed;top:56px;left:12px;z-index:25;width:300px;max-width:85vw;background:rgba(7,9,18,.85);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden;transform-origin:top left;transition:transform .25s ease,opacity .25s ease}
+  .panel.collapsed{transform:scale(.98) translateY(-8px);opacity:0;pointer-events:none}
+  .panel .head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .panel .title{font-weight:800;letter-spacing:.2px}
+  .panel .body{padding:10px 12px;display:grid;gap:10px}
+  .row{display:flex;align-items:center;gap:8px}
+  .row label{font-size:12px;opacity:.85;min-width:96px}
+  .row select,.row input[type=range],.row button,.row input[type=checkbox]{width:100%;background:rgba(255,255,255,.06);color:#E5E7EB;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 10px;outline:none;font-size:13px}
+  .row input[type=checkbox]{width:auto;height:18px;padding:0;border-radius:6px}
+  .row button{cursor:pointer;font-weight:800;background:linear-gradient(90deg,#7DD3FC,#C084FC);color:#0B1020;box-shadow:0 6px 18px rgba(124,58,237,.35)}
+  .stats{display:grid;gap:6px;font-size:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px}
+  .legend{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(7,9,18,.75);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;font-size:12px}
+  canvas{display:block;width:100vw;height:100vh}
 </style>
 </head>
 <body>
@@ -53,478 +33,427 @@
 
   <div class="panel collapsed" id="panel">
     <div class="head">
-      <div class="title">Cosmic GlideR</div>
-      <div class="chip" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;">Worlds Run</div>
+      <div class="title">Cosmic Glider Zoom</div>
+      <div class="chip" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;">Worlds Run+</div>
     </div>
     <div class="body">
-      <div class="row">
-        <label>View</label>
+      <div class="row"><label>View</label>
         <select id="view">
           <option value="pilot">Pilot (inside)</option>
           <option value="chase">Chase (3rd-person)</option>
+          <option value="cine">Cinematic</option>
         </select>
       </div>
-      <div class="row">
-        <label>Speed</label>
-        <input id="speed" type="range" min="0" max="3.2" step="0.02" value="1.0">
+      <div class="row"><label>Speed</label><input id="speed" type="range" min="0" max="3.2" step="0.02" value="1.0"></div>
+      <div class="row"><label>Auto Worlds</label>
+        <select id="cycle"><option value="auto">On</option><option value="hold">Hold</option></select>
       </div>
-      <div class="row">
-        <label>World Cycle</label>
-        <select id="cycle">
-          <option value="auto">Auto (on)</option>
-          <option value="hold">Hold current</option>
-        </select>
+      <div class="row"><label>Auto Camera</label>
+        <input id="autoCam" type="checkbox" checked>
       </div>
-      <div class="row">
-        <button id="warpBtn" title="Punch it!">Engage Warp</button>
+      <div class="row"><label>Auto Controls</label>
+        <input id="autoCtl" type="checkbox" checked>
       </div>
+      <div class="row"><label>Obstacles</label>
+        <input id="obstToggle" type="checkbox" checked>
+      </div>
+      <div class="row"><label>Shield</label>
+        <input id="shieldToggle" type="checkbox" checked>
+      </div>
+      <div class="row"><button id="warpBtn" title="Punch it!">Engage Warp</button></div>
       <div class="stats">
         <div><b>World:</b> <span id="worldName">—</span></div>
+        <div><b>Level:</b> <span id="level">1</span></div>
+        <div><b>Camera:</b> <span id="camName">—</span></div>
+        <div><b>Score:</b> <span id="score">0</span></div>
         <div><b>FPS:</b> <span id="fps">—</span></div>
         <div><b>Particles:</b> <span id="pcount">—</span></div>
-        <div><b>View:</b> <span id="viewStat">—</span></div>
       </div>
-      <div class="hint">Drag to drift • Scroll/pinch = speed • <b>H</b> toggle panel • <b>V</b> switch view</div>
+      <div style="font-size:11px;opacity:.75">Keys: <b>H</b> panel • <b>V</b> view • <b>W</b> warp</div>
     </div>
   </div>
 
-  <div class="legend">Auto-traveling through worlds. Ship: move cursor/drag to steer. Cameras: Pilot / Chase.</div>
+  <div class="legend">Fly through the Halo Gate to change worlds & level up. Avoid asteroids — ring hits give score. Drag to steer; wheel/pinch speeds up/down.</div>
 
 <script>
 (function(){
-  // ---------- Utilities (ES5) ----------
+  // --------- Utilities ---------
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
   function lerp(a,b,t){return a+(b-a)*t;}
-  function rand(min,max){return min+Math.random()*(max-min);}
+  function rand(a,b){return a+Math.random()*(b-a);}
+  function randi(a,b){return Math.floor(rand(a,b));}
 
-  // ---------- DOM ----------
-  var hudBtn = document.getElementById('hudBtn');
-  var panel = document.getElementById('panel');
-  var viewSel = document.getElementById('view');
-  var speedRange = document.getElementById('speed');
-  var cycleSel = document.getElementById('cycle');
-  var warpBtn = document.getElementById('warpBtn');
-  var fpsEl = document.getElementById('fps');
-  var worldEl = document.getElementById('worldName');
-  var pcountEl = document.getElementById('pcount');
-  var viewStatEl = document.getElementById('viewStat');
+  // --------- DOM ---------
+  var hudBtn=document.getElementById('hudBtn'), panel=document.getElementById('panel');
+  var viewSel=document.getElementById('view'), speedRange=document.getElementById('speed');
+  var cycleSel=document.getElementById('cycle'), warpBtn=document.getElementById('warpBtn');
+  var autoCamEl=document.getElementById('autoCam'), autoCtlEl=document.getElementById('autoCtl');
+  var obstToggle=document.getElementById('obstToggle'), shieldToggle=document.getElementById('shieldToggle');
+  var worldEl=document.getElementById('worldName'), levelEl=document.getElementById('level');
+  var camEl=document.getElementById('camName'), scoreEl=document.getElementById('score');
+  var fpsEl=document.getElementById('fps'), pcountEl=document.getElementById('pcount');
 
-  var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  // ---------- Renderer / Scene ----------
-  var scene = new THREE.Scene();
-  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
-  var DPR = Math.min(window.devicePixelRatio||1, 1.6);
-  renderer.setPixelRatio(DPR);
+  // --------- Renderer / Scene ---------
+  var scene=new THREE.Scene();
+  var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  var DPR=Math.min(window.devicePixelRatio||1,1.6); renderer.setPixelRatio(DPR);
   document.body.appendChild(renderer.domElement);
 
-  function resize(){
-    var w = window.innerWidth, h = window.innerHeight;
+  // Cameras
+  var cameraPilot=new THREE.PerspectiveCamera(72,1,0.1,4000);
+  var cameraChase=new THREE.PerspectiveCamera(70,1,0.1,4000);
+  var cameraCine =new THREE.PerspectiveCamera(75,1,0.1,4000);
+  var activeCamera=cameraPilot, camName='Pilot';
+
+  function resize(){var w=window.innerWidth,h=window.innerHeight;
     renderer.setSize(w,h,false);
-    cameraPilot.aspect = w/h; cameraPilot.updateProjectionMatrix();
-    cameraChase.aspect = w/h; cameraChase.updateProjectionMatrix();
+    cameraPilot.aspect=w/h; cameraPilot.updateProjectionMatrix();
+    cameraChase.aspect=w/h; cameraChase.updateProjectionMatrix();
+    cameraCine.aspect =w/h; cameraCine.updateProjectionMatrix();
   }
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize',resize);
 
-  // ---------- Cameras (Pilot / Chase) ----------
-  var cameraPilot = new THREE.PerspectiveCamera(72, 1, 0.1, 3000);
-  var cameraChase = new THREE.PerspectiveCamera(70, 1, 0.1, 3000);
-  var activeCamera = cameraPilot;
+  // Lights
+  scene.add(new THREE.HemisphereLight(0x88aaff,0x080810,0.65));
+  var key=new THREE.DirectionalLight(0xffffff,0.9); key.position.set(4,8,6); scene.add(key);
+  var fill=new THREE.DirectionalLight(0x99ccff,0.35); fill.position.set(-6,2,5); scene.add(fill);
 
-  // ---------- Lights ----------
-  var hemi = new THREE.HemisphereLight(0x88aaff, 0x080810, 0.65);
-  scene.add(hemi);
-  var key = new THREE.DirectionalLight(0xffffff, 0.9);
-  key.position.set(4,8,6);
-  scene.add(key);
-  var fill = new THREE.DirectionalLight(0x99ccff, 0.35);
-  fill.position.set(-6,2,5);
-  scene.add(fill);
-
-  // ---------- Themes ("worlds") ----------
-  var WORLDS = [
-    { key:'neon',    name:'Neon Stream',   palette:[0x8A2BE2,0x00FFFF,0xFF4500], bg:'radial-gradient(1200px 600px at 50% 20%, rgba(0,238,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,0,135,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,119,255,.18), transparent 55%), #070a14', swirl: 0.65 },
-    { key:'core',    name:'Galactic Core', palette:[0xFFD700,0xFF69B4,0xFF1493], bg:'radial-gradient(1200px 600px at 40% 10%, rgba(255,215,0,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,20,147,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,105,180,.18), transparent 55%), #0a0710', swirl: 0.4  },
-    { key:'aurora',  name:'Aurora Drift',  palette:[0x7FFFD4,0x00FA9A,0x1E90FF], bg:'radial-gradient(1200px 600px at 60% 20%, rgba(127,255,212,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(30,144,255,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,250,154,.18), transparent 55%), #051013', swirl: 0.55 },
-    { key:'void',    name:'Voidfire',      palette:[0xFF6B6B,0xFFE66D,0x4D96FF], bg:'radial-gradient(1200px 600px at 55% 15%, rgba(77,150,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,107,107,.16), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,230,109,.14), transparent 55%), #0b0a12', swirl: 0.85 }
+  // --------- Worlds (themes) ---------
+  var WORLDS=[
+    {key:'neon',name:'Neon Stream',palette:[0x8A2BE2,0x00FFFF,0xFF4500],bg:'radial-gradient(1200px 600px at 50% 20%, rgba(0,238,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,0,135,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,119,255,.18), transparent 55%), #070a14', swirl:0.65},
+    {key:'core',name:'Galactic Core',palette:[0xFFD700,0xFF69B4,0xFF1493],bg:'radial-gradient(1200px 600px at 40% 10%, rgba(255,215,0,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,20,147,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,105,180,.18), transparent 55%), #0a0710', swirl:0.4},
+    {key:'aurora',name:'Aurora Drift',palette:[0x7FFFD4,0x00FA9A,0x1E90FF],bg:'radial-gradient(1200px 600px at 60% 20%, rgba(127,255,212,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(30,144,255,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,250,154,.18), transparent 55%), #051013', swirl:0.55},
+    {key:'void',name:'Voidfire',palette:[0xFF6B6B,0xFFE66D,0x4D96FF],bg:'radial-gradient(1200px 600px at 55% 15%, rgba(77,150,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,107,107,.16), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,230,109,.14), transparent 55%), #0b0a12', swirl:0.85}
   ];
-  var worldIndex = 0;
-  var world = WORLDS[worldIndex];
-  var worldDuration = 28; // seconds per world
-  var worldTimer = 0;
-  var cycling = true;
+  var worldIndex=0, world=WORLDS[0], worldDuration=28, worldTimer=0, cycling=true;
+  function applyWorldBG(w){document.body.style.background=w.bg;}
 
-  // Background apply
-  function applyWorldBG(w){ document.body.style.background = w.bg; }
+  // --------- Particles / Tunnel ---------
+  function makeStarTex(s){var c=document.createElement('canvas');c.width=c.height=s||128;var g=c.getContext('2d'),cx=c.width/2,cy=c.height/2,r=c.width*0.45;
+    var grd=g.createRadialGradient(cx,cy,0,cx,cy,r);grd.addColorStop(0,'rgba(255,255,255,1)');grd.addColorStop(.5,'rgba(255,255,255,.6)');grd.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=grd;g.beginPath();g.arc(cx,cy,r,0,Math.PI*2);g.fill();var t=new THREE.Texture(c);t.needsUpdate=true;return t;}
+  var starTex=makeStarTex(128);
 
-  // ---------- Particles / Tunnel ----------
-  var starTex = (function makeSpriteTexture(size){
-    var c = document.createElement('canvas'), s = size||128; c.width=c.height=s;
-    var g=c.getContext('2d'), cx=s*0.5, cy=s*0.5, r=s*0.45;
-    var grd=g.createRadialGradient(cx,cy,0,cx,cy,r);
-    grd.addColorStop(0,'rgba(255,255,255,1)'); grd.addColorStop(.5,'rgba(255,255,255,.6)'); grd.addColorStop(1,'rgba(255,255,255,0)');
-    g.clearRect(0,0,s,s); g.fillStyle=grd; g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.fill();
-    var t = new THREE.Texture(c); t.needsUpdate = true; return t;
-  })(128);
+  var isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var COUNT_DUST=isMobile?6000:12000, COUNT_SPARK=isMobile?1200:2600;
+  var RADIUS=44, LENGTH=560;
 
-  var COUNT_DUST  = isMobile ? 6000 : 12000;
-  var COUNT_SPARK = isMobile ? 1200 : 2600;
-  var RADIUS = 42, LENGTH = 520;
-
-  function makeTunnelPoints(count, size, palette, opacity){
-    var geom = new THREE.BufferGeometry();
-    var pos = new Float32Array(count*3);
-    var col = new Float32Array(count*3);
-    var i,i3, ang, rr, rad;
-    for(i=0;i<count;i++){
-      i3=i*3;
-      ang = Math.random()*Math.PI*2;
-      rr = Math.sqrt(Math.random()); // denser center
-      rad = rr*RADIUS;
-      pos[i3]   = Math.cos(ang)*rad;
-      pos[i3+1] = Math.sin(ang)*rad;
-      pos[i3+2] = -Math.random()*LENGTH;
-      var pick = new THREE.Color(palette[(Math.random()*palette.length)|0]);
-      col[i3]=pick.r; col[i3+1]=pick.g; col[i3+2]=pick.b;
-    }
-    geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
-    geom.setAttribute('color', new THREE.BufferAttribute(col,3));
-    var mat = new THREE.PointsMaterial({
-      size:size, map:starTex, transparent:true, opacity:opacity, depthWrite:false,
-      blending:THREE.AdditiveBlending, vertexColors:true, sizeAttenuation:true
-    });
-    var pts = new THREE.Points(geom, mat); pts.frustumCulled=false; return pts;
+  function makeTunnelPoints(count,size,palette,opacity){
+    var g=new THREE.BufferGeometry(),pos=new Float32Array(count*3),col=new Float32Array(count*3),i,i3,ang,rr,rad;
+    for(i=0;i<count;i++){i3=i*3;ang=Math.random()*Math.PI*2;rr=Math.sqrt(Math.random());rad=rr*RADIUS;
+      pos[i3]=Math.cos(ang)*rad;pos[i3+1]=Math.sin(ang)*rad;pos[i3+2]=-Math.random()*LENGTH;
+      var pick=new THREE.Color(palette[(Math.random()*palette.length)|0]);col[i3]=pick.r;col[i3+1]=pick.g;col[i3+2]=pick.b;}
+    g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    var m=new THREE.PointsMaterial({size:size,map:starTex,transparent:true,opacity:opacity,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,sizeAttenuation:true});
+    var pts=new THREE.Points(g,m);pts.frustumCulled=false;return pts;
   }
+  var dust=makeTunnelPoints(COUNT_DUST,0.18,world.palette,0.95);
+  var sparks=makeTunnelPoints(COUNT_SPARK,0.75,world.palette,0.85);
+  scene.add(dust);scene.add(sparks);
 
-  var dust = makeTunnelPoints(COUNT_DUST, 0.18, world.palette, 0.95);
-  var sparks = makeTunnelPoints(COUNT_SPARK, 0.75, world.palette, 0.85);
-  scene.add(dust); scene.add(sparks);
+  // background stars
+  var bgGeom=new THREE.BufferGeometry();(function(){var n=isMobile?400:900,arr=new Float32Array(n*3),i,i3;
+    for(i=0;i<n;i++){i3=i*3;arr[i3]=(Math.random()-0.5)*1200;arr[i3+1]=(Math.random()-0.5)*1200;arr[i3+2]=-Math.random()*1700-600;}
+    bgGeom.setAttribute('position',new THREE.BufferAttribute(arr,3));})();
+  var bgMat=new THREE.PointsMaterial({size:0.6,map:starTex,transparent:true,opacity:0.35,depthWrite:false,blending:THREE.AdditiveBlending});
+  var backgroundStars=new THREE.Points(bgGeom,bgMat);scene.add(backgroundStars);
 
-  // Far background stars
-  var bgGeom = new THREE.BufferGeometry();
-  (function(){
-    var n = isMobile ? 400 : 900, arr = new Float32Array(n*3), i,i3;
-    for(i=0;i<n;i++){ i3=i*3;
-      arr[i3]=(Math.random()-0.5)*1200;
-      arr[i3+1]=(Math.random()-0.5)*1200;
-      arr[i3+2]=-Math.random()*1600 - 600;
-    }
-    bgGeom.setAttribute('position', new THREE.BufferAttribute(arr,3));
-  })();
-  var bgMat = new THREE.PointsMaterial({ size:0.6, map:starTex, transparent:true, opacity:0.35, depthWrite:false, blending:THREE.AdditiveBlending });
-  var backgroundStars = new THREE.Points(bgGeom, bgMat);
-  scene.add(backgroundStars);
+  // world morph
+  var morphing=false,morphT=0,morphDur=4.0,fromPalette=world.palette.slice(0),toPalette=world.palette.slice(0),morphIndex=0,morphChunk=3000;
+  function startWorldMorph(next){fromPalette=world.palette.slice(0);toPalette=next.palette.slice(0);
+    morphing=true;morphT=0;morphIndex=0;world=next;applyWorldBG(world);worldEl.textContent=world.name;}
+  function lerpColor(aHex,bHex,t){var a=new THREE.Color(aHex),b=new THREE.Color(bHex),c=new THREE.Color(0,0,0);c.r=lerp(a.r,b.r,t);c.g=lerp(a.g,b.g,t);c.b=lerp(a.b,b.b,t);return c;}
+  function morphPointsColors(pts){var c=pts.geometry.getAttribute('color'),i,i3,palIdx,col;
+    var max=Math.min(c.count,morphIndex+morphChunk);
+    for(i=morphIndex;i<max;i++){i3=i*3;palIdx=(i%toPalette.length);col=lerpColor(fromPalette[palIdx],toPalette[palIdx],morphT);c.array[i3]=col.r;c.array[i3+1]=col.g;c.array[i3+2]=col.b;}
+    c.needsUpdate=true;morphIndex=max;if(morphIndex>=c.count){morphIndex=0;}}
 
-  // ---------- World color morph (chunked) ----------
-  var morphing = false, morphT = 0, morphDur = 4.0;
-  var fromPalette = world.palette.slice(0), toPalette = world.palette.slice(0);
-  var morphIndex = 0, morphChunk = 3000; // vertices per frame
+  // --------- Futuristic Ship ---------
+  var ship=new THREE.Group();scene.add(ship);
+  var matHull=new THREE.MeshStandardMaterial({color:0xbfd4e8,metalness:0.85,roughness:0.25});
+  var matDark=new THREE.MeshStandardMaterial({color:0x27303a,metalness:0.6,roughness:0.55});
+  var matWing=new THREE.MeshStandardMaterial({color:0x9aa7bb,metalness:0.7,roughness:0.35});
+  var matGlow=new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.6,metalness:0.1,roughness:0.2});
+  var matNeo =new THREE.MeshStandardMaterial({color:0x9b87f5,emissive:0x6f6cf8,emissiveIntensity:0.9,metalness:0.2,roughness:0.4});
 
-  function startWorldMorph(nextWorld){
-    fromPalette = world.palette.slice(0);
-    toPalette = nextWorld.palette.slice(0);
-    morphing = true; morphT = 0; morphIndex = 0;
-    world = nextWorld; // immediately update world meta (name, swirl), colors blend in
-    applyWorldBG(world);
-    worldEl.textContent = world.name;
-  }
+  // Sleek fuselage (extruded combo: capsule-ish)
+  var body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(0.55,2.1,12,24):new THREE.CylinderGeometry(0.55,0.6,2.8,20),matHull);
+  body.rotation.x=Math.PI/2; body.position.z=0.2; ship.add(body);
 
-  function lerpColorArr(aHex, bHex, t){
-    var a = new THREE.Color(aHex), b = new THREE.Color(bHex);
-    var c = new THREE.Color(0,0,0);
-    c.r = lerp(a.r, b.r, t); c.g = lerp(a.g, b.g, t); c.b = lerp(a.b, b.b, t);
-    return c;
-  }
+  // Needle nose cone
+  var nose=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.2,24),matHull);
+  nose.rotation.x=Math.PI/2; nose.position.z=1.9; ship.add(nose);
 
-  function morphPointsColors(points){
-    var col = points.geometry.getAttribute('color');
-    var i, i3, palIdx, c;
-    var max = Math.min(col.count, morphIndex+morphChunk);
-    for(i=morphIndex;i<max;i++){
-      i3=i*3; palIdx = (i % toPalette.length);
-      c = lerpColorArr(fromPalette[palIdx], toPalette[palIdx], morphT);
-      col.array[i3]=c.r; col.array[i3+1]=c.g; col.array[i3+2]=c.b;
-    }
-    col.needsUpdate = true; morphIndex = max;
-    if(morphIndex >= col.count){ morphIndex=0; }
-  }
+  // Neo panels (side glowing strakes)
+  function addStrake(x){var s=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,1.6),matNeo);s.position.set(x,-0.1,0.4);s.rotation.x=0.2;ship.add(s);}
+  addStrake(0.38); addStrake(-0.38);
 
-  // ---------- Ship (accurate-ish low-poly starfighter) ----------
-  var ship = new THREE.Group();
-  scene.add(ship);
+  // Canards / winglets
+  var canardL=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.06,0.28),matWing);
+  var canardR=canardL.clone();
+  canardL.position.set(-0.8,0.05,0.5); canardL.rotation.z=0.22; canardL.rotation.x=0.12;
+  canardR.position.set( 0.8,0.05,0.5); canardR.rotation.z=-0.22; canardR.rotation.x=0.12;
+  ship.add(canardL); ship.add(canardR);
 
-  // Materials
-  var matHull = new THREE.MeshStandardMaterial({ color:0xbfc7d6, metalness:0.7, roughness:0.35 });
-  var matDark = new THREE.MeshStandardMaterial({ color:0x303540, metalness:0.5, roughness:0.6 });
-  var matWing = new THREE.MeshStandardMaterial({ color:0x9097a6, metalness:0.6, roughness:0.45 });
-  var matGlass = new THREE.MeshPhysicalMaterial ? new THREE.MeshPhysicalMaterial({ color:0x88aaff, metalness:0, roughness:0.15, transmission:0.0, transparent:true, opacity:0.5, emissive:0x224466, emissiveIntensity:0.15 }) : matDark;
-  var matGlow = new THREE.MeshStandardMaterial({ color:0x66ccff, emissive:0x2299ff, emissiveIntensity:1.6, metalness:0.1, roughness:0.2 });
-
-  // Fuselage (tapered cylinder, aligned to Z)
-  var fus = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 3.4, 20, 1, false), matHull);
-  fus.rotation.x = Math.PI/2; // make it lengthwise along Z
-  fus.position.z = -0.2;
-  ship.add(fus);
-
-  // Nose cone
-  var nose = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 24), matHull);
-  nose.rotation.x = Math.PI/2;
-  nose.position.z = 2.0;
-  ship.add(nose);
-
-  // Canopy
-  var canopy = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 18, 0, Math.PI*2, 0, Math.PI/2), matGlass);
-  canopy.scale.set(1,0.78,1.2);
-  canopy.position.set(0, 0.25, 0.9);
-  ship.add(canopy);
-
-  // Wings
-  var wingL = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.7), matWing);
-  var wingR = wingL.clone();
-  wingL.position.set(-1.0, -0.15, 0.1); wingL.rotation.z = 0.10; wingL.rotation.x = 0.08;
-  wingR.position.set( 1.0, -0.15, 0.1); wingR.rotation.z = -0.10; wingR.rotation.x = 0.08;
+  // Main delta wings (thin, swept)
+  var wingL=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.07,0.9),matWing);
+  var wingR=wingL.clone();
+  wingL.position.set(-1.1,-0.15,-0.1); wingL.rotation.z=0.10; wingL.rotation.x=0.08;
+  wingR.position.set( 1.1,-0.15,-0.1); wingR.rotation.z=-0.10; wingR.rotation.x=0.08;
   ship.add(wingL); ship.add(wingR);
 
-  // Tail fin
-  var tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.9), matDark);
-  tail.position.set(0, 0.7, -0.8); tail.rotation.x = 0.25;
-  ship.add(tail);
+  // Tailplane
+  var tail=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.95),matDark);
+  tail.position.set(0,0.75,-0.9); tail.rotation.x=0.25; ship.add(tail);
 
-  // Engine nozzle + glow ring
-  var nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.6, 20), matDark);
-  nozzle.rotation.x = Math.PI/2; nozzle.position.z = -1.9;
-  ship.add(nozzle);
-  var ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.08, 12, 32), matGlow);
-  ring.rotation.x = Math.PI/2; ring.position.z = -1.9;
-  ship.add(ring);
+  // Engine core & halo thruster
+  var nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.5,0.6,20),matDark);
+  nozzle.rotation.x=Math.PI/2; nozzle.position.z=-2.1; ship.add(nozzle);
+  var thrHalo=new THREE.Mesh(new THREE.TorusGeometry(0.58,0.09,12,40),matGlow);
+  thrHalo.rotation.x=Math.PI/2; thrHalo.position.z=-2.1; ship.add(thrHalo);
+  var engineLight=new THREE.PointLight(0x44aaff,2.0,20,2.0); engineLight.position.set(0,0,-2.2); ship.add(engineLight);
 
-  // Engine light
-  var engineLight = new THREE.PointLight(0x44aaff, 2.0, 18, 2.0);
-  engineLight.position.set(0, 0, -2.0);
-  ship.add(engineLight);
+  // Shield bubble
+  var shieldGeom=new THREE.SphereGeometry(1.35,24,18);
+  var shieldMat=new THREE.MeshStandardMaterial({color:0x66ddff,transparent:true,opacity:0.18,metalness:0,roughness:0.5,emissive:0x2aa8ff,emissiveIntensity:0.25});
+  var shield=new THREE.Mesh(shieldGeom,shieldMat); shield.visible=true; ship.add(shield);
 
-  // Ship base transform
-  ship.position.set(0,0,0);
-  ship.rotation.set(0,0,0);
-
-  // ---------- Motion state ----------
-  var SPEED = parseFloat(speedRange.value);
-  var speedTarget = SPEED;
-  var time = 0;
-  var mouse = { x:0, y:0, tx:0, ty:0 };
-  var wobbleAmp = 0.35;
-
-  // ---------- Helpers ----------
-  function wrapZ(z){ if(z>2) z -= LENGTH; return z; }
-
-  // ---------- Interactions ----------
-  function normClient(v,max){ return (v/max)*2 - 1; }
-  function onPointerMove(e){
-    var w = window.innerWidth, h = window.innerHeight;
-    var x = (e.touches ? e.touches[0].clientX : e.clientX);
-    var y = (e.touches ? e.touches[0].clientY : e.clientY);
-    mouse.x = clamp(normClient(x, w), -1, 1) * 0.9;
-    mouse.y = clamp(-normClient(y, h), -1, 1) * 0.9;
+  // --------- Halo Gate (mesmerizing level changer) ---------
+  var gate=new THREE.Group(); scene.add(gate);
+  var gateRing=new THREE.Mesh(new THREE.TorusGeometry(6.2,0.28,16,100), new THREE.MeshStandardMaterial({color:0xa7b4ff,emissive:0x5570ff,emissiveIntensity:1.2,metalness:0.4,roughness:0.3}));
+  gate.add(gateRing);
+  // gate inner sprites
+  function makeGlow(radius, opacity){
+    var g=new THREE.Mesh(new THREE.SphereGeometry(radius,20,16), new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false}));
+    return g;
   }
-  window.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('touchmove', onPointerMove, {passive:true});
+  var gateGlow1=makeGlow(4.4,0.12), gateGlow2=makeGlow(3.2,0.16); gate.add(gateGlow1); gate.add(gateGlow2);
+  gate.position.set(0,0,-300); // ahead
 
-  function onWheel(e){
-    var d = e.deltaY > 0 ? 0.10 : -0.10;
-    speedTarget = clamp(speedTarget + d, 0, 3.2);
-    speedRange.value = speedTarget.toFixed(2);
+  // --------- Obstacles (rings + asteroids) ---------
+  var obstaclesGroup=new THREE.Group(); scene.add(obstaclesGroup);
+  var enableObstacles=true;
+
+  function makeScoreRing(){
+    var t=new THREE.TorusGeometry(2.0,0.14,12,40);
+    var m=new THREE.MeshStandardMaterial({color:0x96f2ff,emissive:0x36d1ff,emissiveIntensity:0.9,metalness:0.2,roughness:0.3});
+    var mesh=new THREE.Mesh(t,m); mesh.userData.type='ring'; return mesh;
   }
-  window.addEventListener('wheel', onWheel, {passive:true});
-
-  // Panel controls
-  hudBtn.addEventListener('click', function(){ panel.classList.toggle('collapsed'); });
-  window.addEventListener('keydown', function(e){
-    if(e.key==='h' || e.key==='H'){ panel.classList.toggle('collapsed'); }
-    if(e.key==='v' || e.key==='V'){
-      viewSel.value = (viewSel.value==='pilot' ? 'chase' : 'pilot');
-      updateView();
+  function makeAsteroid(){
+    var g=new THREE.DodecahedronGeometry(rand(0.35,0.85),0);
+    // roughen vertices
+    var arr=g.attributes.position.array, i;
+    for(i=0;i<arr.length;i++) arr[i]+= (Math.random()-0.5)*0.18;
+    g.computeVertexNormals();
+    var m=new THREE.MeshStandardMaterial({color:0x8a8f9c,metalness:0.25,roughness:0.95});
+    var mesh=new THREE.Mesh(g,m); mesh.userData.type='asteroid'; return mesh;
+  }
+  function spawnObstacle(zBase){
+    if(!enableObstacles) return;
+    var kind=Math.random()<0.55?'ring':'asteroid';
+    var o = (kind==='ring')?makeScoreRing():makeAsteroid();
+    var ang=Math.random()*Math.PI*2, rad=rand(3,12);
+    o.position.set(Math.cos(ang)*rad, Math.sin(ang)*rad, zBase);
+    o.rotation.set(rand(0,Math.PI), rand(0,Math.PI), rand(0,Math.PI));
+    obstaclesGroup.add(o);
+  }
+  function cleanupObstacles(){
+    for(var i=obstaclesGroup.children.length-1;i>=0;i--){
+      var c=obstaclesGroup.children[i];
+      if(c.position.z> 20){ obstaclesGroup.remove(c); }
     }
-  });
-
-  speedRange.addEventListener('input', function(){ speedTarget = parseFloat(speedRange.value); });
-  cycleSel.addEventListener('change', function(){ cycling = (cycleSel.value==='auto'); });
-  warpBtn.addEventListener('click', function(){
-    speedTarget = Math.min(3.2, Math.max(speedTarget, 2.2) + 0.6);
-    warpBtn.textContent = '⚡ Warp Engaged';
-    setTimeout(function(){ warpBtn.textContent='Engage Warp'; }, 900);
-  });
-
-  // ---------- Cameras view update ----------
-  function updateView(){
-    var mode = viewSel.value;
-    viewStatEl.textContent = mode === 'pilot' ? 'Pilot' : 'Chase';
-    activeCamera = (mode==='pilot') ? cameraPilot : cameraChase;
   }
-  viewSel.addEventListener('change', updateView);
 
-  // ---------- Animation ----------
-  var clock = new THREE.Clock();
-  var last = (performance.now?performance.now():Date.now()), acc=0, frames=0;
+  // --------- Motion / State ---------
+  var SPEED=parseFloat(speedRange.value), speedTarget=SPEED, time=0;
+  var mouse={x:0,y:0,tx:0,ty:0};
+  var level=1, score=0;
+  var wobbleAmp=0.35;
+
+  function wrapZ(z){ if(z>2) z-=LENGTH; return z; }
+
+  // --------- Interactions ---------
+  function normClient(v,max){return (v/max)*2-1;}
+  function onPointerMove(e){var w=window.innerWidth,h=window.innerHeight;var x=(e.touches?e.touches[0].clientX:e.clientX), y=(e.touches?e.touches[0].clientY:e.clientY);
+    mouse.x=clamp(normClient(x,w),-1,1)*0.9; mouse.y=clamp(-normClient(y,h),-1,1)*0.9;}
+  window.addEventListener('mousemove',onPointerMove);
+  window.addEventListener('touchmove',onPointerMove,{passive:true});
+  function onWheel(e){var d=e.deltaY>0?0.10:-0.10; speedTarget=clamp(speedTarget+d,0,3.2); speedRange.value=speedTarget.toFixed(2);}
+  window.addEventListener('wheel',onWheel,{passive:true});
+
+  hudBtn.addEventListener('click',function(){panel.classList.toggle('collapsed');});
+  window.addEventListener('keydown',function(e){
+    if(e.key==='h'||e.key==='H') panel.classList.toggle('collapsed');
+    if(e.key==='v'||e.key==='V'){ nextCamera(); }
+    if(e.key==='w'||e.key==='W'){ triggerWarp(); }
+  });
+  speedRange.addEventListener('input',function(){speedTarget=parseFloat(speedRange.value);});
+  cycleSel.addEventListener('change',function(){cycling=(cycleSel.value==='auto');});
+  viewSel.addEventListener('change',function(){setCamera(viewSel.value);});
+  autoCamEl.addEventListener('change',function(){autoCam=autoCamEl.checked;});
+  autoCtlEl.addEventListener('change',function(){autoCtl=autoCtlEl.checked;});
+  obstToggle.addEventListener('change',function(){enableObstacles=obstToggle.checked;});
+  shieldToggle.addEventListener('change',function(){shield.visible=shieldToggle.checked;});
+  warpBtn.addEventListener('click',function(){triggerWarp();});
+
+  // --------- Camera control ---------
+  var autoCam=true, autoCtl=true, nextCamAt=0;
+  function scheduleNextCam(){ nextCamAt = time + rand(8,20); }
+  function setCamera(mode){
+    if(mode==='pilot'){activeCamera=cameraPilot; camName='Pilot';}
+    else if(mode==='chase'){activeCamera=cameraChase; camName='Chase';}
+    else {activeCamera=cameraCine; camName='Cinematic';}
+    viewSel.value=mode; camEl.textContent=camName; scheduleNextCam();
+  }
+  function nextCamera(){
+    var seq=['pilot','chase','cine']; var i=seq.indexOf(viewSel.value);
+    setCamera(seq[(i+1)%seq.length]);
+  }
+
+  function triggerWarp(){
+    speedTarget=Math.min(3.2,Math.max(speedTarget,2.2)+0.6);
+    warpBtn.textContent='⚡ Warp Engaged'; setTimeout(function(){warpBtn.textContent='Engage Warp';},900);
+  }
+
+  // --------- Animation ---------
+  var clock=new THREE.Clock(); var last=(performance.now?performance.now():Date.now()), acc=0, frames=0;
 
   function animate(){
     requestAnimationFrame(animate);
-    var dt = clock.getDelta();
-    if(dt>0.1) dt = 0.1; // clamp big tab-jumps
-    time += dt;
+    var dt=clock.getDelta(); if(dt>0.1) dt=0.1; time+=dt;
 
-    // Auto world cycling
-    worldTimer += dt;
-    if(cycling && worldTimer > worldDuration && !morphing){
-      worldTimer = 0;
-      var nextIndex = (worldIndex+1) % WORLDS.length;
-      worldIndex = nextIndex;
-      startWorldMorph(WORLDS[worldIndex]);
+    // Auto worlds by timer (also via Halo gate when hit)
+    worldTimer+=dt;
+    if(cycling && worldTimer>worldDuration && !morphing){
+      worldTimer=0; var nextIndex=(worldIndex+1)%WORLDS.length; worldIndex=nextIndex; startWorldMorph(WORLDS[worldIndex]);
     }
 
     // Morph colors
-    if(morphing){
-      morphT += dt / morphDur;
-      if(morphT>1){ morphT = 1; morphing=false; }
-      morphPointsColors(dust);
-      morphPointsColors(sparks);
-    }
+    if(morphing){morphT+=dt/morphDur; if(morphT>1){morphT=1; morphing=false;} morphPointsColors(dust); morphPointsColors(sparks);}
 
-    // Smooth speed
-    SPEED = lerp(SPEED, speedTarget, 0.08);
+    // Smooth speed & engine effects
+    SPEED=lerp(SPEED,speedTarget,0.08);
+    var flick=1.2+Math.sin(time*40)*0.15+SPEED*0.2; engineLight.intensity=1.4*flick; thrHalo.material.emissiveIntensity=1.0+SPEED*0.8;
+    shield.material.opacity = (shield.visible? (0.12+0.08*Math.sin(time*3.0)) : 0);
 
-    // Camera/ship drift from input
-    mouse.tx = lerp(mouse.tx, mouse.x, 0.08);
-    mouse.ty = lerp(mouse.ty, mouse.y, 0.08);
+    // Auto camera switching
+    if(autoCam && time>nextCamAt){ setCamera(['pilot','chase','cine'][randi(0,3)]); }
+    // Auto controls: occasional warp or minor speed drift
+    if(autoCtl && Math.random()<0.005){ if(Math.random()<0.6) triggerWarp(); else speedTarget=clamp(speedTarget+rand(-0.2,0.25),0,3.2); }
 
-    // Ship movement (ease, roll, pitch)
-    var shipTargetX = mouse.tx * 3.8;
-    var shipTargetY = mouse.ty * 3.2;
-    ship.position.x = lerp(ship.position.x, shipTargetX, 0.08);
-    ship.position.y = lerp(ship.position.y, shipTargetY, 0.08);
+    // Input drift
+    mouse.tx=lerp(mouse.tx,mouse.x,0.08); mouse.ty=lerp(mouse.ty,mouse.y,0.08);
 
-    // Roll into turns & slight pitch
-    ship.rotation.z = lerp(ship.rotation.z, -mouse.tx * 0.45, 0.12);
-    ship.rotation.x = lerp(ship.rotation.x,  mouse.ty * 0.30, 0.12);
+    // Ship move / bank
+    var shipTargetX=mouse.tx*3.8, shipTargetY=mouse.ty*3.2;
+    ship.position.x=lerp(ship.position.x,shipTargetX,0.08);
+    ship.position.y=lerp(ship.position.y,shipTargetY,0.08);
+    ship.rotation.z=lerp(ship.rotation.z,-mouse.tx*0.48,0.12);
+    ship.rotation.x=lerp(ship.rotation.x, mouse.ty*0.32,0.12);
 
-    // Engine flicker
-    var flick = 1.2 + Math.sin(time*40)*0.15 + SPEED*0.2;
-    engineLight.intensity = 1.4*flick;
-    ring.material.emissiveIntensity = 1.1 + SPEED*0.7;
+    // Tunnel dynamics
+    var wobble=wobbleAmp+SPEED*0.12;
+    var cx=Math.sin(time*(0.9+SPEED*0.08))*wobble+mouse.tx*0.7;
+    var cy=Math.cos(time*(1.1+SPEED*0.05))*wobble+mouse.ty*0.7;
+    var swirl=world.swirl||0.5, twistSpeed=(0.3+SPEED*0.9)*0.8*swirl;
 
-    // Camera wobble
-    var wobble = wobbleAmp + SPEED*0.12;
-    var cx = Math.sin(time*(0.9 + SPEED*0.08))*wobble + mouse.tx*0.7;
-    var cy = Math.cos(time*(1.1 + SPEED*0.05))*wobble + mouse.ty*0.7;
-
-    // Tunnel swirl
-    var swirl = world.swirl || 0.5;
-    var twistSpeed = (0.3 + SPEED*0.9) * 0.8 * swirl;
-
-    // Move tunnel points
     var layers=[dust,sparks];
-    for(var li=0; li<layers.length; li++){
-      var p = layers[li];
-      var pos = p.geometry.getAttribute('position');
-      var arr = pos.array, count = pos.count;
-      var baseVel = (8 + SPEED*55) * (li===0 ? 1.0 : 1.15);
+    for(var li=0;li<layers.length;li++){
+      var p=layers[li], pos=p.geometry.getAttribute('position'), arr=pos.array, count=pos.count;
+      var baseVel=(8+SPEED*55)*(li===0?1.0:1.15);
       for(var i=0;i<count;i++){
-        var i3=i*3;
-        // forward
-        arr[i3+2] += dt*baseVel;
-        arr[i3+2] = wrapZ(arr[i3+2]);
-
-        // breathing radius + swirl twist
-        var x = arr[i3], y = arr[i3+1], z = arr[i3+2];
-        var rr = Math.sqrt(x*x + y*y);
-        var ang = Math.atan2(y,x);
-
-        // swirl angle proportional to z and speed
-        var rot = twistSpeed * dt * (0.6 + (z/LENGTH)*0.4);
-        ang += rot * (li===0 ? 1.0 : 1.35);
-
-        // gentle "living tunnel" scale
-        var scale = 1.0 + Math.sin(time*1.4 + z*0.02)*0.04;
-        var newR = rr * scale;
-
-        arr[i3]   = Math.cos(ang)*newR;
-        arr[i3+1] = Math.sin(ang)*newR;
+        var i3=i*3; arr[i3+2]+=dt*baseVel; arr[i3+2]=wrapZ(arr[i3+2]);
+        var x=arr[i3], y=arr[i3+1], z=arr[i3+2], rr=Math.sqrt(x*x+y*y), ang=Math.atan2(y,x);
+        var rot=twistSpeed*dt*(0.6+(z/LENGTH)*0.4); ang+=rot*(li===0?1.0:1.35);
+        var scale=1.0+Math.sin(time*1.4+z*0.02)*0.04; var newR=rr*scale;
+        arr[i3]=Math.cos(ang)*newR; arr[i3+1]=Math.sin(ang)*newR;
       }
-      pos.needsUpdate = true;
-      // Material dynamics
-      p.material.size = (li===0?0.18:0.75) * (1 + SPEED*0.75);
-      p.material.opacity = (li===0?0.95:0.85) * (0.92 + Math.sin(time*0.9)*0.04);
+      pos.needsUpdate=true;
+      p.material.size=(li===0?0.18:0.75)*(1+SPEED*0.75);
+      p.material.opacity=(li===0?0.95:0.85)*(0.92+Math.sin(time*0.9)*0.04);
     }
 
-    // Background motion
-    backgroundStars.rotation.z += dt*0.015;
-    backgroundStars.position.z += dt*(2 + SPEED*14);
-    if(backgroundStars.position.z > 0) backgroundStars.position.z = -800;
+    // Background drift
+    backgroundStars.rotation.z+=dt*0.015;
+    backgroundStars.position.z+=dt*(2+SPEED*14);
+    if(backgroundStars.position.z>0) backgroundStars.position.z=-800;
 
     // Cameras
-    // Pilot: slightly ahead of ship origin, inside the nose
-    cameraPilot.position.copy(ship.position);
-    cameraPilot.position.add(new THREE.Vector3(0, 0.12, 1.1));
-    cameraPilot.rotation.set(0,0,0);
-    cameraPilot.lookAt(
-      ship.position.x + cx*0.4,
-      ship.position.y + cy*0.4,
-      ship.position.z - 30
-    );
-    cameraPilot.rotation.z += Math.sin(time*0.7)*SPEED*0.02;
+    // Pilot
+    cameraPilot.position.copy(ship.position); cameraPilot.position.add(new THREE.Vector3(0,0.12,1.1));
+    cameraPilot.lookAt(ship.position.x+cx*0.4, ship.position.y+cy*0.4, ship.position.z-30);
+    cameraPilot.rotation.z+=Math.sin(time*0.7)*SPEED*0.02;
+    // Chase
+    var chaseOff=new THREE.Vector3(0,1.3+SPEED*0.2,4.8+(3.0-SPEED)*0.8);
+    // rotate offset by ship orientation
+    var sx=ship.rotation.x, sz=ship.rotation.z, cosx=Math.cos(sx), sinx=Math.sin(sx), cosz=Math.cos(sz), sinz=Math.sin(sz);
+    var ox=chaseOff.x, oy=chaseOff.y, oz=chaseOff.z;
+    var ry=oy*cosx-oz*sinx, rz=oy*sinx+oz*cosx; var rx=ox*cosz-ry*sinz, ry2=ox*sinz+ry*cosz;
+    cameraChase.position.copy(ship.position).add(new THREE.Vector3(rx,ry2,rz));
+    cameraChase.lookAt(ship.position.x, ship.position.y+0.1, ship.position.z+0.4);
+    // Cinematic: orbiting side fly-by around ship
+    var cineR=5.2, cineAng=time*0.35; cameraCine.position.set(ship.position.x+Math.cos(cineAng)*cineR, ship.position.y+1.0, ship.position.z+Math.sin(cineAng)*cineR+1.2);
+    cameraCine.lookAt(ship.position.x, ship.position.y+0.2, ship.position.z-0.2);
 
-    // Chase: behind and above, looking at ship
-    var chaseOffset = new THREE.Vector3(0, 1.3 + SPEED*0.2, 4.8 + (3.0 - SPEED)*0.8);
-    // rotate offset by ship roll/pitch for a nicer trailing feel
-    var off = chaseOffset.clone();
-    // simple rotation around X/Z axes
-    var sx = ship.rotation.x, sz = ship.rotation.z;
-    var cosx=Math.cos(sx), sinx=Math.sin(sx);
-    var cosz=Math.cos(sz), sinz=Math.sin(sz);
-    var ox = off.x, oy = off.y, oz = off.z;
-    // rotate around X
-    var ry = oy*cosx - oz*sinx, rz = oy*sinx + oz*cosx;
-    // rotate around Z
-    var rx = ox*cosz - ry*sinz, ry2 = ox*sinz + ry*cosz;
-    off.set(rx, ry2, rz);
-    cameraChase.position.copy(ship.position).add(off);
-    cameraChase.lookAt(ship.position.x, ship.position.y + 0.1, ship.position.z + 0.4);
+    // Obstacles move & spawn
+    enableObstacles = obstToggle.checked;
+    if(enableObstacles){
+      if(Math.random()<0.02){ spawnObstacle(-LENGTH+rand(40,160)); }
+      var oSpeed = (8+SPEED*55)*1.02;
+      for(var k=obstaclesGroup.children.length-1;k>=0;k--){
+        var o=obstaclesGroup.children[k];
+        o.position.z += dt*oSpeed;
+        o.rotation.x += dt*0.3; o.rotation.y += dt*0.25;
+        // collision / score
+        var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z;
+        var d2=dx*dx+dy*dy+dz*dz;
+        if(o.userData.type==='ring' && dz> -0.2 && dz< 0.6 && Math.sqrt(dx*dx+dy*dy)<2.0){
+          // Through ring -> score and remove
+          score += 10; scoreEl.textContent=score.toString(); obstaclesGroup.remove(o);
+        } else if(o.userData.type==='asteroid' && d2< (shield.visible? 2.2:1.4)){
+          // Hit asteroid: if shield on, just blink; otherwise knock back a bit
+          if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); }
+          speedTarget = Math.max(0.2, speedTarget - 0.3);
+          obstaclesGroup.remove(o);
+        }
+      }
+      cleanupObstacles();
+    }
+
+    // Halo Gate motion & trigger
+    gate.rotation.z += dt*0.4;
+    gate.position.z += dt*(8+SPEED*55); // same flow
+    if(gate.position.z> 6){
+      // Passed through the gate -> level up + world morph
+      level++; levelEl.textContent=String(level);
+      var next=(worldIndex+1)%WORLDS.length; worldIndex=next; startWorldMorph(WORLDS[worldIndex]);
+      // Reposition far ahead
+      gate.position.set(0,0,-LENGTH + rand(260,340));
+      // brief flourish
+      triggerWarp();
+    }
 
     // Render
-    renderer.render(scene, activeCamera);
+    renderer.render(scene,activeCamera);
 
-    // FPS
-    var now = (performance.now?performance.now():Date.now());
-    frames++; acc += (now-last); last = now;
-    if(acc>=500){ fpsEl.textContent = Math.round(frames*1000/acc); frames=0; acc=0; }
-
-    // Update stats UI periodically
-    if((frames % 15)===0){
-      worldEl.textContent = world.name;
-      pcountEl.textContent = (COUNT_DUST + COUNT_SPARK).toString();
-    }
+    // HUD stats
+    var now=(performance.now?performance.now():Date.now()); frames++; acc+=(now-last); last=now;
+    if(acc>=500){ fpsEl.textContent=String(Math.round(frames*1000/acc)); frames=0; acc=0; }
+    if((frames%15)===0){ worldEl.textContent=world.name; pcountEl.textContent=String(COUNT_DUST+COUNT_SPARK); camEl.textContent=camName; }
   }
 
-  // ---------- Init ----------
+  // --------- Init ---------
   function init(){
-    applyWorldBG(world);
-    worldEl.textContent = world.name;
-    viewSel.value = isMobile ? 'chase' : 'pilot';
-    updateView();
-
-    // Start ship slightly forward so we can see some nose from pilot view
+    applyWorldBG(world); worldEl.textContent=world.name; levelEl.textContent='1';
+    setCamera('pilot');
     ship.position.set(0,0,0);
-
-    // Initial cameras update to place them correctly before first frame
-    resize();
-    animate();
+    // place gate far ahead
+    gate.position.set(0,0,-LENGTH + 300);
+    resize(); animate();
   }
 
-  // Safety: when tab hidden, gently slow down
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden){ speedTarget = Math.max(0.3, speedTarget*0.6); }
-  });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden){ speedTarget=Math.max(0.3, speedTarget*0.6); }});
 
-  // Kickoff
   init();
 })();
 </script>
