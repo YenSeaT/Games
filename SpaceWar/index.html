@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cosmic Glider 2D — v0.6 (Objective AI • Lateral Wingmen • Harvester)</title>
+<title>Cosmic Glider 2D — v0.7 (Saucers • Blink Wingmen • Tether Harvester)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
   :root { --bg:#030611; --panel:rgba(8,10,20,.78); --panel2:rgba(10,14,28,.9); --br:rgba(255,255,255,.14); --ink:#e5e7eb; --mut:#cbd5e1; }
@@ -119,15 +119,13 @@
     SPEED: 210,
     STAR_DEEP: 140, STAR_MID: 160, STAR_NEAR: 220, BOKEH: 44, GALAXIES: 3,
     ENEMY_WAVE_CHANCE: 0.08, ENEMY_WAVE_SIZE:[2,3], ENEMY_HP: 3,
-    BOLT_SPEED: 640, FIRE_COOLDOWN: 90, MAX_FIRE_RANGE: 520, FORWARD_ZONE_FRAC: 0.22,
+    BOLT_SPEED: 640, FIRE_COOLDOWN: 90, MAX_FIRE_RANGE: 560,
     RINGS_MIN: 15, RINGS_MAX: 30, RING_INTERVAL:[1.6,3.0], RING_RADIUS:[30,44],
     RES_SPAWN_CHANCE: 0.02,
     SHIP_X: 0.5, SHIP_Y: 0.78, SHIP_ACC_X: 3.2, SHIP_ACC_Y: 2.6, SHIP_DAMP: 0.88,
     SHIP_MAX_VX: 620, SHIP_MAX_VY: 520, CATCHUP_DIST: 220, CATCHUP_BOOST: 1.25,
-    WING_OFFSET: 46, WING_COOLDOWN: 1200,
-    BEAM_AUTO: true, BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 1100,
-    // New combat tuning
-    ENGAGE_RANGE_X: 260, ENGAGE_RANGE_Y: 360, FIRE_FORWARD_ONLY: true, FIRE_MIN_FORWARD: 6
+    WING_OFFSET: 46, WING_COOLDOWN: 1000,
+    BEAM_AUTO: true, BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 900
   };
   var MODES={
     A:{ name:'A • Arcade', RING_INTERVAL:[1.2,2.4], SHIP_ACC_X:3.8, SHIP_ACC_Y:3.2, SHIP_MAX_VX:700, SHIP_MAX_VY:560, CATCHUP_BOOST:1.35, ENEMY_WAVE_CHANCE:0.12, ENEMY_WAVE_SIZE:[2,4], RES_SPAWN_CHANCE:0.024, BEAM_AUTO:true },
@@ -180,10 +178,53 @@
 
   // ====== Drawers ======
   function drawShip(x,y,rot,scale){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.scale(scale,scale); ctx.globalCompositeOperation='lighter'; var eg=ctx.createRadialGradient(0,28,2,0,28,22); eg.addColorStop(0,'rgba(102,204,255,0.8)'); eg.addColorStop(1,'rgba(102,204,255,0)'); ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(0,28,10,18,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#c6d0e6'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-18); ctx.lineTo(12,6); ctx.quadraticCurveTo(0,12,-12,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#90a8ff'; ctx.beginPath(); ctx.moveTo(0,-12); ctx.quadraticCurveTo(6,-4,0,0); ctx.quadraticCurveTo(-6,-4,0,-12); ctx.fill(); ctx.fillStyle='#9aa7bb'; ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-6,6); ctx.lineTo(-2,16); ctx.lineTo(-22,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(6,6); ctx.lineTo(2,16); ctx.lineTo(22,10); ctx.closePath(); ctx.fill(); ctx.fillStyle='#6f6cf8'; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3,12); ctx.lineTo(-3,12); ctx.closePath(); ctx.fill(); ctx.restore(); }
-  function drawEnemy(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin((t+y)*0.01)*0.04); ctx.globalCompositeOperation='lighter'; var g=ctx.createRadialGradient(0,16,2,0,16,18); g.addColorStop(0,'rgba(255,120,150,0.7)'); g.addColorStop(1,'rgba(255,120,150,0)'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,16,8,12,0,0,6.283); ctx.fill(); ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#ffb4c1'; ctx.strokeStyle='rgba(128,30,60,0.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,-14); ctx.lineTo(10,6); ctx.quadraticCurveTo(0,10,-10,6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#7b2942'; ctx.beginPath(); ctx.moveTo(0,-10); ctx.quadraticCurveTo(5,-4,0,0); ctx.quadraticCurveTo(-5,-4,0,-10); ctx.fill(); ctx.fillStyle='#ff87a0'; ctx.beginPath(); ctx.moveTo(-16,2); ctx.lineTo(-4,8); ctx.lineTo(-6,14); ctx.lineTo(-20,10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(16,2); ctx.lineTo(4,8); ctx.lineTo(6,14); ctx.lineTo(20,10); ctx.closePath(); ctx.fill(); ctx.restore(); }
-  function drawWingman(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*3)*0.1); ctx.fillStyle='#c7d2fe'; ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-9); ctx.lineTo(8,7); ctx.quadraticCurveTo(0,11,-8,7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle='#8aa2ff'; ctx.beginPath(); ctx.moveTo(0,-6); ctx.quadraticCurveTo(4,-2,0,0); ctx.quadraticCurveTo(-4,-2,0,-6); ctx.fill(); ctx.restore(); }
+
+  function drawSaucer(x,y,t){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin((t+y)*0.4)*0.02);
+    // glow
+    ctx.globalCompositeOperation='lighter';
+    var g=ctx.createRadialGradient(0,6,2,0,6,22); g.addColorStop(0,'rgba(255,180,220,0.6)'); g.addColorStop(1,'rgba(255,180,220,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,12,18,8,0,0,6.283); ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+    // dome
+    ctx.fillStyle='#ffe0ea'; ctx.strokeStyle='rgba(120,30,60,0.8)'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.ellipse(0,-2,10,8,0,0,Math.PI); ctx.fill(); ctx.stroke();
+    // disk
+    var diskGrad=ctx.createLinearGradient(-20,0,20,0); diskGrad.addColorStop(0,'#7f2647'); diskGrad.addColorStop(1,'#a63e63');
+    ctx.fillStyle=diskGrad; ctx.beginPath(); ctx.ellipse(0,6,22,10,0,0,6.283); ctx.fill(); ctx.stroke();
+    // lights
+    ctx.globalCompositeOperation='lighter';
+    var i; for(i=-2;i<=2;i++){
+      var lx=-12+i*6; var ly=8+Math.sin(t*2+i)*1.2;
+      var lg=ctx.createRadialGradient(lx,ly,0,lx,ly,4); lg.addColorStop(0,'rgba(255,100,150,0.9)'); lg.addColorStop(1,'rgba(255,100,150,0)');
+      ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(lx,ly,4,0,6.283); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBlinkWingman(x,y,t){
+    ctx.save(); ctx.translate(x,y);
+    // a tiny teleporting drone look
+    ctx.globalCompositeOperation='lighter';
+    var halo=ctx.createRadialGradient(0,0,0,0,0,16); halo.addColorStop(0,'rgba(160,200,255,0.8)'); halo.addColorStop(1,'rgba(160,200,255,0)');
+    ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(0,0,16,0,6.283); ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle='#c7d2fe'; ctx.strokeStyle='#1e293b'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(9,1); ctx.lineTo(0,9); ctx.lineTo(-9,1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#8aa2ff'; ctx.beginPath(); ctx.arc(0,1.5,3.5,0,6.283); ctx.fill();
+    ctx.restore();
+  }
+
   function drawShard(x,y,rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.globalCompositeOperation='lighter'; var grad=ctx.createLinearGradient(-8,-8,8,8); grad.addColorStop(0,'#5eead4'); grad.addColorStop(1,'#a7f3d0'); ctx.fillStyle=grad; ctx.strokeStyle='rgba(16,94,84,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(8,0); ctx.lineTo(0,10); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
-  function drawHarvester(x,y,t){ ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*2.4)*0.08); ctx.fillStyle='#e2e8f0'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(0,0,8,0,6.283); ctx.fill(); ctx.stroke(); ctx.fillStyle='#93c5fd'; ctx.beginPath(); ctx.arc(0,0,4,0,6.283); ctx.fill(); ctx.restore(); }
+
+  function drawBike(x,y,t){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*2.4)*0.06);
+    // body
+    ctx.fillStyle='#e2e8f0'; ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.ellipse(0,0,10,6,0,0,6.283); ctx.fill(); ctx.stroke();
+    // nose
+    ctx.fillStyle='#93c5fd'; ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(4,0); ctx.lineTo(0,6); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
 
   // ====== State ======
   var level=1, score=0, kills=0;
@@ -192,10 +233,10 @@
   var nebulas=[], planets=[];
   var targetRing=null; var objective=null; var objectiveLockUntil=0;
   var wingmen=[
-    {state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side:-1,pref:-1},
-    {state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,side: 1,pref:-1}
+    {state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,tpT:0,side:-1},
+    {state:'dock',cool:0,x:0,y:0,target:-1,fireCd:0,tpT:0,side: 1}
   ];
-  var harvester={state:'dock',x:0,y:0,target:-1,cd:0,beamT:0};
+  var harvester={state:'dock',x:0,y:0,target:-1,grab:false,cd:0,beamT:0};
   var ship={x:W*BASE.SHIP_X,y:H*BASE.SHIP_Y, vx:0, vy:0, rot:0, warp:0};
   var input={x:0,y:0};
   var beam={auto:BASE.BEAM_AUTO, active:false, cd:0};
@@ -235,61 +276,58 @@
 
   // ====== Spawners ======
   function spawnRing(){ var r=rand(CFG.RING_RADIUS?CFG.RING_RADIUS[0]:BASE.RING_RADIUS[0], CFG.RING_RADIUS?CFG.RING_RADIUS[1]:BASE.RING_RADIUS[1]); var tex=makeRingTex(r, Math.max(5, r*0.22)); var bias = clamp(ship.x + rand(-W*0.35, W*0.35), W*0.08, W*0.92); rings.push({x:bias, y:-r-20, r:r, tex:tex}); }
-  function spawnEnemyWave(){ var n=Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0],CFG.ENEMY_WAVE_SIZE[1]+1)); var i; for(i=0;i<n;i++){ var side = (R()<0.5)? -1:1; var ex = (side<0)? rand(W*0.05,W*0.4) : rand(W*0.6,W*0.95); enemies.push({x:ex, y:-40-i*30, vx:rand(-40,40), vy:rand(120,160), hp:CFG.ENEMY_HP, phase:rand(0,6.28), ttl:10000}); } }
+  function spawnEnemyWave(){ var n=Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0],CFG.ENEMY_WAVE_SIZE[1]+1)); var i; for(i=0;i<n;i++){ var side = (R()<0.5)? -1:1; var ex = (side<0)? rand(W*0.05,W*0.4) : rand(W*0.6,W*0.95); enemies.push({x:ex, y:-40-i*30, vx:rand(-40,40), vy:rand(100,150), hp:CFG.ENEMY_HP, phase:rand(0,6.28), ttl:12000, drift:rand(0.6,1.2)}); } }
   function spawnShard(){ shards.push({x:rand(W*0.25,W*0.75), y:-20, vx:rand(-20,20), vy:rand(40,80), rot:R()*6.28}); }
-  function fireBolt(x,y,tx,ty){ var dx=tx-x, dy=ty-y; var len=Math.hypot(dx,dy)||1; var vx=dx/len*CFG.BOLT_SPEED, vy=dy/len*CFG.BOLT_SPEED; bullets.push({x:x,y:y,vx:vx,vy:vy,life:900}); }
 
-  // ====== Objective selection (locks to avoid jitter) ======
+  // ====== Bullets ======
+  function fireBolt(x,y,tx,ty){ var dx=tx-x, dy=ty-y; var len=Math.hypot(dx,dy)||1; var vx=dx/len*CFG.BOLT_SPEED, vy=dy/len*CFG.BOLT_SPEED; bullets.push({x:x,y:y,vx:vx,vy:vy,life:900,kind:'bolt'}); }
+  function fireOrb(x,y,ang,speed){ bullets.push({x:x,y:y,vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, life:700, kind:'orb'}); }
+  function fireRadial(x,y,count,speed){ var i; for(i=0;i<count;i++){ var ang=(i/count)*Math.PI*2; fireOrb(x,y,ang,speed); } }
+  function drawBullet(b){ if(b.kind==='bolt'){ var a=Math.atan2(b.vy,b.vx) - Math.PI/2; ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(a); ctx.drawImage(TEX_BOLT, -TEX_BOLT.width/2, -TEX_BOLT.height*0.55, TEX_BOLT.width, TEX_BOLT.height*0.9); ctx.restore(); } else { ctx.save(); ctx.globalCompositeOperation='lighter'; var rg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,6); rg.addColorStop(0,'rgba(125,211,252,1)'); rg.addColorStop(1,'rgba(125,211,252,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(b.x,b.y,6,0,6.283); ctx.fill(); ctx.restore(); } }
+
+  // ====== Objective selection ======
   function validRing(r){ return r && (rings.indexOf(r)!==-1); }
   function validShard(s){ return s && (shards.indexOf(s)!==-1); }
-  function chooseObjective(t){
-    if(objective && t < objectiveLockUntil){
-      // keep if still valid & ahead
-      if(objective.type==='ring' && validRing(objective.ref) && objective.ref.y<ship.y+60) return;
-      if(objective.type==='shard'&& validShard(objective.ref) && objective.ref.y<ship.y+40) return;
-    }
-    // prefer nearest ring ahead
+  function chooseObjective(t){ if(objective && t < objectiveLockUntil){ if(objective.type==='ring' && validRing(objective.ref) && objective.ref.y<ship.y+60) return; if(objective.type==='shard'&& validShard(objective.ref) && objective.ref.y<ship.y+40) return; }
     var bestR=null, bestDy=1e9, i; for(i=0;i<rings.length;i++){ var r=rings[i]; var dy=r.y-ship.y; if(dy>-80 && dy<bestDy){ bestDy=dy; bestR=r; } }
-    // consider shard if quite close horizontally and vertically
     var bestS=null, bestDist=1e9; for(i=0;i<shards.length;i++){ var s=shards[i]; var dy2=s.y-ship.y; if(dy2>-60 && dy2<260){ var d=Math.hypot(s.x-ship.x, dy2); if(d<bestDist){ bestDist=d; bestS=s; } } }
     if(bestS && bestDist<140){ objective={type:'shard', ref:bestS}; objectiveLockUntil=t+900; }
     else if(bestR){ objective={type:'ring', ref:bestR}; objectiveLockUntil=t+1100; }
     else { objective=null; }
   }
 
-  // ====== Wingmen AI (lateral strafe; no backward fire) ======
-  function updateWingman(w,dt,t){ w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); var dockX=ship.x + w.side*CFG.WING_OFFSET, dockY=ship.y+8; if(w.state==='dock'){ w.x=dockX; w.y=dockY; if(enemies.length>=1 && w.cool<=0){ w.state='launch'; } }
-    else if(w.state==='launch'){ w.x=lerp(w.x||dockX,dockX,0.08); w.y=lerp(w.y||dockY,ship.y-60,0.08); if(Math.abs((w.y||dockY)-(ship.y-60))<5){ w.state='attack'; w.target=-1; } }
+  // ====== Wingmen AI (blink/teleport + new fire patterns) ======
+  function updateWingman(w,dt,t){ w.cool=Math.max(0,w.cool-dt); w.fireCd=Math.max(0,w.fireCd-dt); w.tpT=Math.max(0,w.tpT-dt); var dockX=ship.x + w.side*CFG.WING_OFFSET, dockY=ship.y+8; if(w.state==='dock'){ w.x=dockX; w.y=dockY; if(enemies.length>=1 && w.cool<=0){ w.state='launch'; } }
+    else if(w.state==='launch'){ w.x=lerp(w.x||dockX,dockX,0.1); w.y=lerp(w.y||dockY,ship.y-60,0.1); if(Math.abs((w.y||dockY)-(ship.y-60))<5){ w.state='attack'; w.target=-1; w.tpT=0; } }
     else if(w.state==='attack'){ if(enemies.length===0){ w.state='return'; }
-      else { if(w.target<0 || w.target>=enemies.length){ var best=1e9, idx=-1, j; for(j=0;j<enemies.length;j++){ var e=enemies[j]; var ahead = (e.y<ship.y-10); if(!ahead) continue; var dx=Math.abs(e.x-ship.x); var dy=ship.y-e.y; if(dx>CFG.ENGAGE_RANGE_X || dy>CFG.ENGAGE_RANGE_Y) continue; var d=Math.hypot(e.x-(w.x||dockX),e.y-(w.y||dockY)); if(d<best){best=d; idx=j;} } w.target=idx; }
+      else { if(w.target<0 || w.target>=enemies.length){ var best=1e9, idx=-1, j; for(j=0;j<enemies.length;j++){ var e=enemies[j]; var ahead=(e.y<ship.y-10); if(!ahead) continue; var d=Math.hypot(e.x-(w.x||dockX),e.y-(w.y||dockY)); if(d<best){best=d; idx=j;} } w.target=idx; }
         var tar=enemies[w.target]; if(!tar){ w.state='return'; } else {
-          // Lateral strafe around enemy
-          var sx = tar.x + w.side*36 + Math.sin(t*0.012 + w.side)*10;
-          var sy = tar.y + Math.cos(t*0.010 + w.side)*6;
-          w.x=lerp(w.x,sx,0.12); w.y=lerp(w.y,sy,0.12);
-          // fire only forward (towards decreasing y direction on screen is up, enemies move down => w.y<tar.y gives upward shot; we want downward)
-          var forward = (tar.y > w.y + CFG.FIRE_MIN_FORWARD) && (tar.y < ship.y - 10);
-          var inRange = Math.hypot(tar.x-w.x, tar.y-w.y) < CFG.MAX_FIRE_RANGE;
-          if(forward && inRange && w.fireCd<=0){ fireBolt(w.x,w.y,tar.x,tar.y); w.fireCd=170; }
+          if(w.tpT<=0){ // blink to a ring around target
+            var ang = (t*0.002 + (w.side>0?0:Math.PI)) % (Math.PI*2);
+            var radius = 48; w.x = tar.x + Math.cos(ang)*radius; w.y = tar.y + Math.sin(ang)*radius; w.tpT=220; // ms
+            // fire pattern
+            if(w.fireCd<=0){ if(R()<0.5){ fireRadial(w.x,w.y,6,220); } else { var a=Math.atan2(tar.y-w.y, tar.x-w.x); fireOrb(w.x,w.y,a,280); fireOrb(w.x,w.y,a+0.12,260); fireOrb(w.x,w.y,a-0.12,260); } w.fireCd=220; }
+          } else { // minor drift so it isn't totally static
+            w.x=lerp(w.x, tar.x + w.side*36, 0.08); w.y=lerp(w.y, tar.y, 0.08);
+          }
           if(tar.y>ship.y+120){ w.state='return'; }
         } } }
     else if(w.state==='return'){ w.x=lerp(w.x,dockX,0.12); w.y=lerp(w.y,dockY,0.12); if(Math.hypot(w.x-dockX,w.y-dockY)<4){ w.state='cool'; w.cool=CFG.WING_COOLDOWN; } }
     else if(w.state==='cool'){ w.x=dockX; w.y=dockY; if(w.cool<=0) { w.state='dock'; } }
   }
 
-  // ====== Harvester drone (tractor machine) ======
-  function updateHarvester(h,dt){ h.cd=Math.max(0,h.cd-dt); h.beamT=Math.max(0,h.beamT-dt); var dockX=ship.x, dockY=ship.y-16; if(h.state==='dock'){ h.x=dockX; h.y=dockY; if(shards.length>0 && h.cd<=0){ // pick far shard ahead of ship (beyond beam comfort)
-        var idx=-1, best=0, i; for(i=0;i<shards.length;i++){ var s=shards[i]; var ahead=(s.y<ship.y-20); if(!ahead) continue; var dy=ship.y-s.y; if(dy>best){ best=dy; idx=i; } } if(idx>=0){ h.target=idx; h.state='seek'; } }
-    } else if(h.state==='seek'){ var s=shards[h.target]; if(!s){ h.state='return'; } else { h.x=lerp(h.x,s.x,0.14); h.y=lerp(h.y,s.y+28,0.14); if(Math.hypot(h.x-s.x,h.y-s.y)<22){ h.state='beam'; h.beamT=260; } if(s.y>ship.y+60){ h.state='return'; } } }
-    else if(h.state==='beam'){ var s2=shards[h.target]; if(!s2){ h.state='return'; }
-      else { // pull shard to harvester then to ship
-        s2.x=lerp(s2.x,h.x,0.18); s2.y=lerp(s2.y,h.y,0.18); if(Math.hypot(s2.x-h.x,s2.y-h.y)<10){ // deliver to ship
-          s2.x=lerp(s2.x, ship.x, 0.20); s2.y=lerp(s2.y, ship.y-8, 0.20);
-          if(Math.hypot(s2.x-ship.x,s2.y-(ship.y-8))<12){ shards.splice(shards.indexOf(s2),1); score+=25; h.state='return'; h.cd=1400; updateHUD(); }
-        }
-        if(h.beamT<=0){ h.state='return'; }
+  // ====== Harvester (bike + tether, guaranteed pickup) ======
+  function updateHarvester(h,dt){ h.cd=Math.max(0,h.cd-dt); h.beamT=Math.max(0,h.beamT-dt); var dockX=ship.x, dockY=ship.y-16; if(h.state==='dock'){ h.x=dockX; h.y=dockY; h.grab=false; if(shards.length>0 && h.cd<=0){ var idx=-1, bestDy=0, i; for(i=0;i<shards.length;i++){ var s=shards[i]; var ahead=(s.y<ship.y-10); if(!ahead) continue; var dy=ship.y-s.y; if(dy>bestDy){ bestDy=dy; idx=i; } } if(idx>=0){ h.target=idx; h.state='seek'; } }
+    } else if(h.state==='seek'){ var s=shards[h.target]; if(!s){ h.state='return'; } else { h.x=lerp(h.x,s.x,0.16); h.y=lerp(h.y,s.y+20,0.16); if(Math.hypot(h.x-s.x,h.y-s.y)<16){ h.state='grab'; h.grab=true; h.beamT=600; } if(s.y>ship.y+60){ h.state='return'; } } }
+    else if(h.state==='grab'){ var s2=shards[h.target]; if(!s2){ h.state='return'; }
+      else { // hard attach
+        s2.x=lerp(s2.x,h.x,0.6); s2.y=lerp(s2.y,h.y,0.6); if(h.beamT<=0){ h.state='tow'; }
       } }
-    else if(h.state==='return'){ h.x=lerp(h.x,dockX,0.12); h.y=lerp(h.y,dockY,0.12); if(Math.hypot(h.x-dockX,h.y-dockY)<4){ h.state='dock'; } }
+    else if(h.state==='tow'){ var s3=shards[h.target]; if(!s3){ h.state='return'; }
+      else { // tow both to ship
+        h.x=lerp(h.x, dockX, 0.14); h.y=lerp(h.y, dockY, 0.14); s3.x=lerp(s3.x, dockX, 0.18); s3.y=lerp(s3.y, dockY, 0.18); if(Math.hypot(s3.x-dockX,s3.y-dockY)<12){ var idxS=shards.indexOf(s3); if(idxS!==-1) shards.splice(idxS,1); score+=25; updateHUD(); h.state='return'; h.cd=1200; } }
+    }
+    else if(h.state==='return'){ h.x=lerp(h.x,dockX,0.14); h.y=lerp(h.y,dockY,0.14); if(Math.hypot(h.x-dockX,h.y-dockY)<4){ h.state='dock'; h.grab=false; } }
   }
 
   // ====== Loop ======
@@ -300,13 +338,9 @@
     if(R() < CFG.RES_SPAWN_CHANCE  * dt/1000){ spawnShard(); }
 
     chooseObjective(t);
-    var desiredX = objective ? (objective.type==='ring'? objective.ref.x : objective.ref.x) : W*0.5;
-    var desiredY = objective ? (objective.type==='ring'? clamp(objective.ref.y+40, H*0.35, H*0.85) : clamp(objective.ref.y+20, H*0.35, H*0.85)) : H*0.7;
+    var desiredX = objective ? objective.ref.x : W*0.5; var desiredY = objective ? (objective.type==='ring'? clamp(objective.ref.y+40, H*0.35, H*0.85) : clamp(objective.ref.y+20, H*0.35, H*0.85)) : H*0.7;
     var far = objective ? (Math.hypot(desiredX-ship.x, desiredY-ship.y) > CFG.CATCHUP_DIST) : false; var boost = far ? CFG.CATCHUP_BOOST : 1;
-    var nudgeX=input.x*220, nudgeY=input.y*180;
-    ship.vx += ((desiredX - ship.x)*CFG.SHIP_ACC_X*boost + nudgeX)*dtSec; ship.vy += ((desiredY - ship.y)*CFG.SHIP_ACC_Y*boost + nudgeY)*dtSec;
-    ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX*boost, CFG.SHIP_MAX_VX*boost); ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY*boost, CFG.SHIP_MAX_VY*boost);
-    ship.vx *= CFG.SHIP_DAMP; ship.vy *= CFG.SHIP_DAMP; ship.x += ship.vx*dtSec; ship.y += ship.vy*dtSec; ship.x=clamp(ship.x, W*0.08, W*0.92); ship.y=clamp(ship.y, H*0.2, H*0.9); ship.rot = lerp(ship.rot, clamp(ship.vx,-260,260)/1000, 0.2);
+    var nudgeX=input.x*220, nudgeY=input.y*180; ship.vx += ((desiredX - ship.x)*CFG.SHIP_ACC_X*boost + nudgeX)*dtSec; ship.vy += ((desiredY - ship.y)*CFG.SHIP_ACC_Y*boost + nudgeY)*dtSec; ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX*boost, CFG.SHIP_MAX_VX*boost); ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY*boost, CFG.SHIP_MAX_VY*boost); ship.vx *= CFG.SHIP_DAMP; ship.vy *= CFG.SHIP_DAMP; ship.x += ship.vx*dtSec; ship.y += ship.vy*dtSec; ship.x=clamp(ship.x, W*0.08, W*0.92); ship.y=clamp(ship.y, H*0.2, H*0.9); ship.rot = lerp(ship.rot, clamp(ship.vx,-260,260)/1000, 0.2);
     var scroll = (BASE.SPEED + (ship.warp? 220:0)) * dtSec; ship.warp=0;
 
     // parallax
@@ -319,22 +353,27 @@
     // rings
     for(i=rings.length-1;i>=0;i--){ var r=rings[i]; r.y+=scroll*0.8; var d=Math.hypot(r.x-ship.x, r.y-ship.y); if(d < r.r*0.85){ rings.splice(i,1); ringsCleared++; score+=10; if(R()<0.6) spawnShard(); updateHUD(); objective=null; objectiveLockUntil=0; if(ringsCleared>=ringsGoal){ level++; resetLevel(); } } else if(r.y-r.r>H+60){ rings.splice(i,1); if(objective && objective.type==='ring' && objective.ref===r) { objective=null; objectiveLockUntil=0; } } }
 
-    // enemies
-    for(i=enemies.length-1;i>=0;i--){ var e=enemies[i]; e.ttl-=dt; var sway=Math.sin((t+e.phase*1000)/400)*40; e.x += (e.vx*dtSec) + (sway*dtSec); e.y += (e.vy*dtSec) + (scroll*0.25); if(e.y>ship.y-120) e.vy = Math.max(e.vy, 220); if(e.x<20||e.x>W-20) e.vx*=-1; if(e.y>H+60 || e.ttl<=0){ enemies.splice(i,1); } }
+    // enemies (saucer float)
+    for(i=enemies.length-1;i>=0;i--){ var e=enemies[i]; e.ttl-=dt; var swayX=Math.sin((t*0.002+e.phase)*2.0)*40*e.drift; var swayY=Math.cos((t*0.002+e.phase)*1.6)*10*e.drift; e.x += (e.vx*dtSec) + swayX*dtSec; e.y += (e.vy*dtSec) + (scroll*0.25) + swayY*dtSec; if(e.x<20||e.x>W-20) e.vx*=-1; if(e.y>H+60 || e.ttl<=0){ enemies.splice(i,1); } }
 
-    // call wingmen if enemies are in forward window
-    var forwardFenceY = ship.y - H*CFG.FORWARD_ZONE_FRAC; for(i=0;i<enemies.length;i++){ var ee=enemies[i]; if(ee.y>forwardFenceY && ee.y<ship.y){ var dx2=Math.abs(ee.x-ship.x), dy2=ship.y-ee.y; if(dx2<CFG.ENGAGE_RANGE_X && dy2<CFG.ENGAGE_RANGE_Y){ var idx = (ee.x<ship.x)? 0 : 1; var w=wingmen[idx]; if((w.state==='dock'||w.state==='cool') && w.cool<=0){ w.state='launch'; w.pref=i; } } } }
+    // call wingmen if any enemy ahead
+    for(i=0;i<wingmen.length;i++){ var w=wingmen[i]; if((w.state==='dock'||w.state==='cool') && w.cool<=0){ var j; for(j=0;j<enemies.length;j++){ if(enemies[j].y<ship.y-6){ w.state='launch'; break; } } } }
 
     // wingmen + harvester
     var tt=t/1000; for(i=0;i<wingmen.length;i++){ updateWingman(wingmen[i],dt,t); }
     updateHarvester(harvester,dt);
 
     // bullets
-    for(i=bullets.length-1;i>=0;i--){ var b=bullets[i]; b.x+=b.vx*dtSec; b.y+=b.vy*dtSec - scroll*0.05; b.life-=dt; if(b.life<=0||b.x<-60||b.x>W+60||b.y<-100||b.y>H+100){ bullets.splice(i,1); continue; } var j; for(j=enemies.length-1;j>=0;j--){ var en=enemies[j]; var d2=(en.x-b.x)*(en.x-b.x)+(en.y-b.y)*(en.y-b.y); if(d2<22*22){ en.hp--; bullets.splice(i,1); score+=15; if(en.hp<=0){ enemies.splice(j,1); kills++; updateHUD(); effects.push({x:en.x,y:en.y,t:260}); } break; } } }
+    for(i=bullets.length-1;i>=0;i--){ var b=bullets[i]; b.x+=b.vx*dtSec; b.y+=b.vy*dtSec - scroll*0.05; b.life-=dt; if(b.life<=0||b.x<-80||b.x>W+80||b.y<-120||b.y>H+120){ bullets.splice(i,1); continue; } var j; for(j=enemies.length-1;j>=0;j--){ var en=enemies[j]; var hitR=(b.kind==='orb'? 10:22); var d2=(en.x-b.x)*(en.x-b.x)+(en.y-b.y)*(en.y-b.y); if(d2<hitR*hitR){ en.hp--; bullets.splice(i,1); score+=15; if(en.hp<=0){ enemies.splice(j,1); kills++; updateHUD(); effects.push({x:en.x,y:en.y,t:260}); } break; } } }
 
     // ship beam & shards
     beam.cd=Math.max(0,beam.cd-dt); if(beam.auto && shards.length>0 && beam.cd<=0){ beam.active=true; }
-    for(i=shards.length-1;i>=0;i--){ var s=shards[i]; s.x+=s.vx*dtSec; s.y+=s.vy*dtSec + scroll*0.4; s.rot+=0.02; if(beam.active){ var bx=ship.x, by=ship.y-8; var dx3=s.x-bx, dy3=s.y-by; if(dy3<0 && -dy3<CFG.BEAM_LEN){ var half = CFG.BEAM_HALF_W * (-dy3/CFG.BEAM_LEN); if(Math.abs(dx3) < half){ s.x = lerp(s.x, bx, 0.16); s.y = lerp(s.y, by, 0.16); if(Math.hypot(s.x-bx,s.y-by)<12){ shards.splice(i,1); score+=25; updateHUD(); continue; } } } } if(s.y>H+40){ shards.splice(i,1); } }
+    for(i=shards.length-1;i>=0;i--){ var s=shards[i]; if(harvester.grab && i===harvester.target){ // handled by harvester
+      continue; }
+      s.x+=s.vx*dtSec; s.y+=s.vy*dtSec + scroll*0.4; s.rot+=0.02;
+      if(beam.active){ var bx=ship.x, by=ship.y-8; var dx3=s.x-bx, dy3=s.y-by; if(dy3<0 && -dy3<CFG.BEAM_LEN){ var half = CFG.BEAM_HALF_W * (-dy3/CFG.BEAM_LEN); if(Math.abs(dx3) < half){ s.x = lerp(s.x, bx, 0.18); s.y = lerp(s.y, by, 0.18); if(Math.hypot(s.x-bx,s.y-by)<12){ shards.splice(i,1); score+=25; updateHUD(); continue; } } } }
+      if(s.y>H+40){ shards.splice(i,1); }
+    }
     if(beam.active){ beam.cd = CFG.BEAM_COOLDOWN; }
 
     for(i=effects.length-1;i>=0;i--){ effects[i].t-=dt; if(effects[i].t<=0) effects.splice(i,1); }
@@ -346,18 +385,22 @@
     for(i=nebulas.length-1;i>=0;i--){ var nb=nebulas[i]; nb.y += (scroll*0.1) + nb.s*(dtSec*0.2); if(nb.y-nb.r>H){ nebulas.splice(i,1); continue; } var gg=ctx.createRadialGradient(nb.x,nb.y,0,nb.x,nb.y,nb.r); gg.addColorStop(0,'rgba(100,180,255,0.1)'); gg.addColorStop(1,'rgba(100,180,255,0)'); ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(nb.x,nb.y,nb.r,0,6.283); ctx.fill(); }
     if(planets.length<1 && R()<0.0015*dt){ planets.push({x:rand(W*0.2,W*0.8), y:-160, r:rand(60,120), s:rand(18,28)}); }
     for(i=planets.length-1;i>=0;i--){ var p=planets[i]; p.y += (scroll*0.15) + p.s*dtSec; if(p.y-p.r>H+80){ planets.splice(i,1); continue; } var gp=ctx.createRadialGradient(p.x,p.y,p.r*0.1,p.x,p.y,p.r); gp.addColorStop(0,'rgba(255,255,255,0.2)'); gp.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gp; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); }
+
+    // stars
     ctx.fillStyle='rgba(150,170,230,0.5)'; for(i=0;i<deep.length;i++){ ctx.fillRect(deep[i].x|0, deep[i].y|0, 1,1); }
     var bki; for(bki=0;bki<bokeh.length;bki++){ var bb=bokeh[bki]; ctx.save(); ctx.shadowBlur=bb.blur; ctx.shadowColor='rgba(170,190,255,'+bb.a+')'; ctx.beginPath(); ctx.arc(bb.x,bb.y,bb.r,0,6.283); ctx.fillStyle='rgba(170,190,255,0)'; ctx.fill(); ctx.restore(); }
     ctx.fillStyle='rgba(190,205,255,0.85)'; for(i=0;i<mid.length;i++){ ctx.fillRect(mid[i].x|0, mid[i].y|0, 1,1); }
     ctx.fillStyle='rgba(230,238,255,1)'; for(i=0;i<near.length;i++){ ctx.fillRect(near[i].x|0, near[i].y|0, 1,1); }
 
-    // rings & shards & enemies
+    // rings & shards
     for(i=0;i<rings.length;i++){ var rr=rings[i]; var rx=(rr.x - rr.tex.width/2)|0, ry=(rr.y - rr.tex.height/2)|0; ctx.drawImage(rr.tex, rx, ry); }
     for(i=shards.length-1;i>=0;i--){ var sh=shards[i]; drawShard(sh.x,sh.y,sh.rot); }
-    var tts=t/1000; for(i=0;i<enemies.length;i++){ var en2=enemies[i]; drawEnemy(en2.x,en2.y,tts); }
+
+    // enemies as saucers
+    var tts=t/1000; for(i=0;i<enemies.length;i++){ var en2=enemies[i]; drawSaucer(en2.x,en2.y,tts); }
 
     // bullets
-    ctx.save(); ctx.globalCompositeOperation='lighter'; for(i=0;i<bullets.length;i++){ var bl=bullets[i]; var a=Math.atan2(bl.vy,bl.vx) - Math.PI/2; ctx.save(); ctx.translate(bl.x,bl.y); ctx.rotate(a); ctx.drawImage(TEX_BOLT, -TEX_BOLT.width/2, -TEX_BOLT.height*0.55, TEX_BOLT.width, TEX_BOLT.height*0.9); ctx.restore(); } ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation='lighter'; for(i=0;i<bullets.length;i++){ drawBullet(bullets[i]); } ctx.restore();
 
     // effects
     for(i=effects.length-1;i>=0;i--){ var fx=effects[i]; var k=fx.t/260; ctx.save(); ctx.globalCompositeOperation='lighter'; var rg=ctx.createRadialGradient(fx.x,fx.y,0,fx.x,fx.y,36); rg.addColorStop(0,'rgba(255,255,255,'+(0.6*k)+')'); rg.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(fx.x,fx.y,36*(1.2-k*0.2),0,6.283); ctx.fill(); ctx.restore(); }
@@ -365,13 +408,14 @@
     // ship beam
     if(beam.active){ var bx=ship.x, by=ship.y-8, len=CFG.BEAM_LEN, half=CFG.BEAM_HALF_W; ctx.save(); ctx.globalCompositeOperation='lighter'; var grad2=ctx.createLinearGradient(bx,by, bx, by-len); grad2.addColorStop(0,'rgba(125,211,252,0.45)'); grad2.addColorStop(1,'rgba(192,132,252,0.0)'); ctx.fillStyle=grad2; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx-half,by-len); ctx.lineTo(bx+half,by-len); ctx.closePath(); ctx.fill(); ctx.restore(); beam.active=false; }
 
-    // harvester beam visual
-    if(harvester.state==='beam' && harvester.beamT>0){ var hx=harvester.x, hy=harvester.y; ctx.save(); ctx.globalCompositeOperation='lighter'; var gr=ctx.createLinearGradient(hx,hy, hx, hy-38); gr.addColorStop(0,'rgba(167,243,208,0.55)'); gr.addColorStop(1,'rgba(167,243,208,0)'); ctx.fillStyle=gr; ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx-14,hy-38); ctx.lineTo(hx+14,hy-38); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    // harvester: bike + tether + beam if grabbing
+    if(harvester.state!=='dock'){ var hx=harvester.x, hy=harvester.y; var sx=ship.x, sy=ship.y-10; ctx.save(); ctx.strokeStyle='rgba(186,230,253,0.5)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(sx,sy); var mx=lerp(sx,hx,0.5), my=lerp(sy,hy,0.5)+12; ctx.quadraticCurveTo(mx,my,hx,hy); ctx.stroke(); ctx.restore(); }
+    if(harvester.state==='grab' || harvester.state==='tow'){ var hx2=harvester.x, hy2=harvester.y; ctx.save(); ctx.globalCompositeOperation='lighter'; var gr=ctx.createLinearGradient(hx2,hy2, hx2, hy2-38); gr.addColorStop(0,'rgba(167,243,208,0.6)'); gr.addColorStop(1,'rgba(167,243,208,0)'); ctx.fillStyle=gr; ctx.beginPath(); ctx.moveTo(hx2,hy2); ctx.lineTo(hx2-14,hy2-38); ctx.lineTo(hx2+14,hy2-38); ctx.closePath(); ctx.fill(); ctx.restore(); }
 
     // actors
-    drawWingman(wingmen[0].x||ship.x-46, wingmen[0].y||ship.y+8, tts);
-    drawWingman(wingmen[1].x||ship.x+46, wingmen[1].y||ship.y+8, tts);
-    drawHarvester(harvester.x||ship.x, harvester.y||ship.y-16, tts);
+    drawBlinkWingman(wingmen[0].x||ship.x-46, wingmen[0].y||ship.y+8, tts);
+    drawBlinkWingman(wingmen[1].x||ship.x+46, wingmen[1].y||ship.y+8, tts);
+    drawBike(harvester.x||ship.x, harvester.y||ship.y-16, tts);
     drawShip(ship.x, ship.y, ship.rot, 1);
 
     updateHUD(); frames++; accFps+=dt; if(accFps>250){ uiFPS.textContent=String(Math.round(1000/(accFps/frames))); accFps=0; frames=0; }
