@@ -1,486 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Cosmic Glider – Warp Tunnel (ES5)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <!-- Three.js (global UMD build) -->
-  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+<meta charset="utf-8">
+<title>Cosmic Glider — Worlds Run (ES5)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!-- Three.js UMD -->
+<script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; height:100%; background:#05060d; color:#E5E7EB; font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif; overflow:hidden;}
+  /* HUD toggle */
+  .hud-toggle {
+    position: fixed; top: 12px; left: 12px; z-index: 30;
+    background: rgba(7,9,18,.85); border:1px solid rgba(255,255,255,.12);
+    padding:8px 10px; border-radius:10px; cursor:pointer; user-select:none; font-weight:800;
+    box-shadow:0 10px 25px rgba(0,0,0,.35);
+  }
+  .hud-toggle:active { transform: translateY(1px); }
 
-  <!-- UI font (optional) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <style>
-    html, body {
-      margin: 0; height: 100%; background: #05060d; color: #e5e7eb; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    }
-    .wrap {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      min-height: 100vh;
-    }
-
-    /* Top control bar */
-    .bar {
-      position: sticky; top: 0; z-index: 8;
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
-      padding: 12px 14px; background: rgba(5,6,13,0.70); backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .brand {
-      display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .3px;
-    }
-    .chip {
-      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: linear-gradient(90deg,#6ee7ff,#a78bfa);
-      color: #0b1020; text-transform: uppercase;
-    }
-    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .control { display: flex; gap: 8px; align-items: center; font-size: 13px; }
-    .control select, .control input[type=range] {
-      appearance: none; background: rgba(255,255,255,0.06); color:#e5e7eb;
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 8px 10px; outline: none;
-    }
-    .btn {
-      cursor: pointer; user-select: none;
-      background: linear-gradient(90deg,#7dd3fc,#c084fc);
-      color: #0b1020; font-weight: 800; border: none; border-radius: 10px; padding: 8px 12px;
-      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
-    }
-    .btn:active { transform: translateY(1px); }
-
-    .meter { font-size: 12px; opacity: .75; }
-
-    /* Viewport container (shaped) */
-    .stage {
-      position: relative; display: grid; place-items: center; padding: 16px; overflow: hidden;
-      background:
-        radial-gradient(1200px 600px at 50% 20%, rgba(0, 238, 255, 0.15), transparent 55%),
-        radial-gradient(900px 900px at 10% 90%, rgba(255, 0, 135, 0.12), transparent 55%),
-        radial-gradient(1100px 1100px at 90% 80%, rgba(0, 119, 255, 0.15), transparent 55%),
-        #070a14;
-    }
-    .viewport {
-      position: relative; max-width: 1200px; width: 95vw; height: 68vh; min-height: 380px;
-      border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12);
-      background: radial-gradient(1000px 650px at 50% 50%, rgba(255,255,255,0.04), rgba(255,255,255,0.00));
-      box-shadow:
-        inset 0 0 80px rgba(255,255,255,0.06),
-        0 25px 90px rgba(0,0,0,0.55);
-      transition: clip-path .4s ease, border-radius .4s ease;
-    }
-    /* Viewport shape options */
-    .shape-square { border-radius: 22px; clip-path: inset(0% round 22px); }
-    .shape-circle { border-radius: 50%; clip-path: circle(49% at 50% 50%); }
-    .shape-ellipse { border-radius: 50% / 35%; clip-path: ellipse(50% 35% at 50% 50%); }
-    .shape-hexagon {
-      /* Hexagon using clip-path polygon */
-      clip-path: polygon(25% 6%, 75% 6%, 96% 50%, 75% 94%, 25% 94%, 4% 50%);
-      border-radius: 0;
-    }
-
-    /* Vignette + bloom-ish glow overlay */
-    .viewport::after {
-      content: ""; position: absolute; inset: -10%;
-      background:
-        radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,0.08), transparent 60%),
-        radial-gradient(130% 100% at 50% 120%, rgba(0,0,0,0.65), transparent 55%),
-        radial-gradient(100% 120% at 0% 0%, rgba(0,0,0,0.45), transparent 35%),
-        radial-gradient(100% 120% at 100% 0%, rgba(0,0,0,0.45), transparent 35%),
-        radial-gradient(100% 100% at 50% 50%, rgba(0,0,0,0.45), transparent 60%);
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-
-    /* Tiny help overlay */
-    .legend {
-      position: absolute; bottom: 10px; left: 10px; z-index: 3;
-      background: rgba(5,6,13,0.55); border: 1px solid rgba(255,255,255,0.1);
-      padding: 8px 10px; border-radius: 10px; font-size: 11px; color: #cbd5e1;
-    }
-
-    canvas { display: block; width: 100%; height: 100%; }
-  </style>
+  /* Panel */
+  .panel {
+    position: fixed; top: 56px; left: 12px; z-index: 25; width: 280px; max-width: 85vw;
+    background: rgba(7,9,18,.85); border:1px solid rgba(255,255,255,.12); border-radius:14px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45); overflow:hidden; transform-origin: top left;
+    transition: transform .25s ease, opacity .25s ease;
+  }
+  .panel.collapsed { transform: scale(.98) translateY(-8px); opacity:0; pointer-events:none; }
+  .panel .head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .panel .title { font-weight:800; letter-spacing:.2px; }
+  .panel .body { padding:10px 12px; display:grid; gap:10px; }
+  .row { display:flex; align-items:center; gap:8px; }
+  .row label { font-size: 12px; opacity:.85; min-width: 80px; }
+  .row select, .row input[type=range], .row button {
+    width:100%; background:rgba(255,255,255,.06); color:#E5E7EB; border:1px solid rgba(255,255,255,.15);
+    border-radius:10px; padding:8px 10px; outline:none; font-size:13px;
+  }
+  .row button { cursor:pointer; font-weight:800; background:linear-gradient(90deg,#7DD3FC,#C084FC); color:#0B1020; box-shadow:0 6px 18px rgba(124,58,237,.35); }
+  .stats { display:grid; gap:6px; font-size:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); padding:8px 10px; border-radius:10px; }
+  .hint { font-size:11px; opacity:.75; }
+  /* Bottom legend */
+  .legend {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+    background: rgba(7,9,18,.75); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:6px 10px; font-size:12px;
+  }
+  canvas { display:block; width:100vw; height:100vh; }
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="bar">
-      <div class="brand">
-        <span>🚀 Cosmic Glider</span>
-        <span class="chip">Warp Tunnel</span>
-      </div>
-      <div class="controls">
-        <div class="control">
-          <label for="theme">Theme</label>
-          <select id="theme">
-            <option value="neon">Neon Stream</option>
-            <option value="core">Galactic Core</option>
-            <option value="aurora">Aurora Drift</option>
-            <option value="void">Voidfire</option>
-          </select>
-        </div>
-        <div class="control">
-          <label for="shape">Viewport</label>
-          <select id="shape">
-            <option value="square">Square</option>
-            <option value="circle">Circle</option>
-            <option value="ellipse">Ellipse</option>
-            <option value="hexagon">Hexagon</option>
-          </select>
-        </div>
-        <div class="control" style="min-width: 200px;">
-          <label for="speed">Speed</label>
-          <input id="speed" type="range" min="0" max="3.2" step="0.02" value="1.0" />
-        </div>
-        <button class="btn" id="warpBtn" title="Punch it!">Engage Warp</button>
-        <div class="meter" id="fps">FPS: --</div>
-      </div>
-    </div>
+  <div class="hud-toggle" id="hudBtn">☰ Controls</div>
 
-    <div class="stage">
-      <div class="viewport shape-square" id="viewport">
-        <div class="legend">Drag / move mouse to drift • Scroll / pinch to adjust speed</div>
-        <!-- WebGL canvas will be inserted here -->
+  <div class="panel collapsed" id="panel">
+    <div class="head">
+      <div class="title">Cosmic GlideR</div>
+      <div class="chip" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;">Worlds Run</div>
+    </div>
+    <div class="body">
+      <div class="row">
+        <label>View</label>
+        <select id="view">
+          <option value="pilot">Pilot (inside)</option>
+          <option value="chase">Chase (3rd-person)</option>
+        </select>
       </div>
+      <div class="row">
+        <label>Speed</label>
+        <input id="speed" type="range" min="0" max="3.2" step="0.02" value="1.0">
+      </div>
+      <div class="row">
+        <label>World Cycle</label>
+        <select id="cycle">
+          <option value="auto">Auto (on)</option>
+          <option value="hold">Hold current</option>
+        </select>
+      </div>
+      <div class="row">
+        <button id="warpBtn" title="Punch it!">Engage Warp</button>
+      </div>
+      <div class="stats">
+        <div><b>World:</b> <span id="worldName">—</span></div>
+        <div><b>FPS:</b> <span id="fps">—</span></div>
+        <div><b>Particles:</b> <span id="pcount">—</span></div>
+        <div><b>View:</b> <span id="viewStat">—</span></div>
+      </div>
+      <div class="hint">Drag to drift • Scroll/pinch = speed • <b>H</b> toggle panel • <b>V</b> switch view</div>
     </div>
   </div>
 
-  <script>
-  (function () {
-    // ----- Basic helpers (ES5) -----
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-    function lerp(a, b, t) { return a + (b - a) * t; }
+  <div class="legend">Auto-traveling through worlds. Ship: move cursor/drag to steer. Cameras: Pilot / Chase.</div>
 
-    // Themes (palettes + background gradients)
-    var THEMES = {
-      neon: {
-        name: "Neon Stream",
-        palette: [0x8A2BE2, 0x00FFFF, 0xFF4500],
-        bg: "radial-gradient(1200px 600px at 50% 20%, rgba(0, 238, 255, 0.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255, 0, 135, 0.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0, 119, 255, 0.18), transparent 55%), #070a14"
-      },
-      core: {
-        name: "Galactic Core",
-        palette: [0xFFD700, 0xFF69B4, 0xFF1493],
-        bg: "radial-gradient(1200px 600px at 40% 10%, rgba(255, 215, 0, 0.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255, 20, 147, 0.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255, 105, 180, 0.18), transparent 55%), #0a0710"
-      },
-      aurora: {
-        name: "Aurora Drift",
-        palette: [0x7FFFD4, 0x00FA9A, 0x1E90FF],
-        bg: "radial-gradient(1200px 600px at 60% 20%, rgba(127, 255, 212, 0.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(30, 144, 255, 0.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0, 250, 154, 0.18), transparent 55%), #051013"
-      },
-      void: {
-        name: "Voidfire",
-        palette: [0xFF6B6B, 0xFFE66D, 0x4D96FF],
-        bg: "radial-gradient(1200px 600px at 55% 15%, rgba(77, 150, 255, 0.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255, 107, 107, 0.16), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255, 230, 109, 0.14), transparent 55%), #0b0a12"
-      }
-    };
+<script>
+(function(){
+  // ---------- Utilities (ES5) ----------
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function rand(min,max){return min+Math.random()*(max-min);}
 
-    // DOM
-    var vp = document.getElementById('viewport');
-    var themeSel = document.getElementById('theme');
-    var shapeSel = document.getElementById('shape');
-    var speedRange = document.getElementById('speed');
-    var warpBtn = document.getElementById('warpBtn');
-    var fpsEl = document.getElementById('fps');
+  // ---------- DOM ----------
+  var hudBtn = document.getElementById('hudBtn');
+  var panel = document.getElementById('panel');
+  var viewSel = document.getElementById('view');
+  var speedRange = document.getElementById('speed');
+  var cycleSel = document.getElementById('cycle');
+  var warpBtn = document.getElementById('warpBtn');
+  var fpsEl = document.getElementById('fps');
+  var worldEl = document.getElementById('worldName');
+  var pcountEl = document.getElementById('pcount');
+  var viewStatEl = document.getElementById('viewStat');
 
-    // ----- Scene setup -----
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(65, 1, 0.1, 2000);
-    camera.position.set(0, 0, 6);
+  var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    var DPR = Math.min(window.devicePixelRatio || 1, 1.6);
-    renderer.setPixelRatio(DPR);
+  // ---------- Renderer / Scene ----------
+  var scene = new THREE.Scene();
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  var DPR = Math.min(window.devicePixelRatio||1, 1.6);
+  renderer.setPixelRatio(DPR);
+  document.body.appendChild(renderer.domElement);
 
-    vp.appendChild(renderer.domElement);
+  function resize(){
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w,h,false);
+    cameraPilot.aspect = w/h; cameraPilot.updateProjectionMatrix();
+    cameraChase.aspect = w/h; cameraChase.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
 
-    // Resize
-    function resize() {
-      var rect = vp.getBoundingClientRect();
-      var w = rect.width, h = rect.height;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h; camera.updateProjectionMatrix();
+  // ---------- Cameras (Pilot / Chase) ----------
+  var cameraPilot = new THREE.PerspectiveCamera(72, 1, 0.1, 3000);
+  var cameraChase = new THREE.PerspectiveCamera(70, 1, 0.1, 3000);
+  var activeCamera = cameraPilot;
+
+  // ---------- Lights ----------
+  var hemi = new THREE.HemisphereLight(0x88aaff, 0x080810, 0.65);
+  scene.add(hemi);
+  var key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(4,8,6);
+  scene.add(key);
+  var fill = new THREE.DirectionalLight(0x99ccff, 0.35);
+  fill.position.set(-6,2,5);
+  scene.add(fill);
+
+  // ---------- Themes ("worlds") ----------
+  var WORLDS = [
+    { key:'neon',    name:'Neon Stream',   palette:[0x8A2BE2,0x00FFFF,0xFF4500], bg:'radial-gradient(1200px 600px at 50% 20%, rgba(0,238,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,0,135,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,119,255,.18), transparent 55%), #070a14', swirl: 0.65 },
+    { key:'core',    name:'Galactic Core', palette:[0xFFD700,0xFF69B4,0xFF1493], bg:'radial-gradient(1200px 600px at 40% 10%, rgba(255,215,0,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,20,147,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,105,180,.18), transparent 55%), #0a0710', swirl: 0.4  },
+    { key:'aurora',  name:'Aurora Drift',  palette:[0x7FFFD4,0x00FA9A,0x1E90FF], bg:'radial-gradient(1200px 600px at 60% 20%, rgba(127,255,212,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(30,144,255,.14), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(0,250,154,.18), transparent 55%), #051013', swirl: 0.55 },
+    { key:'void',    name:'Voidfire',      palette:[0xFF6B6B,0xFFE66D,0x4D96FF], bg:'radial-gradient(1200px 600px at 55% 15%, rgba(77,150,255,.18), transparent 55%), radial-gradient(900px 900px at 10% 90%, rgba(255,107,107,.16), transparent 55%), radial-gradient(1100px 1100px at 90% 80%, rgba(255,230,109,.14), transparent 55%), #0b0a12', swirl: 0.85 }
+  ];
+  var worldIndex = 0;
+  var world = WORLDS[worldIndex];
+  var worldDuration = 28; // seconds per world
+  var worldTimer = 0;
+  var cycling = true;
+
+  // Background apply
+  function applyWorldBG(w){ document.body.style.background = w.bg; }
+
+  // ---------- Particles / Tunnel ----------
+  var starTex = (function makeSpriteTexture(size){
+    var c = document.createElement('canvas'), s = size||128; c.width=c.height=s;
+    var g=c.getContext('2d'), cx=s*0.5, cy=s*0.5, r=s*0.45;
+    var grd=g.createRadialGradient(cx,cy,0,cx,cy,r);
+    grd.addColorStop(0,'rgba(255,255,255,1)'); grd.addColorStop(.5,'rgba(255,255,255,.6)'); grd.addColorStop(1,'rgba(255,255,255,0)');
+    g.clearRect(0,0,s,s); g.fillStyle=grd; g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.fill();
+    var t = new THREE.Texture(c); t.needsUpdate = true; return t;
+  })(128);
+
+  var COUNT_DUST  = isMobile ? 6000 : 12000;
+  var COUNT_SPARK = isMobile ? 1200 : 2600;
+  var RADIUS = 42, LENGTH = 520;
+
+  function makeTunnelPoints(count, size, palette, opacity){
+    var geom = new THREE.BufferGeometry();
+    var pos = new Float32Array(count*3);
+    var col = new Float32Array(count*3);
+    var i,i3, ang, rr, rad;
+    for(i=0;i<count;i++){
+      i3=i*3;
+      ang = Math.random()*Math.PI*2;
+      rr = Math.sqrt(Math.random()); // denser center
+      rad = rr*RADIUS;
+      pos[i3]   = Math.cos(ang)*rad;
+      pos[i3+1] = Math.sin(ang)*rad;
+      pos[i3+2] = -Math.random()*LENGTH;
+      var pick = new THREE.Color(palette[(Math.random()*palette.length)|0]);
+      col[i3]=pick.r; col[i3+1]=pick.g; col[i3+2]=pick.b;
     }
-    window.addEventListener('resize', resize);
-    setTimeout(resize, 0);
-
-    // ----- Star sprite texture (soft glow) -----
-    function makeSpriteTexture(size) {
-      var c = document.createElement('canvas');
-      var s = size || 128;
-      c.width = c.height = s;
-      var g = c.getContext('2d');
-      var cx = s * 0.5, cy = s * 0.5, r = s * 0.45;
-      var grd = g.createRadialGradient(cx, cy, 0, cx, cy, r);
-      grd.addColorStop(0.0, 'rgba(255,255,255,1.0)');
-      grd.addColorStop(0.5, 'rgba(255,255,255,0.6)');
-      grd.addColorStop(1.0, 'rgba(255,255,255,0.0)');
-      g.clearRect(0,0,s,s);
-      g.fillStyle = grd; g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
-      var tex = new THREE.Texture(c);
-      tex.needsUpdate = true;
-      return tex;
-    }
-    var starTex = makeSpriteTexture(128);
-
-    // ----- Parameters -----
-    var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    var COUNT_DUST  = isMobile ? 6000 : 12000;
-    var COUNT_SPARK = isMobile ? 1200 : 2600;
-
-    var RADIUS = 42;             // tunnel radius
-    var LENGTH = 480;            // tunnel length (z span)
-    var SPEED  = parseFloat(speedRange.value);  // base speed (updated via UI)
-    var speedTarget = SPEED;
-    var time = 0;
-
-    // Camera drift based on mouse / touch
-    var mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-
-    // ----- Geometry builders -----
-    function makeTunnelPoints(count, size, palette, opacity) {
-      var geom = new THREE.BufferGeometry();
-      var positions = new Float32Array(count * 3);
-      var colors = new Float32Array(count * 3);
-
-      var i, i3, ang, rad, z, col, pick, r2;
-
-      for (i = 0; i < count; i++) {
-        i3 = i * 3;
-        // Cylinder distribution (denser toward center)
-        ang = Math.random() * Math.PI * 2;
-        r2 = Math.random();           // 0..1
-        rad = Math.sqrt(r2) * RADIUS; // pull inward for density
-        positions[i3]     = Math.cos(ang) * rad;
-        positions[i3 + 1] = Math.sin(ang) * rad;
-        positions[i3 + 2] = -Math.random() * LENGTH;
-
-        pick = palette[(Math.random() * palette.length) | 0];
-        col = new THREE.Color(pick);
-        colors[i3]     = col.r;
-        colors[i3 + 1] = col.g;
-        colors[i3 + 2] = col.b;
-      }
-
-      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-      var mat = new THREE.PointsMaterial({
-        size: size,
-        map: starTex,
-        transparent: true,
-        opacity: opacity,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        vertexColors: true,
-        sizeAttenuation: true
-      });
-
-      var pts = new THREE.Points(geom, mat);
-      pts.frustumCulled = false;
-      return pts;
-    }
-
-    // Two layers for depth: dust (small), spark (larger)
-    var palette = THEMES.neon.palette.slice(0);
-    var dust = makeTunnelPoints(COUNT_DUST, 0.18, palette, 0.95);
-    var sparks = makeTunnelPoints(COUNT_SPARK, 0.75, palette, 0.85);
-
-    scene.add(dust);
-    scene.add(sparks);
-
-    // Subtle stars in deep background (static)
-    var bgGeom = new THREE.BufferGeometry();
-    (function(){
-      var n = isMobile ? 400 : 900;
-      var arr = new Float32Array(n * 3);
-      var i, i3;
-      for (i = 0; i < n; i++) {
-        i3 = i * 3;
-        arr[i3]     = (Math.random() - 0.5) * 1200;
-        arr[i3 + 1] = (Math.random() - 0.5) * 1200;
-        arr[i3 + 2] = -Math.random() * 1500 - 500;
-      }
-      bgGeom.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-    })();
-    var bgMat = new THREE.PointsMaterial({
-      size: 0.6, map: starTex, transparent: true, opacity: 0.35,
-      depthWrite: false, blending: THREE.AdditiveBlending
+    geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    geom.setAttribute('color', new THREE.BufferAttribute(col,3));
+    var mat = new THREE.PointsMaterial({
+      size:size, map:starTex, transparent:true, opacity:opacity, depthWrite:false,
+      blending:THREE.AdditiveBlending, vertexColors:true, sizeAttenuation:true
     });
-    var backgroundStars = new THREE.Points(bgGeom, bgMat);
-    scene.add(backgroundStars);
+    var pts = new THREE.Points(geom, mat); pts.frustumCulled=false; return pts;
+  }
 
-    // ----- Theme application -----
-    function recolorPoints(points, paletteArr) {
-      var attr = points.geometry.getAttribute('color');
-      var i, i3, pick, col;
-      for (i = 0; i < attr.count; i++) {
-        i3 = i * 3;
-        pick = paletteArr[(Math.random() * paletteArr.length) | 0];
-        col = new THREE.Color(pick);
-        attr.array[i3]   = col.r;
-        attr.array[i3+1] = col.g;
-        attr.array[i3+2] = col.b;
-      }
-      attr.needsUpdate = true;
+  var dust = makeTunnelPoints(COUNT_DUST, 0.18, world.palette, 0.95);
+  var sparks = makeTunnelPoints(COUNT_SPARK, 0.75, world.palette, 0.85);
+  scene.add(dust); scene.add(sparks);
+
+  // Far background stars
+  var bgGeom = new THREE.BufferGeometry();
+  (function(){
+    var n = isMobile ? 400 : 900, arr = new Float32Array(n*3), i,i3;
+    for(i=0;i<n;i++){ i3=i*3;
+      arr[i3]=(Math.random()-0.5)*1200;
+      arr[i3+1]=(Math.random()-0.5)*1200;
+      arr[i3+2]=-Math.random()*1600 - 600;
     }
-    function applyTheme(key) {
-      var t = THEMES[key] || THEMES.neon;
-      palette = t.palette.slice(0);
-      recolorPoints(dust, palette);
-      recolorPoints(sparks, palette);
-      // Stage gradient
-      document.querySelector('.stage').style.background = t.bg;
-    }
-    applyTheme('neon');
-
-    // ----- Animation -----
-    var clock = new THREE.Clock();
-    var last = performance.now ? performance.now() : Date.now();
-    var acc = 0, frames = 0;
-
-    function wrapZ(z) {
-      // Reposition particle to the far back when it passes the camera
-      if (z > 2) z -= LENGTH;
-      return z;
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      var dt = clock.getDelta();
-      time += dt;
-
-      // Smooth speed to target
-      SPEED = lerp(SPEED, speedTarget, 0.08);
-
-      // Camera drift (warp wobble)
-      mouse.tx = lerp(mouse.tx, mouse.x, 0.06);
-      mouse.ty = lerp(mouse.ty, mouse.y, 0.06);
-
-      var wobble = 0.35 + SPEED * 0.12;
-      var cx = Math.sin(time * (0.9 + SPEED * 0.08)) * wobble + mouse.tx * 0.9;
-      var cy = Math.cos(time * (1.1 + SPEED * 0.05)) * wobble + mouse.ty * 0.9;
-
-      camera.position.x = cx;
-      camera.position.y = cy;
-
-      // Slight roll during warp
-      camera.rotation.z = Math.sin(time * 0.7) * SPEED * 0.02;
-
-      // Move tunnel particles forward
-      var layers = [dust, sparks];
-      for (var li = 0; li < layers.length; li++) {
-        var p = layers[li];
-        var pos = p.geometry.getAttribute('position');
-        var arr = pos.array;
-        var count = pos.count;
-
-        for (var i = 0; i < count; i++) {
-          var i3 = i * 3;
-          arr[i3 + 2] += dt * (8 + SPEED * 55) * (li === 0 ? 1.0 : 1.15); // sparks slightly faster
-          arr[i3 + 2] = wrapZ(arr[i3 + 2]);
-
-          // Subtle breathing of radius for living tunnel
-          var rr = Math.sqrt(arr[i3]*arr[i3] + arr[i3+1]*arr[i3+1]);
-          var scale = 1.0 + Math.sin(time * 1.5 + arr[i3+2] * 0.02) * 0.04;
-          var ang = Math.atan2(arr[i3+1], arr[i3]);
-          var newR = rr * scale;
-          arr[i3]     = Math.cos(ang) * newR;
-          arr[i3 + 1] = Math.sin(ang) * newR;
-        }
-        pos.needsUpdate = true;
-
-        // Size pulsing based on speed
-        var baseSize = (li === 0) ? 0.18 : 0.75;
-        p.material.size = baseSize * (1 + SPEED * 0.75);
-        p.material.opacity = (li === 0 ? 0.95 : 0.85) * (0.9 + Math.sin(time * 0.8) * 0.05);
-      }
-
-      // Background slow drift
-      backgroundStars.rotation.z += dt * 0.015;
-      backgroundStars.position.z += dt * (2 + SPEED * 14);
-      if (backgroundStars.position.z > 0) backgroundStars.position.z = -800;
-
-      // Look forward down the tunnel
-      camera.lookAt(cx * 0.3, cy * 0.3, -40);
-
-      renderer.render(scene, camera);
-
-      // FPS meter
-      var now = performance.now ? performance.now() : Date.now();
-      frames++; acc += (now - last); last = now;
-      if (acc >= 500) { // update ~2x/s
-        var fps = Math.round(frames * 1000 / acc);
-        fpsEl.textContent = "FPS: " + fps;
-        frames = 0; acc = 0;
-      }
-    }
-    animate();
-
-    // ----- Interactions -----
-    // Mouse / touch drift
-    function normClient(v, max) { return (v / max) * 2 - 1; }
-    function onPointerMove(e) {
-      var rect = renderer.domElement.getBoundingClientRect();
-      var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-      var y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-      mouse.x = clamp(normClient(x, rect.width), -1, 1) * 0.8;
-      mouse.y = clamp(-normClient(y, rect.height), -1, 1) * 0.8;
-    }
-    renderer.domElement.addEventListener('mousemove', onPointerMove);
-    renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: true });
-
-    // Wheel / pinch speed adjust
-    function onWheel(e) {
-      var d = e.deltaY > 0 ? 0.08 : -0.08;
-      speedTarget = clamp(speedTarget + d, 0, 3.2);
-      speedRange.value = speedTarget.toFixed(2);
-    }
-    renderer.domElement.addEventListener('wheel', onWheel, { passive: true });
-
-    // UI: speed slider
-    speedRange.addEventListener('input', function () {
-      speedTarget = parseFloat(speedRange.value);
-    });
-
-    // UI: theme
-    themeSel.addEventListener('change', function () {
-      applyTheme(themeSel.value);
-    });
-
-    // UI: viewport shape
-    function setShape(cls) {
-      vp.className = "viewport shape-" + cls;
-    }
-    shapeSel.addEventListener('change', function () { setShape(shapeSel.value); });
-
-    // UI: warp button (quick burst)
-    var warpCooldown = 0;
-    warpBtn.addEventListener('click', function () {
-      if (warpCooldown > 0) return;
-      var burst = Math.max(speedTarget, 2.2);
-      speedTarget = Math.min(3.2, burst + 0.6);
-
-      // brief UI flash
-      warpBtn.textContent = "⚡ Warp Engaged";
-      setTimeout(function(){ warpBtn.textContent = "Engage Warp"; }, 800);
-
-      warpCooldown = 1;
-      setTimeout(function(){ warpCooldown = 0; }, 900);
-    });
-
-    // Start shape default
-    setShape('square');
-
-    // Safety: pause animations when tab hidden to save power
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) {
-        speedTarget = Math.max(0.2, speedTarget * 0.6);
-      }
-    });
+    bgGeom.setAttribute('position', new THREE.BufferAttribute(arr,3));
   })();
-  </script>
+  var bgMat = new THREE.PointsMaterial({ size:0.6, map:starTex, transparent:true, opacity:0.35, depthWrite:false, blending:THREE.AdditiveBlending });
+  var backgroundStars = new THREE.Points(bgGeom, bgMat);
+  scene.add(backgroundStars);
+
+  // ---------- World color morph (chunked) ----------
+  var morphing = false, morphT = 0, morphDur = 4.0;
+  var fromPalette = world.palette.slice(0), toPalette = world.palette.slice(0);
+  var morphIndex = 0, morphChunk = 3000; // vertices per frame
+
+  function startWorldMorph(nextWorld){
+    fromPalette = world.palette.slice(0);
+    toPalette = nextWorld.palette.slice(0);
+    morphing = true; morphT = 0; morphIndex = 0;
+    world = nextWorld; // immediately update world meta (name, swirl), colors blend in
+    applyWorldBG(world);
+    worldEl.textContent = world.name;
+  }
+
+  function lerpColorArr(aHex, bHex, t){
+    var a = new THREE.Color(aHex), b = new THREE.Color(bHex);
+    var c = new THREE.Color(0,0,0);
+    c.r = lerp(a.r, b.r, t); c.g = lerp(a.g, b.g, t); c.b = lerp(a.b, b.b, t);
+    return c;
+  }
+
+  function morphPointsColors(points){
+    var col = points.geometry.getAttribute('color');
+    var i, i3, palIdx, c;
+    var max = Math.min(col.count, morphIndex+morphChunk);
+    for(i=morphIndex;i<max;i++){
+      i3=i*3; palIdx = (i % toPalette.length);
+      c = lerpColorArr(fromPalette[palIdx], toPalette[palIdx], morphT);
+      col.array[i3]=c.r; col.array[i3+1]=c.g; col.array[i3+2]=c.b;
+    }
+    col.needsUpdate = true; morphIndex = max;
+    if(morphIndex >= col.count){ morphIndex=0; }
+  }
+
+  // ---------- Ship (accurate-ish low-poly starfighter) ----------
+  var ship = new THREE.Group();
+  scene.add(ship);
+
+  // Materials
+  var matHull = new THREE.MeshStandardMaterial({ color:0xbfc7d6, metalness:0.7, roughness:0.35 });
+  var matDark = new THREE.MeshStandardMaterial({ color:0x303540, metalness:0.5, roughness:0.6 });
+  var matWing = new THREE.MeshStandardMaterial({ color:0x9097a6, metalness:0.6, roughness:0.45 });
+  var matGlass = new THREE.MeshPhysicalMaterial ? new THREE.MeshPhysicalMaterial({ color:0x88aaff, metalness:0, roughness:0.15, transmission:0.0, transparent:true, opacity:0.5, emissive:0x224466, emissiveIntensity:0.15 }) : matDark;
+  var matGlow = new THREE.MeshStandardMaterial({ color:0x66ccff, emissive:0x2299ff, emissiveIntensity:1.6, metalness:0.1, roughness:0.2 });
+
+  // Fuselage (tapered cylinder, aligned to Z)
+  var fus = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 3.4, 20, 1, false), matHull);
+  fus.rotation.x = Math.PI/2; // make it lengthwise along Z
+  fus.position.z = -0.2;
+  ship.add(fus);
+
+  // Nose cone
+  var nose = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 24), matHull);
+  nose.rotation.x = Math.PI/2;
+  nose.position.z = 2.0;
+  ship.add(nose);
+
+  // Canopy
+  var canopy = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 18, 0, Math.PI*2, 0, Math.PI/2), matGlass);
+  canopy.scale.set(1,0.78,1.2);
+  canopy.position.set(0, 0.25, 0.9);
+  ship.add(canopy);
+
+  // Wings
+  var wingL = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.7), matWing);
+  var wingR = wingL.clone();
+  wingL.position.set(-1.0, -0.15, 0.1); wingL.rotation.z = 0.10; wingL.rotation.x = 0.08;
+  wingR.position.set( 1.0, -0.15, 0.1); wingR.rotation.z = -0.10; wingR.rotation.x = 0.08;
+  ship.add(wingL); ship.add(wingR);
+
+  // Tail fin
+  var tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.9), matDark);
+  tail.position.set(0, 0.7, -0.8); tail.rotation.x = 0.25;
+  ship.add(tail);
+
+  // Engine nozzle + glow ring
+  var nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.6, 20), matDark);
+  nozzle.rotation.x = Math.PI/2; nozzle.position.z = -1.9;
+  ship.add(nozzle);
+  var ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.08, 12, 32), matGlow);
+  ring.rotation.x = Math.PI/2; ring.position.z = -1.9;
+  ship.add(ring);
+
+  // Engine light
+  var engineLight = new THREE.PointLight(0x44aaff, 2.0, 18, 2.0);
+  engineLight.position.set(0, 0, -2.0);
+  ship.add(engineLight);
+
+  // Ship base transform
+  ship.position.set(0,0,0);
+  ship.rotation.set(0,0,0);
+
+  // ---------- Motion state ----------
+  var SPEED = parseFloat(speedRange.value);
+  var speedTarget = SPEED;
+  var time = 0;
+  var mouse = { x:0, y:0, tx:0, ty:0 };
+  var wobbleAmp = 0.35;
+
+  // ---------- Helpers ----------
+  function wrapZ(z){ if(z>2) z -= LENGTH; return z; }
+
+  // ---------- Interactions ----------
+  function normClient(v,max){ return (v/max)*2 - 1; }
+  function onPointerMove(e){
+    var w = window.innerWidth, h = window.innerHeight;
+    var x = (e.touches ? e.touches[0].clientX : e.clientX);
+    var y = (e.touches ? e.touches[0].clientY : e.clientY);
+    mouse.x = clamp(normClient(x, w), -1, 1) * 0.9;
+    mouse.y = clamp(-normClient(y, h), -1, 1) * 0.9;
+  }
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('touchmove', onPointerMove, {passive:true});
+
+  function onWheel(e){
+    var d = e.deltaY > 0 ? 0.10 : -0.10;
+    speedTarget = clamp(speedTarget + d, 0, 3.2);
+    speedRange.value = speedTarget.toFixed(2);
+  }
+  window.addEventListener('wheel', onWheel, {passive:true});
+
+  // Panel controls
+  hudBtn.addEventListener('click', function(){ panel.classList.toggle('collapsed'); });
+  window.addEventListener('keydown', function(e){
+    if(e.key==='h' || e.key==='H'){ panel.classList.toggle('collapsed'); }
+    if(e.key==='v' || e.key==='V'){
+      viewSel.value = (viewSel.value==='pilot' ? 'chase' : 'pilot');
+      updateView();
+    }
+  });
+
+  speedRange.addEventListener('input', function(){ speedTarget = parseFloat(speedRange.value); });
+  cycleSel.addEventListener('change', function(){ cycling = (cycleSel.value==='auto'); });
+  warpBtn.addEventListener('click', function(){
+    speedTarget = Math.min(3.2, Math.max(speedTarget, 2.2) + 0.6);
+    warpBtn.textContent = '⚡ Warp Engaged';
+    setTimeout(function(){ warpBtn.textContent='Engage Warp'; }, 900);
+  });
+
+  // ---------- Cameras view update ----------
+  function updateView(){
+    var mode = viewSel.value;
+    viewStatEl.textContent = mode === 'pilot' ? 'Pilot' : 'Chase';
+    activeCamera = (mode==='pilot') ? cameraPilot : cameraChase;
+  }
+  viewSel.addEventListener('change', updateView);
+
+  // ---------- Animation ----------
+  var clock = new THREE.Clock();
+  var last = (performance.now?performance.now():Date.now()), acc=0, frames=0;
+
+  function animate(){
+    requestAnimationFrame(animate);
+    var dt = clock.getDelta();
+    if(dt>0.1) dt = 0.1; // clamp big tab-jumps
+    time += dt;
+
+    // Auto world cycling
+    worldTimer += dt;
+    if(cycling && worldTimer > worldDuration && !morphing){
+      worldTimer = 0;
+      var nextIndex = (worldIndex+1) % WORLDS.length;
+      worldIndex = nextIndex;
+      startWorldMorph(WORLDS[worldIndex]);
+    }
+
+    // Morph colors
+    if(morphing){
+      morphT += dt / morphDur;
+      if(morphT>1){ morphT = 1; morphing=false; }
+      morphPointsColors(dust);
+      morphPointsColors(sparks);
+    }
+
+    // Smooth speed
+    SPEED = lerp(SPEED, speedTarget, 0.08);
+
+    // Camera/ship drift from input
+    mouse.tx = lerp(mouse.tx, mouse.x, 0.08);
+    mouse.ty = lerp(mouse.ty, mouse.y, 0.08);
+
+    // Ship movement (ease, roll, pitch)
+    var shipTargetX = mouse.tx * 3.8;
+    var shipTargetY = mouse.ty * 3.2;
+    ship.position.x = lerp(ship.position.x, shipTargetX, 0.08);
+    ship.position.y = lerp(ship.position.y, shipTargetY, 0.08);
+
+    // Roll into turns & slight pitch
+    ship.rotation.z = lerp(ship.rotation.z, -mouse.tx * 0.45, 0.12);
+    ship.rotation.x = lerp(ship.rotation.x,  mouse.ty * 0.30, 0.12);
+
+    // Engine flicker
+    var flick = 1.2 + Math.sin(time*40)*0.15 + SPEED*0.2;
+    engineLight.intensity = 1.4*flick;
+    ring.material.emissiveIntensity = 1.1 + SPEED*0.7;
+
+    // Camera wobble
+    var wobble = wobbleAmp + SPEED*0.12;
+    var cx = Math.sin(time*(0.9 + SPEED*0.08))*wobble + mouse.tx*0.7;
+    var cy = Math.cos(time*(1.1 + SPEED*0.05))*wobble + mouse.ty*0.7;
+
+    // Tunnel swirl
+    var swirl = world.swirl || 0.5;
+    var twistSpeed = (0.3 + SPEED*0.9) * 0.8 * swirl;
+
+    // Move tunnel points
+    var layers=[dust,sparks];
+    for(var li=0; li<layers.length; li++){
+      var p = layers[li];
+      var pos = p.geometry.getAttribute('position');
+      var arr = pos.array, count = pos.count;
+      var baseVel = (8 + SPEED*55) * (li===0 ? 1.0 : 1.15);
+      for(var i=0;i<count;i++){
+        var i3=i*3;
+        // forward
+        arr[i3+2] += dt*baseVel;
+        arr[i3+2] = wrapZ(arr[i3+2]);
+
+        // breathing radius + swirl twist
+        var x = arr[i3], y = arr[i3+1], z = arr[i3+2];
+        var rr = Math.sqrt(x*x + y*y);
+        var ang = Math.atan2(y,x);
+
+        // swirl angle proportional to z and speed
+        var rot = twistSpeed * dt * (0.6 + (z/LENGTH)*0.4);
+        ang += rot * (li===0 ? 1.0 : 1.35);
+
+        // gentle "living tunnel" scale
+        var scale = 1.0 + Math.sin(time*1.4 + z*0.02)*0.04;
+        var newR = rr * scale;
+
+        arr[i3]   = Math.cos(ang)*newR;
+        arr[i3+1] = Math.sin(ang)*newR;
+      }
+      pos.needsUpdate = true;
+      // Material dynamics
+      p.material.size = (li===0?0.18:0.75) * (1 + SPEED*0.75);
+      p.material.opacity = (li===0?0.95:0.85) * (0.92 + Math.sin(time*0.9)*0.04);
+    }
+
+    // Background motion
+    backgroundStars.rotation.z += dt*0.015;
+    backgroundStars.position.z += dt*(2 + SPEED*14);
+    if(backgroundStars.position.z > 0) backgroundStars.position.z = -800;
+
+    // Cameras
+    // Pilot: slightly ahead of ship origin, inside the nose
+    cameraPilot.position.copy(ship.position);
+    cameraPilot.position.add(new THREE.Vector3(0, 0.12, 1.1));
+    cameraPilot.rotation.set(0,0,0);
+    cameraPilot.lookAt(
+      ship.position.x + cx*0.4,
+      ship.position.y + cy*0.4,
+      ship.position.z - 30
+    );
+    cameraPilot.rotation.z += Math.sin(time*0.7)*SPEED*0.02;
+
+    // Chase: behind and above, looking at ship
+    var chaseOffset = new THREE.Vector3(0, 1.3 + SPEED*0.2, 4.8 + (3.0 - SPEED)*0.8);
+    // rotate offset by ship roll/pitch for a nicer trailing feel
+    var off = chaseOffset.clone();
+    // simple rotation around X/Z axes
+    var sx = ship.rotation.x, sz = ship.rotation.z;
+    var cosx=Math.cos(sx), sinx=Math.sin(sx);
+    var cosz=Math.cos(sz), sinz=Math.sin(sz);
+    var ox = off.x, oy = off.y, oz = off.z;
+    // rotate around X
+    var ry = oy*cosx - oz*sinx, rz = oy*sinx + oz*cosx;
+    // rotate around Z
+    var rx = ox*cosz - ry*sinz, ry2 = ox*sinz + ry*cosz;
+    off.set(rx, ry2, rz);
+    cameraChase.position.copy(ship.position).add(off);
+    cameraChase.lookAt(ship.position.x, ship.position.y + 0.1, ship.position.z + 0.4);
+
+    // Render
+    renderer.render(scene, activeCamera);
+
+    // FPS
+    var now = (performance.now?performance.now():Date.now());
+    frames++; acc += (now-last); last = now;
+    if(acc>=500){ fpsEl.textContent = Math.round(frames*1000/acc); frames=0; acc=0; }
+
+    // Update stats UI periodically
+    if((frames % 15)===0){
+      worldEl.textContent = world.name;
+      pcountEl.textContent = (COUNT_DUST + COUNT_SPARK).toString();
+    }
+  }
+
+  // ---------- Init ----------
+  function init(){
+    applyWorldBG(world);
+    worldEl.textContent = world.name;
+    viewSel.value = isMobile ? 'chase' : 'pilot';
+    updateView();
+
+    // Start ship slightly forward so we can see some nose from pilot view
+    ship.position.set(0,0,0);
+
+    // Initial cameras update to place them correctly before first frame
+    resize();
+    animate();
+  }
+
+  // Safety: when tab hidden, gently slow down
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ speedTarget = Math.max(0.3, speedTarget*0.6); }
+  });
+
+  // Kickoff
+  init();
+})();
+</script>
 </body>
 </html>
