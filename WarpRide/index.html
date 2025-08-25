@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Cosmic Glider EX — v1.5 (Refined Visuals, Etched Name, Reduced Occupancy)</title>
+<title>Cosmic Glider EX — v1.6 (Etched Name • Solid Scoring • Refined Visuals)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -44,7 +44,7 @@
   <div class="hud-btn" id="hudBtn">☰ Controls</div>
   <div class="panel collapsed" id="panel">
     <div class="head">
-      <div class="title">Cosmic Glider EX — v1.5</div>
+      <div class="title">Cosmic Glider EX — v1.6</div>
       <div style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#6ee7ff,#a78bfa);color:#0b1020;">Autoplay++</div>
     </div>
     <div class="body">
@@ -78,7 +78,7 @@
     </div>
   </div>
 
-  <div class="legend">Autoplay active. Ship: <b>Cosmic Glider EX — v1.5</b>. Drag to steer; wheel to adjust speed.</div>
+  <div class="legend">Autoplay active. Ship: <b>Cosmic Glider EX — v1.6</b>. Drag to steer; wheel to adjust speed.</div>
 
 <script>
 (function(){
@@ -112,18 +112,18 @@
     [cameraPilot,cameraChase,cameraCine].forEach(function(c){c.aspect=w/h;c.updateProjectionMatrix();});}
   window.addEventListener('resize',resize);
 
-  // Cameras (narrower FOV to reduce ship dominance)
+  // Cameras (kept back so ship occupies less screen)
   var cameraPilot=new THREE.PerspectiveCamera(64,1,0.1,5000);
   var cameraChase=new THREE.PerspectiveCamera(62,1,0.1,5000);
   var cameraCine =new THREE.PerspectiveCamera(70,1,0.1,5000);
   var activeCamera=cameraPilot, camName='Pilot';
 
-  // Lighting: slightly cooler key, dimmer fill for depth
+  // Lighting
   scene.add(new THREE.HemisphereLight(0x8ab6ff,0x080810,0.55));
   var key=new THREE.DirectionalLight(0xf5f7ff,0.95); key.position.set(6,10,7); scene.add(key);
   var fill=new THREE.DirectionalLight(0x77a6ff,0.25); fill.position.set(-8,3,6); scene.add(fill);
 
-  // Worlds / palettes with more contrast
+  // Worlds
   var WORLDS=[
     {key:'neon',name:'Neon Stream',palette:[0x8A2BE2,0x00FFFF,0xFF4500],bg:'#050a16', swirl:0.6},
     {key:'core',name:'Galactic Core',palette:[0xFFD700,0xFF69B4,0xFF1493],bg:'#0a0710', swirl:0.35},
@@ -140,7 +140,6 @@
   var starTex=makeStarTex(128);
 
   var isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  // Slightly fewer by default for clarity
   var COUNT_DUST_MAX=isMobile?5000:10000, COUNT_SPARK_MAX=isMobile?900:2200;
   var dustDraw=COUNT_DUST_MAX, sparkDraw=COUNT_SPARK_MAX; var RADIUS=46, LENGTH=620;
 
@@ -157,7 +156,7 @@
   var sparks=makeTunnelPoints(COUNT_SPARK_MAX,0.68,world.palette,0.88);
   scene.add(dust);scene.add(sparks);
 
-  // Subtle parallax field
+  // Parallax field
   var bgGeom=new THREE.BufferGeometry();(function(){var n=isMobile?350:800,arr=new Float32Array(n*3),i,i3; for(i=0;i<n;i++){i3=i*3;arr[i3]=(Math.random()-0.5)*1600;arr[i3+1]=(Math.random()-0.5)*1600;arr[i3+2]=-Math.random()*2200-800;} bgGeom.setAttribute('position',new THREE.BufferAttribute(arr,3));})();
   var bgMat=new THREE.PointsMaterial({size:0.55,map:starTex,transparent:true,opacity:0.32,depthWrite:false,blending:THREE.AdditiveBlending});
   var backgroundStars=new THREE.Points(bgGeom,bgMat);scene.add(backgroundStars);
@@ -168,48 +167,42 @@
   function lerpColor(aHex,bHex,t){var a=new THREE.Color(aHex),b=new THREE.Color(bHex),c=new THREE.Color(0,0,0);c.r=lerp(a.r,b.r,t);c.g=lerp(a.g,b.g,t);c.b=lerp(a.b,b.b,t);return c;}
   function morphPointsColors(pts){var c=pts.geometry.getAttribute('color'),i,i3,palIdx,col;var max=Math.min(c.count,morphIndex+morphChunk); for(i=morphIndex;i<max;i++){i3=i*3;palIdx=(i%toPalette.length);col=lerpColor(fromPalette[palIdx],toPalette[palIdx],morphT);c.array[i3]=col.r;c.array[i3+1]=col.g;c.array[i3+2]=col.b;} c.needsUpdate=true;morphIndex=max;if(morphIndex>=c.count){morphIndex=0;}}
 
-  // Ship (reduced size + better proportions)
+  // Ship (smaller footprint)
   var ship=new THREE.Group();scene.add(ship);
-  ship.scale.set(0.78,0.78,0.78);
+  ship.scale.set(0.76,0.76,0.76);
 
   var matHull=new THREE.MeshStandardMaterial({color:0xbfd4e8,metalness:0.85,roughness:0.22});
   var matDark=new THREE.MeshStandardMaterial({color:0x27303a,metalness:0.6,roughness:0.55});
-  var matWing=new THREE.MeshStandardMaterial({color:0x9aa7bb,metalness:0.75,roughness:0.32});
+  var matWingBase={color:0x9aa7bb,metalness:0.75,roughness:0.32};
+  var matWing=new THREE.MeshStandardMaterial(matWingBase);
   var matGlow=new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.6,metalness:0.1,roughness:0.2});
   var matNeo =new THREE.MeshStandardMaterial({color:0x9b87f5,emissive:0x6f6cf8,emissiveIntensity:0.9,metalness:0.2,roughness:0.4});
 
   var body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(0.55,2.1,12,24):new THREE.CylinderGeometry(0.55,0.6,2.8,20),matHull); body.rotation.x=Math.PI/2; body.position.z=0.2; ship.add(body);
   var nose=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.2,24),matHull); nose.rotation.x=Math.PI/2; nose.position.z=1.9; ship.add(nose);
   function addStrake(x){var s=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,1.6),matNeo);s.position.set(x,-0.1,0.4);s.rotation.x=0.2;ship.add(s);} addStrake(0.36); addStrake(-0.36);
-  var wingL=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.06,0.86),matWing), wingR=wingL.clone(); wingL.position.set(-1.15,-0.16,-0.04); wingL.rotation.z=0.10; wingL.rotation.x=0.08; wingR.position.set( 1.15,-0.16,-0.04); wingR.rotation.z=-0.10; wingR.rotation.x=0.08; ship.add(wingL); ship.add(wingR);
+
+  // Create etched bump/roughness maps for the wing top face
+  function makeEtchMaps(text,w,h){ w=w||1024; h=h||256; var bump=document.createElement('canvas'); bump.width=w; bump.height=h; var gb=bump.getContext('2d'); gb.fillStyle='#808080'; gb.fillRect(0,0,w,h); gb.fillStyle='#606870'; gb.font='bold 120px Inter, Arial, sans-serif'; gb.textBaseline='middle'; gb.fillText(text, 28, h/2);
+    var rough=document.createElement('canvas'); rough.width=w; rough.height=h; var gr=rough.getContext('2d'); gr.fillStyle='#888'; gr.fillRect(0,0,w,h); gr.fillStyle='#aaa'; gr.font='bold 120px Inter, Arial, sans-serif'; gr.textBaseline='middle'; gr.fillText(text, 28, h/2);
+    var bumpTex=new THREE.Texture(bump); bumpTex.needsUpdate=true; var roughTex=new THREE.Texture(rough); roughTex.needsUpdate=true; return {bump:bumpTex, rough:roughTex}; }
+
+  // Wing geometry with per-face materials
+  var wingGeom=new THREE.BoxGeometry(1.8,0.06,0.86);
+  // BoxGeometry groups order: +x, -x, +y(top), -y(bottom), +z, -z
+  var etch=makeEtchMaps('COSMIC GLIDER EX  •  v1.6');
+  var wingTopEtched=new THREE.MeshStandardMaterial({color:matWingBase.color, metalness:matWingBase.metalness, roughness:matWingBase.roughness, bumpMap:etch.bump, bumpScale:-0.045, roughnessMap:etch.rough});
+  var wingMatLeft=[matWing, matWing, wingTopEtched, matWing, matWing, matWing];
+  var wingMatRight=[matWing, matWing, matWing, matWing, matWing, matWing];
+
+  var wingL=new THREE.Mesh(wingGeom, wingMatLeft), wingR=new THREE.Mesh(wingGeom, wingMatRight);
+  wingL.position.set(-1.15,-0.16,-0.04); wingL.rotation.z=0.10; wingL.rotation.x=0.08; ship.add(wingL);
+  wingR.position.set( 1.15,-0.16,-0.04); wingR.rotation.z=-0.10; wingR.rotation.x=0.08; ship.add(wingR);
+
   var tail=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.95),matDark); tail.position.set(0,0.75,-0.9); tail.rotation.x=0.25; ship.add(tail);
   var nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.5,0.6,20),matDark); nozzle.rotation.x=Math.PI/2; nozzle.position.z=-2.1; ship.add(nozzle);
   var thrHalo=new THREE.Mesh(new THREE.TorusGeometry(0.58,0.09,12,40),matGlow); thrHalo.rotation.x=Math.PI/2; thrHalo.position.z=-2.1; ship.add(thrHalo);
   var engineLight=new THREE.PointLight(0x44aaff,2.0,20,2.0); engineLight.position.set(0,0,-2.2); ship.add(engineLight);
-
-  // Etched name plate (bump-mapped panel flush with left wing)
-  function makeEtchMaps(text){
-    var cw=1024,ch=256,c=document.createElement('canvas');c.width=cw;c.height=ch;var g=c.getContext('2d');
-    // base metal texture
-    g.fillStyle='#a9b4c3'; g.fillRect(0,0,cw,ch);
-    // text path
-    g.font='bold 120px Inter, Arial, sans-serif'; g.textAlign='left'; g.textBaseline='middle';
-    g.fillStyle='#9099a6'; g.fillText(text, 28, ch/2);
-    var colorTex=new THREE.Texture(c); colorTex.needsUpdate=true;
-    // bump (grayscale): darker for engraved
-    var b=document.createElement('canvas'); b.width=cw; b.height=ch; var gb=b.getContext('2d');
-    gb.fillStyle='#bbbbbb'; gb.fillRect(0,0,cw,ch); gb.fillStyle='#7b8591'; gb.fillText(text, 28, ch/2);
-    var bumpTex=new THREE.Texture(b); bumpTex.needsUpdate=true;
-    // roughness map: text slightly rougher
-    var r=document.createElement('canvas'); r.width=cw; r.height=ch; var gr=r.getContext('2d');
-    gr.fillStyle='#888'; gr.fillRect(0,0,cw,ch); gr.fillStyle='#aaa'; gr.fillText(text, 28, ch/2);
-    var roughTex=new THREE.Texture(r); roughTex.needsUpdate=true;
-    return {color:colorTex,bump:bumpTex,rough:roughTex};
-  }
-  var etch=makeEtchMaps('COSMIC GLIDER EX  •  v1.5');
-  var plateMat=new THREE.MeshStandardMaterial({map:etch.color, bumpMap:etch.bump, bumpScale:-0.02, roughnessMap:etch.rough, metalness:0.7, roughness:0.35});
-  var plate=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.36), plateMat);
-  plate.position.set(-1.15,-0.12,-0.04); plate.rotation.set(wingL.rotation.x, wingL.rotation.y, wingL.rotation.z); ship.add(plate);
 
   var shieldGeom=new THREE.SphereGeometry(1.25,24,18);
   var shieldMat=new THREE.MeshStandardMaterial({color:0x66ddff,transparent:true,opacity:0.16,metalness:0,roughness:0.5,emissive:0x2aa8ff,emissiveIntensity:0.22});
@@ -278,7 +271,7 @@
   beamAutoEl.addEventListener('change',function(){beamAuto=beamAutoEl.checked;});
   warpBtn.addEventListener('click',function(){triggerWarp();});
 
-  // Camera control (backed off so ship occupies less screen)
+  // Camera control
   var autoCam=true, autoCtl=true, nextCamAt=0; function scheduleNextCam(){ nextCamAt = time + rand(8,20); }
   function setCamera(mode){ if(mode==='pilot'){activeCamera=cameraPilot; camName='Pilot';} else if(mode==='chase'){activeCamera=cameraChase; camName='Chase';} else {activeCamera=cameraCine; camName='Cinematic';} viewSel.value=mode; camEl.textContent=camName; nhCam.textContent=camName; scheduleNextCam(); }
   function nextCamera(){ var seq=['pilot','chase','cine']; var i=seq.indexOf(viewSel.value); setCamera(seq[(i+1)%seq.length]); }
@@ -315,19 +308,18 @@
     var chaseOff=new THREE.Vector3(0,1.6+SPEED*0.18,5.6+(3.2-SPEED)*0.75); var sx=ship.rotation.x, sz=ship.rotation.z, cosx=Math.cos(sx), sinx=Math.sin(sx), cosz=Math.cos(sz), sinz=Math.sin(sz); var ox=chaseOff.x, oy=chaseOff.y, oz=chaseOff.z; var ry=oy*cosx-oz*sinx, rz=oy*sinx+oz*cosx; var rx=ox*cosz-ry*sinz, ry2=ox*sinz+ry*cosz; cameraChase.position.copy(ship.position).add(new THREE.Vector3(rx,ry2,rz)); cameraChase.lookAt(ship.position.x, ship.position.y+0.1, ship.position.z+0.4);
     var cineR=6.2, cineAng=time*0.33; cameraCine.position.set(ship.position.x+Math.cos(cineAng)*cineR, ship.position.y+1.1, ship.position.z+Math.sin(cineAng)*cineR+1.4); cameraCine.lookAt(ship.position.x, ship.position.y+0.2, ship.position.z-0.2);
 
-    // Obstacles
-    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.022){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*52)*1.02; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += dt*oSpeed; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var radial=Math.sqrt(dx*dx+dy*dy);
-        if(o.userData.type==='ring' && Math.abs(dz) < 1.2 && radial < 2.6){ addScore(10); obstaclesGroup.remove(o); if(Math.random()<0.7) ping(); continue; }
-        var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
-        if(o.userData.type==='asteroid' && dist < (shield.visible? 1.5:1.2)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); } speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o); continue; }
+    // Obstacles with swept-Z scoring
+    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.022){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*52)*1.02; var stepZ=oSpeed*dt; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += stepZ; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var radial=Math.sqrt(dx*dx+dy*dy);
+        if(o.userData.type==='ring'){ if(radial < 2.6 && Math.abs(dz) < (1.2 + stepZ*0.8)){ addScore(10); obstaclesGroup.remove(o); if(Math.random()<0.7) ping(); continue; } }
+        else if(o.userData.type==='asteroid'){ var dist=Math.sqrt(dx*dx+dy*dy+dz*dz); if(dist < (shield.visible? 1.5:1.2)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); } speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o); continue; } }
         if(o.position.z>20){ obstaclesGroup.remove(o); }
       }
     }
 
-    // Collectibles
+    // Collectibles with swept-Z pickup
     if(Math.random()<0.012){ spawnShard(-LENGTH+rand(60,220)); }
-    var sSpeed=(8+SPEED*52)*1.0; for(var si=collectibles.children.length-1;si>=0;si--){ var s=collectibles.children[si]; s.position.z += dt*sSpeed; s.rotation.x += dt*0.6; s.rotation.y += dt*0.5;
-      var dxs=s.position.x-ship.position.x, dys=s.position.y-ship.position.y, dzs=s.position.z-ship.position.z; if(Math.abs(dzs) < 1.0 && Math.sqrt(dxs*dxs+dys*dys) < 1.2){ addScore(25); collectibles.remove(s); if(Math.random()<0.8) ping(); continue; }
+    var sSpeed=(8+SPEED*52)*1.0; var stepC=sSpeed*dt; for(var si=collectibles.children.length-1;si>=0;si--){ var s=collectibles.children[si]; s.position.z += stepC; s.rotation.x += dt*0.6; s.rotation.y += dt*0.5;
+      var dxs=s.position.x-ship.position.x, dys=s.position.y-ship.position.y, dzs=s.position.z-ship.position.z; if(Math.sqrt(dxs*dxs+dys*dys) < 1.2 && Math.abs(dzs) < (1.0 + stepC*0.8)){ addScore(25); collectibles.remove(s); if(Math.random()<0.8) ping(); continue; }
       if(beamActive){ var bx=ship.position.x, by=ship.position.y+0.0, bz=ship.position.z+1.1; var toBeamX=s.position.x-bx, toBeamY=s.position.y-by, toBeamZ=(s.position.z-bz); var rxy=Math.sqrt(toBeamX*toBeamX+toBeamY*toBeamY); var inCone = (rxy < 2.4*(1 + toBeamZ/5.6)) && (toBeamZ>0) && (toBeamZ<5.8); if(inCone){ s.position.x = lerp(s.position.x, bx, 0.18); s.position.y = lerp(s.position.y, by, 0.18); s.position.z = lerp(s.position.z, ship.position.z+0.2, 0.20); var dxy=Math.sqrt((s.position.x-bx)*(s.position.x-bx)+(s.position.y-by)*(s.position.y-by)); var dzc=(s.position.z-(ship.position.z+0.2)); if(dxy<0.9 && dzc<1.1){ addScore(25); collectibles.remove(s); if(Math.random()<0.8) ping(); continue; } }
       }
       if(s.position.z>20){ collectibles.remove(s); }
@@ -340,7 +332,7 @@
     renderer.render(scene,activeCamera);
     var now=(performance.now?performance.now():Date.now()); frames++; acc+=(now-last); last=now; if(acc>=500){ var f=Math.round(frames*1000/acc); fpsEl.textContent=String(f); nhFPS.textContent=String(f); adaptPerformance(f); frames=0; acc=0; }
     if((frames%12)===0){ worldEl.textContent=world.name; nhWorld.textContent=world.name; pcountEl.textContent=String(dustDraw+sparkDraw); camEl.textContent=camName; nhCam.textContent=camName; }
-    if((frames%30)===0){ scoreEl.textContent=String(score); nhScore.textContent=String(score); }
+    if((frames%10)===0){ scoreEl.textContent=String(score); nhScore.textContent=String(score); }
   }
 
   function init(){ applyWorldBG(world); worldEl.textContent=world.name; nhWorld.textContent=world.name; levelEl.textContent='1'; nhLvl.textContent='1'; score=0; scoreEl.textContent='0'; nhScore.textContent='0'; setCamera('pilot'); ship.position.set(0,0,0); gate.position.set(0,0,-LENGTH + 300); resize(); animate(); }
