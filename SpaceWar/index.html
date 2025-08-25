@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autoplay Space War</title>
+    <title>Enhanced Autoplay Space War</title>
     <style>
         body {
             background-color: #0d0d1a;
@@ -34,11 +34,17 @@
         #gameCanvas {
             border: 2px solid #fff;
             background-color: #000;
-            cursor: none;
             box-shadow: 0 0 20px #4d4dff, 0 0 10px #4d4dff inset;
-            touch-action: none; /* Disable default touch actions */
+            touch-action: none;
             border-radius: 12px;
             margin: 20px 0;
+            display: block;
+        }
+        
+        /* New styles for responsive canvas */
+        canvas {
+            max-width: 90vw;
+            max-height: 70vh;
         }
 
         .game-info {
@@ -113,7 +119,24 @@
             color: #fff;
             text-shadow: 0 0 5px #fff;
         }
+
+        .boss-health-bar-container {
+            width: 80%;
+            background-color: #333;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .boss-health-bar {
+            height: 20px;
+            background-color: #f00;
+            transition: width 0.3s ease-in-out;
+            border-radius: 6px;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
 <body>
     <!-- Stars for background effect -->
@@ -136,6 +159,10 @@
         <div id="healthDisplay">Health: 100</div>
     </div>
     
+    <div class="boss-health-bar-container" id="bossHealthContainer">
+        <div class="boss-health-bar" id="bossHealthBar"></div>
+    </div>
+    
     <canvas id="gameCanvas"></canvas>
     
     <div class="overlay" id="gameOverOverlay">
@@ -152,14 +179,40 @@
         // Game state variables
         let score = 0;
         let isGameOver = false;
-        let player, enemies = [], projectiles = [], enemyProjectiles = [], particles = [];
+        let player, enemies = [], projectiles = [], enemyProjectiles = [], particles = [], powerUps = [];
+        let boss = null;
+        let bossSpawned = false;
         
         // Game settings
         const ENEMY_SPAWN_RATE = 1000; // ms
+        const POWERUP_SPAWN_RATE = 15000; // ms
+        const BOSS_SPAWN_SCORE = 500;
         const MAX_ENEMIES = 5;
         const PARTICLE_LIFETIME = 60; // frames
+        const POWERUP_DURATION = 10000; // ms
         
         let lastEnemySpawn = 0;
+        let lastPowerUpSpawn = 0;
+
+        // Sound effects setup
+        let laserSound, explosionSound;
+        
+        // Initialize the sound synths
+        function initSounds() {
+            laserSound = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.2, sustain: 0.0, release: 0.2 }
+            }).toDestination();
+            
+            explosionSound = new Tone.MetalSynth({
+                frequency: 200,
+                envelope: { attack: 0.001, decay: 0.4, release: 0.1 },
+                harmonicity: 5.1,
+                modulationIndex: 32,
+                resonance: 4000,
+                octaves: 1.5
+            }).toDestination();
+        }
 
         // Player class
         class Player {
@@ -170,11 +223,14 @@
                 this.color = color;
                 this.health = 100;
                 this.maxHealth = 100;
-                this.fireRate = 500; // ms
+                this.baseFireRate = 500; // ms
+                this.fireRate = this.baseFireRate;
                 this.lastShot = 0;
                 this.amplitude = 150; // Y-axis movement amplitude
                 this.frequency = 0.005; // Y-axis movement frequency
                 this.initialY = y;
+                this.isFastFiring = false;
+                this.fastFireEndTime = 0;
             }
 
             draw() {
@@ -202,6 +258,12 @@
             
             // Player's movement is now "autoplay"
             update() {
+                // Check if fast fire power-up has expired
+                if (this.isFastFiring && Date.now() > this.fastFireEndTime) {
+                    this.isFastFiring = false;
+                    this.fireRate = this.baseFireRate;
+                }
+
                 // Move the player back and forth on the y-axis in a sine wave pattern
                 this.y = this.initialY + this.amplitude * Math.sin(Date.now() * this.frequency);
                 this.draw();
@@ -213,20 +275,21 @@
                 if (now - this.lastShot > this.fireRate) {
                     projectiles.push(new Projectile(this.x, this.y, 5, 'cyan', 5, -1));
                     this.lastShot = now;
+                    laserSound.triggerAttackRelease('C4', '8n');
                 }
             }
         }
 
         // Enemy class
         class Enemy {
-            constructor(x, y, radius, color) {
+            constructor(x, y, radius, color, health, speed) {
                 this.x = x;
                 this.y = y;
                 this.radius = radius;
                 this.color = color;
-                this.velocity = { x: 0, y: 1 };
-                this.health = 30;
-                this.maxHealth = 30;
+                this.velocity = { x: 0, y: speed };
+                this.health = health;
+                this.maxHealth = health;
                 this.fireRate = 1500; // ms
                 this.lastShot = 0;
             }
@@ -250,19 +313,16 @@
 
                 ctx.fillStyle = '#333';
                 ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-                ctx.fillStyle = this.health > 10 ? '#0f0' : '#f00';
+                ctx.fillStyle = this.health > this.maxHealth * 0.3 ? '#0f0' : '#f00';
                 ctx.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
             }
             
             update() {
                 // Enemies follow the player on the x-axis
-                if (player) {
-                    const dx = player.x - this.x;
-                    const dy = player.y - this.y;
-                    const angle = Math.atan2(dy, dx);
-                    this.velocity.x = Math.cos(angle) * 1;
-                    this.velocity.y = Math.sin(angle) * 1;
-                }
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const angle = Math.atan2(dy, dx);
+                this.velocity.x = Math.cos(angle) * this.velocity.y;
                 
                 this.x += this.velocity.x;
                 this.y += this.velocity.y;
@@ -281,6 +341,53 @@
                     const vx = Math.cos(angle) * speed;
                     const vy = Math.sin(angle) * speed;
                     enemyProjectiles.push(new Projectile(this.x, this.y, 3, 'red', vx, vy));
+                    this.lastShot = now;
+                }
+            }
+        }
+        
+        // Boss class, a type of enemy with more health and unique behavior
+        class Boss extends Enemy {
+            constructor(x, y) {
+                super(x, y, 40, '#ffcc00', 500, 0.5); // Large radius, special color, high health, slow speed
+                this.isBoss = true;
+                this.fireRate = 750;
+            }
+
+            draw() {
+                // Draw a square for the boss
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            }
+
+            update() {
+                 const dx = player.x - this.x;
+                 const dy = player.y - this.y;
+                 const angle = Math.atan2(dy, dx);
+                 this.velocity.x = Math.cos(angle) * 0.5;
+                 
+                 this.x += this.velocity.x;
+                 this.draw();
+                 
+                 // Update health bar display
+                 const bossHealthBar = document.getElementById('bossHealthBar');
+                 bossHealthBar.style.width = `${(this.health / this.maxHealth) * 100}%`;
+            }
+
+            fire() {
+                const now = Date.now();
+                if (now - this.lastShot > this.fireRate) {
+                    // Fire multiple projectiles in a spread
+                    for (let i = -1; i <= 1; i++) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        const baseAngle = Math.atan2(dy, dx);
+                        const spreadAngle = baseAngle + (i * 0.2);
+                        const speed = 3;
+                        const vx = Math.cos(spreadAngle) * speed;
+                        const vy = Math.sin(spreadAngle) * speed;
+                        enemyProjectiles.push(new Projectile(this.x, this.y, 5, '#ff4d4d', vx, vy));
+                    }
                     this.lastShot = now;
                 }
             }
@@ -305,6 +412,30 @@
             
             update() {
                 this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.draw();
+            }
+        }
+
+        // PowerUp class
+        class PowerUp {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.type = type; // 'health' or 'fireRate'
+                this.color = type === 'health' ? '#4dff4d' : '#ffcc00';
+                this.velocity = { x: 0, y: 1 };
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            update() {
                 this.y += this.velocity.y;
                 this.draw();
             }
@@ -353,11 +484,19 @@
             projectiles = [];
             enemyProjectiles = [];
             particles = [];
+            powerUps = [];
+            boss = null;
+            bossSpawned = false;
             score = 0;
             isGameOver = false;
             document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('bossHealthContainer').style.display = 'none';
             document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
             document.getElementById('healthDisplay').textContent = `Health: ${player.health}`;
+            
+            // Tone.js requires a user gesture to start, but since this is autoplay, we can't wait for a click.
+            // We'll try to start it here and handle potential errors.
+            Tone.start().catch(e => console.log('Audio context not started:', e));
         }
         
         // Handle window resizing
@@ -373,17 +512,47 @@
 
         // Autoplay logic: Check if it's time to spawn a new enemy
         function spawnEnemies() {
+            if (boss || bossSpawned) return;
             const now = Date.now();
             if (now - lastEnemySpawn > ENEMY_SPAWN_RATE && enemies.length < MAX_ENEMIES) {
                 const x = Math.random() * (canvas.width - 60) + 30;
                 const y = -30; // Spawn off-screen
-                enemies.push(new Enemy(x, y, 15, '#ff6600'));
+                
+                // Randomly choose enemy type
+                const enemyType = Math.random() < 0.7 ? 'basic' : 'strong';
+                if (enemyType === 'basic') {
+                    enemies.push(new Enemy(x, y, 15, '#ff6600', 20, 1.5));
+                } else {
+                    enemies.push(new Enemy(x, y, 20, '#ff3300', 50, 1));
+                }
                 lastEnemySpawn = now;
+            }
+        }
+
+        // Spawn a boss if the score condition is met
+        function spawnBoss() {
+            if (score > 0 && score % BOSS_SPAWN_SCORE === 0 && !bossSpawned) {
+                boss = new Boss(canvas.width / 2, -100);
+                bossSpawned = true;
+                document.getElementById('bossHealthContainer').style.display = 'block';
+            }
+        }
+
+        // Spawn a power-up
+        function spawnPowerUp() {
+            const now = Date.now();
+            if (now - lastPowerUpSpawn > POWERUP_SPAWN_RATE) {
+                const x = Math.random() * (canvas.width - 60) + 30;
+                const y = -30;
+                const type = Math.random() < 0.5 ? 'health' : 'fireRate';
+                powerUps.push(new PowerUp(x, y, type));
+                lastPowerUpSpawn = now;
             }
         }
         
         // Function to create explosion particles
         function createExplosion(x, y, color, numParticles = 10) {
+            explosionSound.triggerAttackRelease('8n');
             for (let i = 0; i < numParticles; i++) {
                 particles.push(new Particle(x, y, Math.random() * 2 + 1, color));
             }
@@ -436,19 +605,53 @@
 
                         if (enemy.health <= 0) {
                             enemies.splice(enemyIndex, 1);
-                            score += 10;
+                            score += enemy.maxHealth; // Score based on enemy health
                             document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
                             createExplosion(enemy.x, enemy.y, enemy.color, 30);
+                            spawnBoss(); // Check for boss spawn
                         }
                     }
                 });
+            });
 
-                // Check for collision with player ship
-                const playerDist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-                if (playerDist - player.radius - enemy.radius < 1) {
-                    player.health -= 25;
-                    createExplosion(enemy.x, enemy.y, player.color, 15);
-                    enemies.splice(enemyIndex, 1); // Destroy the enemy on collision
+            // Handle boss logic
+            if (boss) {
+                boss.update();
+                boss.fire();
+                
+                // Check for collision with player projectiles
+                projectiles.forEach((p, projIndex) => {
+                    const dist = Math.hypot(p.x - boss.x, p.y - boss.y);
+                    if (dist - p.radius - boss.radius < 1) {
+                        boss.health -= 10;
+                        createExplosion(p.x, p.y, boss.color);
+                        projectiles.splice(projIndex, 1);
+                        
+                        if (boss.health <= 0) {
+                            createExplosion(boss.x, boss.y, boss.color, 100);
+                            score += 1000;
+                            document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+                            boss = null;
+                            bossSpawned = false;
+                            document.getElementById('bossHealthContainer').style.display = 'none';
+                        }
+                    }
+                });
+            }
+
+            // Check for collisions between player and enemies or enemy projectiles
+            const allEnemies = enemies.concat(boss || []);
+            allEnemies.forEach((e, index) => {
+                const playerDist = Math.hypot(player.x - e.x, player.y - e.y);
+                if (playerDist - player.radius - e.radius < 1) {
+                    player.health -= e.isBoss ? 50 : 25;
+                    createExplosion(e.x, e.y, player.color, 15);
+                    if (!e.isBoss) {
+                        allEnemies.splice(index, 1);
+                        enemies.splice(index, 1);
+                    } else {
+                        // Don't destroy the boss on collision
+                    }
                     document.getElementById('healthDisplay').textContent = `Health: ${player.health}`;
                     
                     if (player.health <= 0) {
@@ -456,7 +659,7 @@
                     }
                 }
             });
-            
+
             // Check for collision with player and enemy projectiles
             enemyProjectiles.forEach((p, index) => {
                 const dist = Math.hypot(p.x - player.x, p.y - player.y);
@@ -469,6 +672,25 @@
                     if (player.health <= 0) {
                         endGame();
                     }
+                }
+            });
+            
+            // Handle power-ups
+            spawnPowerUp();
+            powerUps.forEach((p, index) => {
+                p.update();
+                // Check for collision with player
+                const dist = Math.hypot(p.x - player.x, p.y - player.y);
+                if (dist - p.radius - player.radius < 1) {
+                    if (p.type === 'health') {
+                        player.health = Math.min(player.maxHealth, player.health + 25);
+                        document.getElementById('healthDisplay').textContent = `Health: ${player.health}`;
+                    } else if (p.type === 'fireRate') {
+                        player.isFastFiring = true;
+                        player.fireRate = player.baseFireRate / 2;
+                        player.fastFireEndTime = Date.now() + POWERUP_DURATION;
+                    }
+                    powerUps.splice(index, 1); // Remove power-up
                 }
             });
             
@@ -506,6 +728,7 @@
         
         // Start the game on window load
         window.onload = function() {
+            initSounds();
             init();
             animate();
         };
