@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Cosmic Glider — Autoplay Worlds++</title>
+<title>Cosmic Glider — Autoplay Worlds++ (Beam & Points)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <!-- Three.js UMD -->
 <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
@@ -12,14 +12,14 @@
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#05060d;color:#E5E7EB;font-family:Inter,system-ui,Segoe UI,Roboto,sans-serif}
   canvas{display:block;width:100vw;height:100vh}
-
-  /* Minimal always-on futuristic nanoHUD (non-intrusive) */
+  /* NanoHUD (always on) */
   .nanohud{position:fixed;top:12px;right:12px;z-index:40;display:grid;gap:6px}
   .chip{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(12,14,24,.65);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);box-shadow:0 10px 25px rgba(0,0,0,.35);font-size:12px}
   .chip b{font-weight:800;color:#cbd5e1}
   .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,#7DD3FC,#C084FC);box-shadow:0 0 8px rgba(125,211,252,.7)}
-
-  /* Collapsible control panel (hidden by default, optional) */
+  /* Minimal score badge */
+  .scorebadge{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:41;padding:6px 12px;border-radius:999px;background:rgba(17,24,39,.6);border:1px solid rgba(255,255,255,.12);font-weight:800;letter-spacing:.3px}
+  /* Collapsible control panel */
   .hud-btn{position:fixed;top:12px;left:12px;z-index:45;background:rgba(7,9,18,.85);border:1px solid rgba(255,255,255,.12);padding:8px 10px;border-radius:10px;cursor:pointer;user-select:none;font-weight:800;box-shadow:0 10px 25px rgba(0,0,0,.35)}
   .hud-btn:active{transform:translateY(1px)}
   .panel{position:fixed;top:56px;left:12px;z-index:44;width:300px;max-width:86vw;background:rgba(7,9,18,.85);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden;transform-origin:top left;transition:transform .25s ease,opacity .25s ease}
@@ -37,13 +37,14 @@
 </style>
 </head>
 <body>
-  <!-- Non-intrusive, always-on nanoHUD -->
+  <!-- always-on HUD -->
   <div class="nanohud" id="nanohud">
     <div class="chip"><span class="dot"></span><b>World</b><span id="nhWorld">—</span></div>
     <div class="chip"><span class="dot"></span><b>Cam</b><span id="nhCam">Pilot</span></div>
     <div class="chip"><span class="dot"></span><b>Lvl</b><span id="nhLvl">1</span>&nbsp;&nbsp;<b>Score</b><span id="nhScore">0</span></div>
     <div class="chip"><span class="dot"></span><b>Speed</b><span id="nhSpeed">1.00</span>&nbsp;&nbsp;<b>FPS</b><span id="nhFPS">—</span></div>
   </div>
+  <div class="scorebadge" id="rules">+10 ring • +25 beam-capture • - on hit (slows)</div>
 
   <!-- Optional full panel (collapsed by default) -->
   <div class="hud-btn" id="hudBtn">☰ Controls</div>
@@ -68,6 +69,7 @@
       <div class="row"><label>Auto Controls</label><input id="autoCtl" type="checkbox" checked></div>
       <div class="row"><label>Obstacles</label><input id="obstToggle" type="checkbox" checked></div>
       <div class="row"><label>Shield</label><input id="shieldToggle" type="checkbox" checked></div>
+      <div class="row"><label>Beam Auto</label><input id="beamAuto" type="checkbox" checked></div>
       <div class="row"><button id="warpBtn">Engage Warp</button></div>
       <div class="stats">
         <div><b>World:</b> <span id="worldName">—</span></div>
@@ -77,38 +79,38 @@
         <div><b>FPS:</b> <span id="fps">—</span></div>
         <div><b>Particles:</b> <span id="pcount">—</span></div>
       </div>
-      <div style="font-size:11px;opacity:.75">Keys: <b>H</b> panel • <b>V</b> view • <b>W</b> warp</div>
+      <div style="font-size:11px;opacity:.75">Keys: <b>H</b> panel • <b>V</b> view • <b>W</b> warp • <b>B</b> beam</div>
     </div>
   </div>
 
-  <div class="legend">Autoplay: Worlds, Cameras, Warp, Obstacles, Halo Gate & Shield are active. Drag to steer; wheel/pinch to change speed.</div>
+  <div class="legend">Autoplay on. Use tractor beam (auto pulses) to capture luminous shards. Drag to steer; wheel to change speed.</div>
 
 <script>
 (function(){
-  // --------- Utilities (ES5) ---------
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
   function lerp(a,b,t){return a+(b-a)*t;}
   function rand(a,b){return a+Math.random()*(b-a);} 
   function randi(a,b){return Math.floor(rand(a,b));}
 
-  // --------- DOM refs ---------
+  // DOM
   var hudBtn=document.getElementById('hudBtn'), panel=document.getElementById('panel');
   var viewSel=document.getElementById('view'), speedRange=document.getElementById('speed');
   var cycleSel=document.getElementById('cycle'), warpBtn=document.getElementById('warpBtn');
   var autoCamEl=document.getElementById('autoCam'), autoCtlEl=document.getElementById('autoCtl');
   var obstToggle=document.getElementById('obstToggle'), shieldToggle=document.getElementById('shieldToggle');
+  var beamAutoEl=document.getElementById('beamAuto');
   var worldEl=document.getElementById('worldName'), levelEl=document.getElementById('level');
   var camEl=document.getElementById('camName'), scoreEl=document.getElementById('score');
   var fpsEl=document.getElementById('fps'), pcountEl=document.getElementById('pcount');
-  // NanoHUD
   var nhWorld=document.getElementById('nhWorld'), nhCam=document.getElementById('nhCam');
   var nhLvl=document.getElementById('nhLvl'), nhScore=document.getElementById('nhScore');
   var nhSpeed=document.getElementById('nhSpeed'), nhFPS=document.getElementById('nhFPS');
 
-  // --------- Renderer / Scene ---------
+  // Three basics
   var scene=new THREE.Scene();
   var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-  var DPR=Math.min(window.devicePixelRatio||1,1.6); renderer.setPixelRatio(DPR);
+  var DPRTarget=Math.min(window.devicePixelRatio||1,1.6);
+  renderer.setPixelRatio(DPRTarget);
   document.body.appendChild(renderer.domElement);
   function resize(){var w=window.innerWidth,h=window.innerHeight;renderer.setSize(w,h,false);
     cameraPilot.aspect=w/h; cameraPilot.updateProjectionMatrix();
@@ -144,7 +146,8 @@
   var starTex=makeStarTex(128);
 
   var isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  var COUNT_DUST=isMobile?6000:12000, COUNT_SPARK=isMobile?1200:2600;
+  var COUNT_DUST_MAX=isMobile?6000:12000, COUNT_SPARK_MAX=isMobile?1200:2600;
+  var dustDraw=COUNT_DUST_MAX, sparkDraw=COUNT_SPARK_MAX; // adaptive drawRange
   var RADIUS=44, LENGTH=560;
 
   function makeTunnelPoints(count,size,palette,opacity){
@@ -153,11 +156,12 @@
       pos[i3]=Math.cos(ang)*rad;pos[i3+1]=Math.sin(ang)*rad;pos[i3+2]=-Math.random()*LENGTH;
       var pick=new THREE.Color(palette[(Math.random()*palette.length)|0]);col[i3]=pick.r;col[i3+1]=pick.g;col[i3+2]=pick.b;}
     g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    g.setDrawRange(0, count);
     var m=new THREE.PointsMaterial({size:size,map:starTex,transparent:true,opacity:opacity,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true,sizeAttenuation:true});
     var pts=new THREE.Points(g,m);pts.frustumCulled=false;return pts;}
 
-  var dust=makeTunnelPoints(COUNT_DUST,0.18,world.palette,0.95);
-  var sparks=makeTunnelPoints(COUNT_SPARK,0.75,world.palette,0.85);
+  var dust=makeTunnelPoints(COUNT_DUST_MAX,0.18,world.palette,0.95);
+  var sparks=makeTunnelPoints(COUNT_SPARK_MAX,0.75,world.palette,0.85);
   scene.add(dust);scene.add(sparks);
 
   // Background stars
@@ -176,7 +180,7 @@
     for(i=morphIndex;i<max;i++){i3=i*3;palIdx=(i%toPalette.length);col=lerpColor(fromPalette[palIdx],toPalette[palIdx],morphT);c.array[i3]=col.r;c.array[i3+1]=col.g;c.array[i3+2]=col.b;}
     c.needsUpdate=true;morphIndex=max;if(morphIndex>=c.count){morphIndex=0;}}
 
-  // Futuristic Ship
+  // Ship
   var ship=new THREE.Group();scene.add(ship);
   var matHull=new THREE.MeshStandardMaterial({color:0xbfd4e8,metalness:0.85,roughness:0.25});
   var matDark=new THREE.MeshStandardMaterial({color:0x27303a,metalness:0.6,roughness:0.55});
@@ -184,16 +188,12 @@
   var matGlow=new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.6,metalness:0.1,roughness:0.2});
   var matNeo =new THREE.MeshStandardMaterial({color:0x9b87f5,emissive:0x6f6cf8,emissiveIntensity:0.9,metalness:0.2,roughness:0.4});
 
-  var body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(0.55,2.1,12,24):new THREE.CylinderGeometry(0.55,0.6,2.8,20),matHull);
-  body.rotation.x=Math.PI/2; body.position.z=0.2; ship.add(body);
+  var body=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.CapsuleGeometry(0.55,2.1,12,24):new THREE.CylinderGeometry(0.55,0.6,2.8,20),matHull); body.rotation.x=Math.PI/2; body.position.z=0.2; ship.add(body);
   var nose=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.2,24),matHull); nose.rotation.x=Math.PI/2; nose.position.z=1.9; ship.add(nose);
   function addStrake(x){var s=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,1.6),matNeo);s.position.set(x,-0.1,0.4);s.rotation.x=0.2;ship.add(s);} addStrake(0.38); addStrake(-0.38);
   var canardL=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.06,0.28),matWing), canardR=canardL.clone();
-  canardL.position.set(-0.8,0.05,0.5); canardL.rotation.z=0.22; canardL.rotation.x=0.12;
-  canardR.position.set( 0.8,0.05,0.5); canardR.rotation.z=-0.22; canardR.rotation.x=0.12; ship.add(canardL); ship.add(canardR);
-  var wingL=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.07,0.9),matWing), wingR=wingL.clone();
-  wingL.position.set(-1.1,-0.15,-0.1); wingL.rotation.z=0.10; wingL.rotation.x=0.08;
-  wingR.position.set( 1.1,-0.15,-0.1); wingR.rotation.z=-0.10; wingR.rotation.x=0.08; ship.add(wingL); ship.add(wingR);
+  canardL.position.set(-0.8,0.05,0.5); canardL.rotation.z=0.22; canardL.rotation.x=0.12; canardR.position.set( 0.8,0.05,0.5); canardR.rotation.z=-0.22; canardR.rotation.x=0.12; ship.add(canardL); ship.add(canardR);
+  var wingL=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.07,0.9),matWing), wingR=wingL.clone(); wingL.position.set(-1.1,-0.15,-0.1); wingL.rotation.z=0.10; wingL.rotation.x=0.08; wingR.position.set( 1.1,-0.15,-0.1); wingR.rotation.z=-0.10; wingR.rotation.x=0.08; ship.add(wingL); ship.add(wingR);
   var tail=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.95,0.95),matDark); tail.position.set(0,0.75,-0.9); tail.rotation.x=0.25; ship.add(tail);
   var nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.5,0.6,20),matDark); nozzle.rotation.x=Math.PI/2; nozzle.position.z=-2.1; ship.add(nozzle);
   var thrHalo=new THREE.Mesh(new THREE.TorusGeometry(0.58,0.09,12,40),matGlow); thrHalo.rotation.x=Math.PI/2; thrHalo.position.z=-2.1; ship.add(thrHalo);
@@ -203,7 +203,15 @@
   var shieldMat=new THREE.MeshStandardMaterial({color:0x66ddff,transparent:true,opacity:0.18,metalness:0,roughness:0.5,emissive:0x2aa8ff,emissiveIntensity:0.25});
   var shield=new THREE.Mesh(shieldGeom,shieldMat); shield.visible=true; ship.add(shield);
 
-  // Halo Gate (World changer)
+  // Tractor Beam (visual cone) + collectibles
+  var beam=new THREE.Mesh(new THREE.ConeGeometry(2.6,6.0,24,1,true), new THREE.MeshBasicMaterial({color:0x7dd3fc,transparent:true,opacity:0.20,blending:THREE.AdditiveBlending,depthWrite:false}));
+  beam.rotation.x = -Math.PI/2; beam.position.z = 1.8; beam.visible = false; ship.add(beam);
+  var beamActive=false, beamAuto=true, nextBeamAt=0;
+  var collectibles=new THREE.Group(); scene.add(collectibles);
+  function makeShard(){ var g=new THREE.OctahedronGeometry(rand(0.15,0.35),0); var m=new THREE.MeshStandardMaterial({color:0xa7f3d0,emissive:0x5eead4,emissiveIntensity:0.9,metalness:0.1,roughness:0.4}); var mesh=new THREE.Mesh(g,m); mesh.userData.type='shard'; return mesh; }
+  function spawnShard(zBase){ var s=makeShard(); var ang=Math.random()*Math.PI*2, rad=rand(1.5,10); s.position.set(Math.cos(ang)*rad, Math.sin(ang)*rad, zBase); collectibles.add(s);} 
+
+  // Halo Gate
   var gate=new THREE.Group(); scene.add(gate);
   var gateRing=new THREE.Mesh(new THREE.TorusGeometry(6.2,0.28,16,100), new THREE.MeshStandardMaterial({color:0xa7b4ff,emissive:0x5570ff,emissiveIntensity:1.2,metalness:0.4,roughness:0.3})); gate.add(gateRing);
   function makeGlow(radius, opacity){var g=new THREE.Mesh(new THREE.SphereGeometry(radius,20,16), new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:opacity,blending:THREE.AdditiveBlending,depthWrite:false})); return g;}
@@ -217,22 +225,32 @@
     var m=new THREE.MeshStandardMaterial({color:0x96f2ff,emissive:0x36d1ff,emissiveIntensity:0.9,metalness:0.2,roughness:0.3});
     var mesh=new THREE.Mesh(t,m); mesh.userData.type='ring'; return mesh;}
   function makeAsteroid(){var g=new THREE.DodecahedronGeometry(rand(0.35,0.85),0); var arr=g.attributes.position.array, i; for(i=0;i<arr.length;i++) arr[i]+= (Math.random()-0.5)*0.18; g.computeVertexNormals(); var m=new THREE.MeshStandardMaterial({color:0x8a8f9c,metalness:0.25,roughness:0.95}); var mesh=new THREE.Mesh(g,m); mesh.userData.type='asteroid'; return mesh;}
-  function spawnObstacle(zBase){ if(!enableObstacles) return; var kind=Math.random()<0.55?'ring':'asteroid'; var o=(kind==='ring')?makeScoreRing():makeAsteroid(); var ang=Math.random()*Math.PI*2, rad=rand(3,12); o.position.set(Math.cos(ang)*rad, Math.sin(ang)*rad, zBase); o.rotation.set(rand(0,Math.PI), rand(0,Math.PI), rand(0,Math.PI)); obstaclesGroup.add(o);} 
-  function cleanupObstacles(){ for(var i=obstaclesGroup.children.length-1;i>=0;i--){ var c=obstaclesGroup.children[i]; if(c.position.z>20){ obstaclesGroup.remove(c);} } }
+  function spawnObstacle(zBase){ if(!enableObstacles) return; var r=Math.random(); var kind = r<0.45?'ring':(r<0.75?'asteroid':'shard'); var o;
+    if(kind==='ring') o=makeScoreRing(); else if(kind==='asteroid') o=makeAsteroid(); else { spawnShard(zBase); return; }
+    var ang=Math.random()*Math.PI*2, rad=rand(3,12); o.position.set(Math.cos(ang)*rad, Math.sin(ang)*rad, zBase); o.rotation.set(rand(0,Math.PI), rand(0,Math.PI), rand(0,Math.PI)); obstaclesGroup.add(o);} 
+  function cleanupGroup(g){ for(var i=g.children.length-1;i>=0;i--){ var c=g.children[i]; if(c.position.z>20){ g.remove(c);} } }
 
   // State
   var SPEED=parseFloat(speedRange.value), speedTarget=SPEED, time=0; var mouse={x:0,y:0,tx:0,ty:0}; var level=1, score=0; var wobbleAmp=0.35;
   function wrapZ(z){ if(z>2) z-=LENGTH; return z; }
 
+  // Audio (lightweight WebAudio beeps — unlocked on first interaction)
+  var AC=window.AudioContext||window.webkitAudioContext; var audioCtx=null; var audioOK=false;
+  function initAudio(){ if(audioCtx) return; try{ audioCtx=new AC(); if(audioCtx.state==='suspended'){ audioCtx.resume(); } audioOK=true; }catch(e){ audioOK=false; } }
+  function beep(freq, dur, type, gain){ if(!audioOK) return; var o=audioCtx.createOscillator(); var g=audioCtx.createGain(); o.type=type||'sine'; o.frequency.value=freq||440; g.gain.value=(gain||0.03); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + (dur||0.08)); }
+  function chime(){ beep(880,0.12,'sine',0.05); beep(1320,0.10,'sine',0.04); }
+  function swoosh(){ beep(220,0.05,'sawtooth',0.03); setTimeout(function(){ beep(330,0.06,'sawtooth',0.03); },60); }
+  function ping(){ beep(1200,0.06,'triangle',0.04); }
+
   // Input
   function normClient(v,max){return (v/max)*2-1;}
-  function onPointerMove(e){var w=window.innerWidth,h=window.innerHeight;var x=(e.touches?e.touches[0].clientX:e.clientX), y=(e.touches?e.touches[0].clientY:e.clientY);
+  function onPointerMove(e){initAudio(); var w=window.innerWidth,h=window.innerHeight;var x=(e.touches?e.touches[0].clientX:e.clientX), y=(e.touches?e.touches[0].clientY:e.clientY);
     mouse.x=clamp(normClient(x,w),-1,1)*0.9; mouse.y=clamp(-normClient(y,h),-1,1)*0.9;}
-  window.addEventListener('mousemove',onPointerMove); window.addEventListener('touchmove',onPointerMove,{passive:true});
-  function onWheel(e){var d=e.deltaY>0?0.10:-0.10; speedTarget=clamp(speedTarget+d,0,3.2); speedRange.value=speedTarget.toFixed(2);} window.addEventListener('wheel',onWheel,{passive:true});
+  window.addEventListener('mousemove',onPointerMove); window.addEventListener('touchstart',function(){initAudio();},{passive:true}); window.addEventListener('touchmove',onPointerMove,{passive:true});
+  function onWheel(e){initAudio(); var d=e.deltaY>0?0.10:-0.10; speedTarget=clamp(speedTarget+d,0,3.2); speedRange.value=speedTarget.toFixed(2);} window.addEventListener('wheel',onWheel,{passive:true});
 
-  hudBtn.addEventListener('click',function(){panel.classList.toggle('collapsed');});
-  window.addEventListener('keydown',function(e){ if(e.key==='h'||e.key==='H') panel.classList.toggle('collapsed'); if(e.key==='v'||e.key==='V'){ nextCamera(); } if(e.key==='w'||e.key==='W'){ triggerWarp(); }});
+  hudBtn.addEventListener('click',function(){panel.classList.toggle('collapsed'); initAudio();});
+  window.addEventListener('keydown',function(e){ initAudio(); if(e.key==='h'||e.key==='H') panel.classList.toggle('collapsed'); if(e.key==='v'||e.key==='V'){ nextCamera(); } if(e.key==='w'||e.key==='W'){ triggerWarp(); } if(e.key==='b'||e.key==='B'){ toggleBeam(); }});
   speedRange.addEventListener('input',function(){speedTarget=parseFloat(speedRange.value);});
   cycleSel.addEventListener('change',function(){cycling=(cycleSel.value==='auto');});
   viewSel.addEventListener('change',function(){setCamera(viewSel.value);});
@@ -240,26 +258,43 @@
   autoCtlEl.addEventListener('change',function(){autoCtl=autoCtlEl.checked;});
   obstToggle.addEventListener('change',function(){enableObstacles=obstToggle.checked;});
   shieldToggle.addEventListener('change',function(){shield.visible=shieldToggle.checked;});
+  beamAutoEl.addEventListener('change',function(){beamAuto=beamAutoEl.checked;});
   warpBtn.addEventListener('click',function(){triggerWarp();});
 
   // Camera control
   var autoCam=true, autoCtl=true, nextCamAt=0; function scheduleNextCam(){ nextCamAt = time + rand(8,20); }
   function setCamera(mode){ if(mode==='pilot'){activeCamera=cameraPilot; camName='Pilot';} else if(mode==='chase'){activeCamera=cameraChase; camName='Chase';} else {activeCamera=cameraCine; camName='Cinematic';} viewSel.value=mode; camEl.textContent=camName; nhCam.textContent=camName; scheduleNextCam(); }
   function nextCamera(){ var seq=['pilot','chase','cine']; var i=seq.indexOf(viewSel.value); setCamera(seq[(i+1)%seq.length]); }
-  function triggerWarp(){ speedTarget=Math.min(3.2,Math.max(speedTarget,2.2)+0.6); warpBtn.textContent='⚡ Warp Engaged'; setTimeout(function(){warpBtn.textContent='Engage Warp';},900); }
+  function triggerWarp(){ speedTarget=Math.min(3.2,Math.max(speedTarget,2.2)+0.6); warpBtn.textContent='⚡ Warp Engaged'; setTimeout(function(){warpBtn.textContent='Engage Warp';},900); if(Math.random()<0.7) swoosh(); }
+
+  function toggleBeam(){ beamActive=!beamActive; beam.visible=beamActive; if(beamActive){ ping(); } }
 
   // Animation
-  var clock=new THREE.Clock(); var last=(performance.now?performance.now():Date.now()), acc=0, frames=0;
+  var clock=new THREE.Clock(); var last=(performance.now?performance.now():Date.now()), acc=0, frames=0, fpsRolling=60;
+
+  // adaptive performance: adjust draw ranges & DPR
+  function adaptPerformance(fps){ fpsRolling = fpsRolling*0.9 + fps*0.1; if(frames%30!==0) return; // every ~0.5s
+    if(fpsRolling<40){ dustDraw=Math.max(4000, Math.floor(dustDraw*0.85)); sparkDraw=Math.max(800, Math.floor(sparkDraw*0.85)); DPRTarget=Math.max(0.9, DPRTarget-0.1); renderer.setPixelRatio(DPRTarget); }
+    else if(fpsRolling>58){ dustDraw=Math.min(COUNT_DUST_MAX, Math.floor(dustDraw*1.05)); sparkDraw=Math.min(COUNT_SPARK_MAX, Math.floor(sparkDraw*1.05)); DPRTarget=Math.min(Math.min(window.devicePixelRatio||1,1.6), DPRTarget+0.05); renderer.setPixelRatio(DPRTarget); }
+    dust.geometry.setDrawRange(0, dustDraw); sparks.geometry.setDrawRange(0, sparkDraw); }
+
+  var SPEED=parseFloat(speedRange.value), speedTarget=SPEED; var wobbleAmp=0.35; var mouse={x:0,y:0,tx:0,ty:0}; var level=1, score=0;
+  function wrapZ(z){ if(z>2) z-=LENGTH; return z; }
+
   function animate(){ requestAnimationFrame(animate); var dt=clock.getDelta(); if(dt>0.1) dt=0.1; time+=dt;
     // Auto worlds by timer
-    worldTimer+=dt; if(cycling && worldTimer>worldDuration && !morphing){ worldTimer=0; var nextIndex=(worldIndex+1)%WORLDS.length; worldIndex=nextIndex; startWorldMorph(WORLDS[worldIndex]); }
+    worldTimer+=dt; if(cycling && worldTimer>worldDuration && !morphing){ worldTimer=0; var nextIndex=(worldIndex+1)%WORLDS.length; worldIndex=nextIndex; startWorldMorph(WORLDS[worldIndex]); chime(); }
     if(morphing){morphT+=dt/morphDur; if(morphT>1){morphT=1; morphing=false;} morphPointsColors(dust); morphPointsColors(sparks);} 
+
     // Smooth speed & effects
     SPEED=lerp(SPEED,speedTarget,0.08); var flick=1.2+Math.sin(time*40)*0.15+SPEED*0.2; engineLight.intensity=1.4*flick; thrHalo.material.emissiveIntensity=1.0+SPEED*0.8; shield.material.opacity = (shield.visible? (0.12+0.08*Math.sin(time*3.0)) : 0);
 
     // Auto camera/controls
     if(autoCam && time>nextCamAt){ setCamera(['pilot','chase','cine'][randi(0,3)]); }
     if(autoCtl && Math.random()<0.005){ if(Math.random()<0.6) triggerWarp(); else speedTarget=clamp(speedTarget+rand(-0.2,0.25),0,3.2); }
+
+    // Auto beam pulses
+    if(beamAuto && time>nextBeamAt){ beamActive=true; beam.visible=true; nextBeamAt = time + rand(3.5,7.0); setTimeout(function(){ beamActive=false; beam.visible=false; }, randi(600,1200)); }
 
     // Input drift
     mouse.tx=lerp(mouse.tx,mouse.x,0.08); mouse.ty=lerp(mouse.ty,mouse.y,0.08);
@@ -269,7 +304,7 @@
 
     // Tunnel dynamics
     var wobble=wobbleAmp+SPEED*0.12; var cx=Math.sin(time*(0.9+SPEED*0.08))*wobble+mouse.tx*0.7; var cy=Math.cos(time*(1.1+SPEED*0.05))*wobble+mouse.ty*0.7; var swirl=world.swirl||0.5, twistSpeed=(0.3+SPEED*0.9)*0.8*swirl;
-    var layers=[dust,sparks]; for(var li=0;li<layers.length;li++){ var p=layers[li], pos=p.geometry.getAttribute('position'), arr=pos.array, count=pos.count; var baseVel=(8+SPEED*55)*(li===0?1.0:1.15);
+    var layers=[dust,sparks]; for(var li=0;li<layers.length;li++){ var p=layers[li], pos=p.geometry.getAttribute('position'), arr=pos.array, count=Math.min(p.geometry.getAttribute('position').count, (li===0?dustDraw:sparkDraw)); var baseVel=(8+SPEED*55)*(li===0?1.0:1.15);
       for(var i=0;i<count;i++){ var i3=i*3; arr[i3+2]+=dt*baseVel; arr[i3+2]=wrapZ(arr[i3+2]); var x=arr[i3], y=arr[i3+1], z=arr[i3+2], rr=Math.sqrt(x*x+y*y), ang=Math.atan2(y,x); var rot=twistSpeed*dt*(0.6+(z/LENGTH)*0.4); ang+=rot*(li===0?1.0:1.35); var scale=1.0+Math.sin(time*1.4+z*0.02)*0.04; var newR=rr*scale; arr[i3]=Math.cos(ang)*newR; arr[i3+1]=Math.sin(ang)*newR; }
       pos.needsUpdate=true; p.material.size=(li===0?0.18:0.75)*(1+SPEED*0.75); p.material.opacity=(li===0?0.95:0.85)*(0.92+Math.sin(time*0.9)*0.04); }
 
@@ -282,17 +317,32 @@
     var cineR=5.2, cineAng=time*0.35; cameraCine.position.set(ship.position.x+Math.cos(cineAng)*cineR, ship.position.y+1.0, ship.position.z+Math.sin(cineAng)*cineR+1.2); cameraCine.lookAt(ship.position.x, ship.position.y+0.2, ship.position.z-0.2);
 
     // Obstacles spawn/move
-    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.02){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*55)*1.02; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += dt*oSpeed; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var d2=dx*dx+dy*dy+dz*dz; if(o.userData.type==='ring' && dz> -0.2 && dz< 0.6 && Math.sqrt(dx*dx+dy*dy)<2.0){ score += 10; scoreEl.textContent=String(score); nhScore.textContent=String(score); obstaclesGroup.remove(o);} else if(o.userData.type==='asteroid' && d2< (shield.visible? 2.2:1.4)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150);} speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o);} } cleanupObstacles(); }
+    enableObstacles = obstToggle.checked; if(enableObstacles){ if(Math.random()<0.02){ spawnObstacle(-LENGTH+rand(40,160)); } var oSpeed=(8+SPEED*55)*1.02; for(var k=obstaclesGroup.children.length-1;k>=0;k--){ var o=obstaclesGroup.children[k]; o.position.z += dt*oSpeed; o.rotation.x += dt*0.3; o.rotation.y += dt*0.25; var dx=o.position.x-ship.position.x, dy=o.position.y-ship.position.y, dz=o.position.z-ship.position.z; var d2=dx*dx+dy*dy+dz*dz; if(o.userData.type==='ring' && dz> -0.2 && dz< 0.6 && Math.sqrt(dx*dx+dy*dy)<2.0){ score += 10; scoreEl.textContent=String(score); nhScore.textContent=String(score); obstaclesGroup.remove(o); if(Math.random()<0.7) ping(); } else if(o.userData.type==='asteroid' && d2< (shield.visible? 2.2:1.4)){ if(shield.visible){ shield.material.emissiveIntensity=1.0; setTimeout(function(){shield.material.emissiveIntensity=0.25;},150); } speedTarget = Math.max(0.2, speedTarget - 0.3); obstaclesGroup.remove(o); }
+      }
+      cleanupGroup(obstaclesGroup);
+    }
 
-    // Halo Gate motion & trigger
-    gate.rotation.z += dt*0.4; gate.position.z += dt*(8+SPEED*55); if(gate.position.z>6){ level++; levelEl.textContent=String(level); nhLvl.textContent=String(level); var next=(worldIndex+1)%WORLDS.length; worldIndex=next; startWorldMorph(WORLDS[worldIndex]); gate.position.set(0,0,-LENGTH + rand(260,340)); triggerWarp(); }
+    // Collectibles (shards) movement & beam capture
+    // spawn a few passively
+    if(Math.random()<0.01){ spawnShard(-LENGTH+rand(60,220)); }
+    var sSpeed=(8+SPEED*55)*1.0; for(var si=collectibles.children.length-1;si>=0;si--){ var s=collectibles.children[si]; s.position.z += dt*sSpeed; s.rotation.x += dt*0.6; s.rotation.y += dt*0.5;
+      // passive pickup when very close
+      var dxs=s.position.x-ship.position.x, dys=s.position.y-ship.position.y, dzs=s.position.z-ship.position.z; if(dzs>-0.1 && dzs<0.4 && Math.sqrt(dxs*dxs+dys*dys)<0.8){ score+=25; collectibles.remove(s); scoreEl.textContent=String(score); nhScore.textContent=String(score); if(Math.random()<0.8) ping(); continue; }
+      // tractor beam pull
+      if(beamActive){ var bx=ship.position.x, by=ship.position.y+0.0, bz=ship.position.z+1.2; var toBeamX=s.position.x-bx, toBeamY=s.position.y-by, toBeamZ=(s.position.z-bz); var rxy=Math.sqrt(toBeamX*toBeamX+toBeamY*toBeamY); var inCone = (rxy < 2.6*(1 + toBeamZ/6)) && (toBeamZ>0) && (toBeamZ<6.2); if(inCone){ s.position.x = lerp(s.position.x, bx, 0.18); s.position.y = lerp(s.position.y, by, 0.18); s.position.z = lerp(s.position.z, ship.position.z+0.2, 0.20); }
+      }
+      if(s.position.z>20){ collectibles.remove(s); }
+    }
+
+    // Halo Gate
+    gate.rotation.z += dt*0.4; gate.position.z += dt*(8+SPEED*55); if(gate.position.z>6){ level++; levelEl.textContent=String(level); nhLvl.textContent=String(level); var next=(worldIndex+1)%WORLDS.length; worldIndex=next; startWorldMorph(WORLDS[worldIndex]); gate.position.set(0,0,-LENGTH + rand(260,340)); triggerWarp(); chime(); }
 
     // Render
     renderer.render(scene,activeCamera);
 
-    // HUD updates
-    var now=(performance.now?performance.now():Date.now()); frames++; acc+=(now-last); last=now; if(acc>=500){ var f=Math.round(frames*1000/acc); fpsEl.textContent=String(f); nhFPS.textContent=String(f); frames=0; acc=0; }
-    if((frames%12)===0){ worldEl.textContent=world.name; nhWorld.textContent=world.name; pcountEl.textContent=String(COUNT_DUST+COUNT_SPARK); camEl.textContent=camName; nhCam.textContent=camName; nhSpeed.textContent=SPEED.toFixed(2); }
+    // HUD/FPS
+    var now=(performance.now?performance.now():Date.now()); frames++; acc+=(now-last); last=now; if(acc>=500){ var f=Math.round(frames*1000/acc); fpsEl.textContent=String(f); nhFPS.textContent=String(f); adaptPerformance(f); frames=0; acc=0; }
+    if((frames%12)===0){ worldEl.textContent=world.name; nhWorld.textContent=world.name; pcountEl.textContent=String(dustDraw+sparkDraw); camEl.textContent=camName; nhCam.textContent=camName; nhSpeed.textContent=SPEED.toFixed(2); }
   }
 
   // Init
