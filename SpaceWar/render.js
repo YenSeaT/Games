@@ -137,16 +137,8 @@
     ctx.restore();
   }
 
-  function drawProgressBar(pct) {
-    const bar = document.getElementById('progBar');
-    const txt = document.getElementById('uiProg');
-    if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct * 100))}%`;
-    if (txt) txt.textContent = ` ${Math.round(Math.max(0, Math.min(100, pct * 100)))}%`;
-  }
-
   // DEFENSIVE: background draw safe when patterns are not built yet
   function drawBackground(ctx, S) {
-    // Fallbacks if state or patterns not ready yet
     if (!S || !S.bg) {
       ctx.setTransform(1,0,0,1,0,0);
       ctx.fillStyle = '#050a1a';
@@ -162,22 +154,17 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    // Layer helper that still paints even when pattern is missing
     const paintLayer = (pattern, offY, alpha) => {
       ctx.save();
-      if (pattern) {
-        ctx.fillStyle = pattern;
-      } else {
-        ctx.fillStyle = `rgba(10,14,30,${alpha})`;
-      }
-      ctx.translate(0, offY % H);
+      ctx.fillStyle = pattern ? pattern : `rgba(10,14,30,${alpha})`;
+      ctx.translate(0, (offY || 0) % H);
       ctx.fillRect(0, -H, W, H * 2);
       ctx.restore();
     };
 
-    paintLayer(deep,  S.bg.offY_deep || 0, 0.35);
-    paintLayer(mid,   S.bg.offY_mid  || 0, 0.55);
-    paintLayer(near,  S.bg.offY_near || 0, 0.75);
+    paintLayer(deep,  S.bg.offY_deep, 0.35);
+    paintLayer(mid,   S.bg.offY_mid,  0.55);
+    paintLayer(near,  S.bg.offY_near, 0.75);
 
     if (bokeh) {
       ctx.save();
@@ -192,7 +179,7 @@
   function draw(ctx, S, CFG, t) {
     drawBackground(ctx, S);
 
-    // Rings (lane gates & chain rings)
+    // Rings
     for (let i = 0; i < S.rings.length; i++) {
       const r = S.rings[i];
       if (r.mT) ringBeam(ctx, S.ship.x, S.ship.y - 8, r.x, r.y, r.mT);
