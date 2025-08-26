@@ -4,8 +4,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Space War — v1.6</title>
+  <title>Space war - v1.7</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- Tone.js library for audio synthesis -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
   <style>
     :root {
       --bg: #030611;
@@ -17,8 +19,10 @@
       --neon: rgba(110, 231, 183, 0.9);
       --charge: rgba(110, 231, 183, 0.4);
       /* Updated colors for better contrast */
-      --control-text: #6ee7b7; /* Neon green for controls */
-      --card-text: #e5e7eb; /* Ink color for card text */
+      --control-text: #6ee7b7;
+      /* Neon green for controls */
+      --card-text: #e5e7eb;
+      /* Ink color for card text */
     }
 
     html,
@@ -83,26 +87,32 @@
     #menuBtn {
       background: var(--panel2);
       border: 1px solid var(--br);
-      padding: 10px; /* Adjusted padding for icon-only */
+      padding: 10px;
+      /* Adjusted padding for icon-only */
       border-radius: 12px;
       font-weight: 900;
       cursor: pointer;
       box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
       color: var(--ink);
-      width: 40px; /* Fixed width for icon */
-      height: 40px; /* Fixed height for icon */
+      width: 40px;
+      /* Fixed width for icon */
+      height: 40px;
+      /* Fixed height for icon */
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2em; /* Ensure icon is visible */
+      font-size: 1.2em;
+      /* Ensure icon is visible */
     }
 
     #menuBtn span {
-      display: none; /* Hide text, only show icon */
+      display: none;
+      /* Hide text, only show icon */
     }
 
     #menuBtn::before {
-      content: '☄️'; /* Always show cosmic icon */
+      content: '☄️';
+      /* Always show cosmic icon */
     }
 
     #fpsChip {
@@ -145,7 +155,8 @@
       display: grid;
       gap: 16px;
       width: min(980px, 92vw);
-      color: var(--card-text); /* Use new card-text color */
+      color: var(--card-text);
+      /* Use new card-text color */
       text-align: center;
     }
 
@@ -154,11 +165,11 @@
       font-size: 26px;
       letter-spacing: .3px;
     }
-    
+
     .modal h2 {
-        font-size: 16px;
-        margin: 10px 0 -5px;
-        opacity: 0.8;
+      font-size: 16px;
+      margin: 10px 0 -5px;
+      opacity: 0.8;
     }
 
     /* Menu Specifics */
@@ -178,7 +189,8 @@
       cursor: pointer;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
-      color: var(--card-text); /* Use new card-text color */
+      color: var(--card-text);
+      /* Use new card-text color */
       transition: transform .2s, box-shadow .2s;
     }
 
@@ -255,32 +267,32 @@
 
     /* Level Summary (Numbers instead of chart) */
     #summaryStats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        padding: 10px;
-        background: var(--panel2);
-        border: 1px solid var(--br);
-        border-radius: 16px;
-        margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 10px;
+      background: var(--panel2);
+      border: 1px solid var(--br);
+      border-radius: 16px;
+      margin-top: 10px;
     }
 
     .stat-item {
-        padding: 8px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 8px;
-        font-size: 14px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      font-size: 14px;
     }
 
     .stat-item .label {
-        opacity: 0.7;
-        font-size: 11px;
-        margin-bottom: 2px;
+      opacity: 0.7;
+      font-size: 11px;
+      margin-bottom: 2px;
     }
 
     .stat-item .value {
-        font-weight: 700;
-        color: var(--neon);
+      font-weight: 700;
+      color: var(--neon);
     }
 
     #summaryNextLevel {
@@ -353,22 +365,22 @@
       justify-content: center;
       gap: 6px;
     }
-    
+
     #sonicFill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 0%;
-        background: var(--charge);
-        border-radius: 10px;
-        transition: width 0.1s linear;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0%;
+      background: var(--charge);
+      border-radius: 10px;
+      transition: width 0.1s linear;
     }
 
     .act-text {
-        position: relative;
-        z-index: 1;
-        font-size: 14px;
+      position: relative;
+      z-index: 1;
+      font-size: 14px;
     }
 
     .act:disabled {
@@ -378,50 +390,97 @@
 
     /* Plus sign controls container */
     #plus-controls-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
 
     .horizontal-controls {
-        display: flex;
-        gap: 10px;
-        align-items: center;
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
-    
+
     .paddle {
-        width: 50px;
-        height: 50px;
-        background: var(--panel2);
-        border: 1px solid var(--br);
-        border-radius: 50%;
-        font-size: 20px;
-        font-weight: 900; /* Made text bolder */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 8px 20px rgba(0,0,0,.4);
-        transition: background .2s, box-shadow .2s;
-        color: var(--control-text);
-        position: relative;
-        overflow: hidden;
+      width: 50px;
+      height: 50px;
+      background: var(--panel2);
+      border: 1px solid var(--br);
+      border-radius: 50%;
+      font-size: 20px;
+      font-weight: 900;
+      /* Made text bolder */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .4);
+      transition: background .2s, box-shadow .2s;
+      color: var(--control-text);
+      position: relative;
+      overflow: hidden;
     }
 
     /* Active state for controls */
     .active-control {
-        background: linear-gradient(90deg, #6ee7ff, #a78bfa); /* Gradient for active state */
-        color: #0b1020; /* Darker text for contrast on gradient */
-        box-shadow: 0 0 15px rgba(110, 231, 183, 0.6), 0 0 30px rgba(124, 58, 237, .45); /* Enhanced shadow */
+      background: linear-gradient(90deg, #6ee7ff, #a78bfa);
+      /* Gradient for active state */
+      color: #0b1020;
+      /* Darker text for contrast on gradient */
+      box-shadow: 0 0 15px rgba(110, 231, 183, 0.6), 0 0 30px rgba(124, 58, 237, .45);
+      /* Enhanced shadow */
     }
-    
+
     .paddle:hover {
-        background: rgba(255,255,255, .15);
+      background: rgba(255, 255, 255, .15);
     }
-    /* Hide status text for paddle buttons */
-    .paddle .status-text {
-      display: none;
+
+    /* Chat bubble styles */
+    #chatBubblesContainer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .chat-bubble {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px 12px 12px 2px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--ink);
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInOutChat 3s forwards ease-out;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, .5);
+    }
+
+    @keyframes fadeInOutChat {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.8);
+      }
+
+      10% {
+        opacity: 1;
+        transform: translateY(0px) scale(1);
+      }
+
+      90% {
+        opacity: 1;
+        transform: translateY(0px) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.8);
+      }
     }
   </style>
 </head>
@@ -447,29 +506,29 @@
   </div>
   <div id="actions">
     <button class="act" id="sonicBtn">
-        <span id="sonicFill"></span>
-        <span class="act-text" id="sonicText">💥 Sonic Bomb (3)</span>
+      <span id="sonicFill"></span>
+      <span class="act-text" id="sonicText">💥 Sonic Bomb (3)</span>
     </button>
 
     <div id="plus-controls-container">
-        <!-- Top of the plus (Beam) -->
-        <button class="paddle plus-control" id="beamBtn">
-            B
+      <!-- Top of the plus (Beam) -->
+      <button class="paddle plus-control" id="beamBtn">
+        B
+      </button>
+      <div class="horizontal-controls">
+        <!-- Left of the plus (Wingman Left) -->
+        <button class="paddle plus-control" id="wingmanLeftBtn">
+          L
         </button>
-        <div class="horizontal-controls">
-            <!-- Left of the plus (Wingman Left) -->
-            <button class="paddle plus-control" id="wingmanLeftBtn"> 
-                L
-            </button>
-            <!-- Center of the plus (Harvester) -->
-            <button class="paddle plus-control" id="harvesterBtn"> 
-                H
-            </button>
-            <!-- Right of the plus (Wingman Right) -->
-            <button class="paddle plus-control" id="wingmanRightBtn"> 
-                R
-            </button>
-        </div>
+        <!-- Center of the plus (Harvester) -->
+        <button class="paddle plus-control" id="harvesterBtn">
+          H
+        </button>
+        <!-- Right of the plus (Wingman Right) -->
+        <button class="paddle plus-control" id="wingmanRightBtn">
+          R
+        </button>
+      </div>
     </div>
   </div>
 
@@ -508,15 +567,25 @@
     <div class="wrap">
       <h1 id="summaryTitle">Level 1 Complete!</h1>
       <div id="summaryStats">
-          <div class="stat-item"><div class="label">Kills</div><div id="summaryKills" class="value">0</div></div>
-          <div class="stat-item"><div class="label">Resources Collected</div><div id="summaryResources" class="value">0</div></div>
-          <div class="stat-item"><div class="label">Score Bonus</div><div id="summaryScoreBonus" class="value">0</div></div>
+        <div class="stat-item">
+          <div class="label">Kills</div>
+          <div id="summaryKills" class="value">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Resources Collected</div>
+          <div id="summaryResources" class="value">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="label">Score Bonus</div>
+          <div id="summaryScoreBonus" class="value">0</div>
+        </div>
       </div>
       <p id="summaryNextLevel">Preparing for Level <span id="nextLevelNum">2</span>...</p>
     </div>
   </div>
 
   <canvas id="c"></canvas>
+  <div id="chatBubblesContainer"></div>
 
   <script>
     (function () {
@@ -570,6 +639,7 @@
       var summary = document.getElementById('levelSummary'), summaryTitle = document.getElementById('summaryTitle'), summaryNextLevel = document.getElementById('summaryNextLevel');
       var summaryKills = document.getElementById('summaryKills'), summaryResources = document.getElementById('summaryResources'), summaryScoreBonus = document.getElementById('summaryScoreBonus');
       var nextLevelNum = document.getElementById('nextLevelNum');
+      var chatBubblesContainer = document.getElementById('chatBubblesContainer');
 
 
       // ====== Helpers ======
@@ -593,56 +663,56 @@
 
       // ====== Drawers ======
       function drawShip(x, y, rot, scale, color) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(scale, scale); ctx.globalCompositeOperation = 'lighter'; var eg = ctx.createRadialGradient(0, 28, 2, 0, 28, 22); eg.addColorStop(0, 'rgba(102,204,255,0.8)'); eg.addColorStop(1, 'rgba(102,204,255,0)'); ctx.fillStyle = eg; ctx.beginPath(); ctx.ellipse(0, 28, 10, 18, 0, 0, 6.283); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = color.body; ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(12, 6); ctx.quadraticCurveTo(0, 12, -12, 6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = color.accent; ctx.beginPath(); ctx.moveTo(0, -12); ctx.quadraticCurveTo(6, -4, 0, 0); ctx.quadraticCurveTo(-6, -4, 0, -12); ctx.fill(); ctx.fillStyle = '#9aa7bb'; ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-6, 6); ctx.lineTo(-2, 16); ctx.lineTo(-22, 10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(6, 6); ctx.lineTo(2, 16); ctx.lineTo(22, 10); ctx.closePath(); ctx.fill(); ctx.fillStyle = color.detail; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(3, 12); ctx.lineTo(-3, 12); ctx.closePath(); ctx.fill(); ctx.restore(); }
-      
+
       // Updated drawSaucer to use hueOffset
-      function drawSaucer(x, y, t, hueOffset) { 
-        ctx.save(); 
-        ctx.translate(x, y); 
-        ctx.rotate(Math.sin((t + y) * 0.4) * 0.02); 
-        ctx.globalCompositeOperation = 'lighter'; 
-        
+      function drawSaucer(x, y, t, hueOffset) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.sin((t + y) * 0.4) * 0.02);
+        ctx.globalCompositeOperation = 'lighter';
+
         // Dynamic gradient for glow based on hueOffset
-        var g = ctx.createRadialGradient(0, 6, 2, 0, 6, 22); 
-        g.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 100%, 85%, 0.6)'); 
-        g.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 100%, 85%, 0)'); 
-        ctx.fillStyle = g; 
-        ctx.beginPath(); 
-        ctx.ellipse(0, 12, 18, 8, 0, 0, 6.283); 
-        ctx.fill(); 
-        
-        ctx.globalCompositeOperation = 'source-over'; 
+        var g = ctx.createRadialGradient(0, 6, 2, 0, 6, 22);
+        g.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 100%, 85%, 0.6)');
+        g.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 100%, 85%, 0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(0, 12, 18, 8, 0, 0, 6.283);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = 'hsla(' + (330 + hueOffset) + ', 100%, 95%, 1)'; // Main body color
         ctx.strokeStyle = 'hsla(' + (330 + hueOffset) + ', 60%, 30%, 0.8)'; // Border color
-        ctx.lineWidth = 1.8; 
-        ctx.beginPath(); 
-        ctx.ellipse(0, -2, 10, 8, 0, 0, Math.PI); 
-        ctx.fill(); 
-        ctx.stroke(); 
-        
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(0, -2, 10, 8, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.stroke();
+
         // Dynamic gradient for disk
-        var diskGrad = ctx.createLinearGradient(-20, 0, 20, 0); 
-        diskGrad.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 50%, 40%, 1)'); 
-        diskGrad.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 60%, 50%, 1)'); 
-        ctx.fillStyle = diskGrad; 
-        ctx.beginPath(); 
-        ctx.ellipse(0, 6, 22, 10, 0, 0, 6.283); 
-        ctx.fill(); 
-        ctx.stroke(); 
-        
-        ctx.globalCompositeOperation = 'lighter'; 
-        var i; 
-        for (i = -2; i <= 2; i++) { 
-          var lx = -12 + i * 6; 
-          var ly = 8 + Math.sin(t * 2 + i) * 1.2; 
-          var lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, 4); 
-          lg.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 100%, 70%, 0.9)'); 
-          lg.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 100%, 70%, 0)'); 
-          ctx.fillStyle = lg; 
-          ctx.beginPath(); 
-          ctx.arc(lx, ly, 4, 0, 6.283); 
-          ctx.fill(); 
-        } 
-        ctx.restore(); 
+        var diskGrad = ctx.createLinearGradient(-20, 0, 20, 0);
+        diskGrad.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 50%, 40%, 1)');
+        diskGrad.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 60%, 50%, 1)');
+        ctx.fillStyle = diskGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 6, 22, 10, 0, 0, 6.283);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.globalCompositeOperation = 'lighter';
+        var i;
+        for (i = -2; i <= 2; i++) {
+          var lx = -12 + i * 6;
+          var ly = 8 + Math.sin(t * 2 + i) * 1.2;
+          var lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, 4);
+          lg.addColorStop(0, 'hsla(' + (330 + hueOffset) + ', 100%, 70%, 0.9)');
+          lg.addColorStop(1, 'hsla(' + (330 + hueOffset) + ', 100%, 70%, 0)');
+          ctx.fillStyle = lg;
+          ctx.beginPath();
+          ctx.arc(lx, ly, 4, 0, 6.283);
+          ctx.fill();
+        }
+        ctx.restore();
       }
 
       function drawBlinkWingman(x, y, t) { ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'lighter'; var halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 16); halo.addColorStop(0, 'rgba(160,200,255,0.8)'); halo.addColorStop(1, 'rgba(160,200,255,0)'); ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(0, 0, 16, 0, 6.283); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#c7d2fe'; ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(9, 1); ctx.lineTo(0, 9); ctx.lineTo(-9, 1); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#8aa2ff'; ctx.beginPath(); ctx.arc(0, 1.5, 3.5, 0, 6.283); ctx.fill(); ctx.restore(); }
@@ -658,9 +728,9 @@
       var ringsCleared = 0, ringsGoal = 0, nextRingAt = 0;
       var bullets = [], enemies = [], rings = [], farthest = [], far = [], deep = [], mid = [], near = [], bokeh = [], effects = [], resources = [];
       var objective = null;
-      var wingmen = [{ state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0, side: -1 }, { state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0, side: 1 }];
-      var harvester = { state: 'dock', x: 0, y: 0, target: -1, grab: false, cd: 0 };
-      var ship = { x: W * BASE.SHIP_X, y: H * BASE.SHIP_Y, vx: 0, vy: 0, rot: 0 }; // Removed warp state
+      var wingmen = [{ state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0, side: -1, lastCallout: 0 }, { state: 'dock', cool: 0, x: 0, y: 0, target: -1, fireCd: 0, tpT: 0, side: 1, lastCallout: 0 }];
+      var harvester = { state: 'dock', x: 0, y: 0, target: -1, grab: false, cd: 0, lastCallout: 0 };
+      var ship = { x: W * BASE.SHIP_X, y: H * BASE.SHIP_Y, vx: 0, vy: 0, rot: 0, lastCallout: 0 }; // Removed warp state
       var shipColors = [{ body: '#c6d0e6', accent: '#90a8ff', detail: '#6f6cf8' }, { body: '#d1fae5', accent: '#6ee7b7', detail: '#10b981' }, { body: '#fef3c7', accent: '#fcd34d', detail: '#f59e0b' }, { body: '#fee2e2', accent: '#fca5a5', detail: '#ef4444' }];
       var currentShipColor = shipColors[0];
       var input = { x: 0, y: 0 }; // This will be overridden by AI, but kept for visibility of controls
@@ -675,6 +745,211 @@
       var aiBeam = true; // Enabled by default
       var aiSonicBomb = true; // Enabled by default
 
+      // Audio specific variables
+      var musicSynth, reverb, autoFilter, ringSynth, sonicBombSynth;
+      var calloutVoices = [];
+      var speaker = window.speechSynthesis;
+      var speakingUtterance = new SpeechSynthesisUtterance();
+      const CALLOUT_COOLDOWN_WINGMAN = 5000; // 5 seconds
+      const CALLOUT_COOLDOWN_HARVESTER = 6000; // 6 seconds
+      const CALLOUT_COOLDOWN_SHIP = 8000; // 8 seconds (for general callouts)
+      const CALLOUT_COOLDOWN_SHIP_SONIC = 10000; // 10 seconds for sonic bomb specific
+      const CALLOUT_COOLDOWN_SHIP_LEVELUP = 15000; // 15 seconds for level up specific
+
+      const shipPhrases = {
+        levelUp: ["Level up!", "Powering up!"],
+        sonicBomb: ["Sonic blast initiated!", "Clearing the field!"],
+        generic: ["Target acquired!", "Engaging!", "Good hit!"]
+      };
+      const wingmanPhrases = {
+        launchAttack: ["Engaging target!", "On my way!", "Hostile detected!", "Taking point!"],
+        enemyDown: ["Enemy neutralized!", "Threat eliminated!"]
+      };
+      const harvesterPhrases = {
+        seekGrab: ["Harvesting initiated!", "Resource gathering!", "Collecting!", "Resource inbound!"]
+      };
+
+      // ====== Audio Functions ======
+      async function initAudio() {
+        if (Tone.context.state !== 'running') {
+          await Tone.start();
+        }
+
+        // Background Music
+        musicSynth = new Tone.PolySynth(Tone.AMSynth, {
+          oscillator: { type: "sine" },
+          envelope: {
+            attack: 2,
+            decay: 0.8,
+            sustain: 0.5,
+            release: 1.5,
+          },
+          volume: -20 // Very subtle
+        }).toDestination();
+
+        reverb = new Tone.Reverb({
+          decay: 4,
+          preDelay: 0.1
+        }).toDestination();
+
+        autoFilter = new Tone.AutoFilter({
+          frequency: "8n",
+          depth: 1,
+          baseFrequency: 200,
+          octaves: 2.6,
+          type: "sine"
+        }).toDestination();
+
+        musicSynth.connect(reverb);
+        musicSynth.connect(autoFilter);
+
+        // Ring Capture Sound
+        ringSynth = new Tone.PluckSynth({
+          attackNoise: 1,
+          dampening: 4000,
+          resonance: 0.9,
+          volume: -10
+        }).toDestination();
+
+        // Sonic Bomb Sound
+        sonicBombSynth = new Tone.NoiseSynth({
+          noise: { type: "pink" },
+          envelope: {
+            attack: 0.005,
+            decay: 0.8,
+            sustain: 0.05,
+            release: 1.5,
+          },
+          volume: -5
+        }).toDestination();
+
+        // Get voices for Speech Synthesis
+        speaker.onvoiceschanged = () => {
+          calloutVoices = speaker.getVoices();
+          // console.log("Available voices:", calloutVoices); // For debugging
+        };
+        // In case onvoiceschanged doesn't fire immediately
+        if (speaker.getVoices().length > 0) {
+          calloutVoices = speaker.getVoices();
+        }
+      }
+
+      function playMusic() {
+        if (!musicSynth) return;
+        const chords = [
+          ["C3", "E3", "G3", "B3"], // Cmaj7
+          ["F3", "A3", "C4", "E4"], // Fmaj7
+          ["D3", "F#3", "A3", "C4"], // Dm7
+          ["G3", "B3", "D4", "F4"]  // G7
+        ];
+        let currentChord = 0;
+
+        new Tone.Loop(time => {
+          musicSynth.triggerAttackRelease(chords[currentChord], "4n", time);
+          currentChord = (currentChord + 1) % chords.length;
+        }, "2n").start(0);
+
+        Tone.Transport.start();
+      }
+
+      function playRingSound() {
+        if (!ringSynth) return;
+        ringSynth.triggerAttackRelease("C5", "8n");
+        ringSynth.triggerAttackRelease("E5", "8n", "+0.05");
+        ringSynth.triggerAttackRelease("G5", "8n", "+0.1");
+      }
+
+      function playSonicBombSound() {
+        if (!sonicBombSynth) return;
+        sonicBombSynth.triggerAttackRelease("2n");
+      }
+
+      function triggerCallout(actor, message, x, y) {
+        // Prevent callouts if audio context not running or speech synthesis unavailable
+        if (Tone.context.state !== 'running' || !speaker || !calloutVoices.length) {
+            console.log("Audio not ready or no voices available for callout:", message);
+            return;
+        }
+
+        const now = nowMs();
+        let cooldownDuration = 0;
+        let lastCalloutTime = 0;
+
+        switch (actor) {
+            case 'ship':
+                cooldownDuration = CALLOUT_COOLDOWN_SHIP;
+                lastCalloutTime = ship.lastCallout;
+                break;
+            case 'wingman':
+                cooldownDuration = CALLOUT_COOLDOWN_WINGMAN;
+                // For wingmen, we need to track individual cooldowns
+                // This simplified example assumes a generic wingman callout.
+                // In a more complex game, each wingman would have its own lastCallout timestamp.
+                lastCalloutTime = wingmen[0].lastCallout; // Use first wingman for generic check
+                break;
+            case 'harvester':
+                cooldownDuration = CALLOUT_COOLDOWN_HARVESTER;
+                lastCalloutTime = harvester.lastCallout;
+                break;
+            default:
+                cooldownDuration = 0; // No cooldown by default
+        }
+
+        if (now - lastCalloutTime < cooldownDuration) {
+            // console.log(`Callout for ${actor} on cooldown. Skipping: ${message}`);
+            return;
+        }
+
+        // Update last callout time for the actor
+        switch (actor) {
+            case 'ship':
+                ship.lastCallout = now;
+                break;
+            case 'wingman':
+                wingmen[0].lastCallout = now; // Update for generic wingman
+                wingmen[1].lastCallout = now;
+                break;
+            case 'harvester':
+                harvester.lastCallout = now;
+                break;
+        }
+
+        // Speak the message
+        speakingUtterance.text = message;
+        // Use a suitable voice, e.g., a female voice for the ship, male for wingmen/harvester
+        const voice = calloutVoices.find(v => v.name.includes('Google US English')) || calloutVoices[0]; // Default to first available
+        speakingUtterance.voice = voice;
+        speakingUtterance.rate = actor === 'ship' ? 1 : rand(0.9, 1.1); // Ship is steady, others random rate
+        speakingUtterance.pitch = actor === 'ship' ? 1 : rand(0.9, 1.1);
+
+        speaker.cancel(); // Stop any current speech to prioritize new callout
+        speaker.speak(speakingUtterance);
+        
+        // Show chat bubble
+        showChatBubble(message, x, y);
+      }
+
+      function showChatBubble(message, x, y) {
+        const bubble = document.createElement('div');
+        bubble.classList.add('chat-bubble');
+        bubble.textContent = message;
+
+        // Position the bubble relative to the canvas actor's screen coordinates
+        const canvasRect = canvas.getBoundingClientRect();
+        const screenX = canvasRect.left + x / CFG.DPR;
+        const screenY = canvasRect.top + y / CFG.DPR;
+
+        // Adjust position to be above the actor
+        bubble.style.left = `${screenX}px`;
+        bubble.style.top = `${screenY - 40}px`; // 40px above the actor
+
+        chatBubblesContainer.appendChild(bubble);
+
+        // Remove bubble after animation
+        bubble.addEventListener('animationend', () => {
+          bubble.remove();
+        });
+      }
 
       // ====== Level / HUD ======
       function resetForLevel() { ringsCleared = 0; ringsGoal = Math.floor(rand(BASE.RINGS_MIN, BASE.RINGS_MAX + 1)); nextRingAt = nowMs() + rand(CFG.RING_INTERVAL[0], CFG.RING_INTERVAL[1]) * 1000; rings.length = 0; enemies.length = 0; bullets.length = 0; effects.length = 0; resources.length = 0; levelKills = 0; levelResources = 0; objective = null; uiLevel.textContent = String(level); updateHUD(); }
@@ -690,34 +965,43 @@
       var cards = document.querySelectorAll('.card'); var ci; for (ci = 0; ci < cards.length; ci++) { randomizeStars(cards[ci]); }
       function applyModeKey(key) { var sel = (key === 'A') ? MODES.A : (key === 'C') ? MODES.C : MODES.B; CFG = _merge(BASE, sel); CFG.name = sel.name || 'B • Balanced'; updateHUD(); regenSky(); }
       var currentModeKey = 'B';
-      function startGame() { currentModeKey = currentModeKey || 'B'; applyModeKey(currentModeKey); level = 1; score = 0; totalKills = 0; totalResources = 0; levelHistory = []; menu.classList.remove('open'); startNextLevel(); }
-      function startNextLevel() { 
-        clearTimeout(summaryTimeout); 
-        summary.classList.remove('open'); 
-        currentShipColor = shipColors[level % shipColors.length]; 
-        resetForLevel(); 
-        regenSky(); 
-        gameState = 'playing'; 
-        nextLevelNum.textContent = String(level + 1); // Update the next level number in summary
+      function startGame() {
+        initAudio().then(() => { // Initialize audio context on user interaction
+          playMusic();
+          currentModeKey = currentModeKey || 'B'; applyModeKey(currentModeKey); level = 1; score = 0; totalKills = 0; totalResources = 0; levelHistory = []; menu.classList.remove('open'); startNextLevel();
+        });
       }
-      
+      function startNextLevel() {
+        clearTimeout(summaryTimeout);
+        summary.classList.remove('open');
+        currentShipColor = shipColors[level % shipColors.length];
+        resetForLevel();
+        regenSky();
+        gameState = 'playing';
+        nextLevelNum.textContent = String(level + 1); // Update the next level number in summary
+        if (level > 1) { // Only call out for level up after first level
+            triggerCallout('ship', shipPhrases.levelUp[Math.floor(R() * shipPhrases.levelUp.length)], ship.x, ship.y);
+            ship.lastCallout = nowMs(); // Update last callout specific for level up
+        }
+      }
+
       function showLevelSummary() {
-        var scoreBonus = levelKills * 15 + levelResources * 25; 
-        score += scoreBonus; 
-        totalKills += levelKills; 
+        var scoreBonus = levelKills * 15 + levelResources * 25;
+        score += scoreBonus;
+        totalKills += levelKills;
         totalResources += levelResources;
         levelHistory.push({ level: level, kills: levelKills, resources: levelResources, score: scoreBonus });
-        gameState = 'summary'; 
-        
-        summaryTitle.textContent = 'Level ' + level + ' Complete!'; 
-        
+        gameState = 'summary';
+
+        summaryTitle.textContent = 'Level ' + level + ' Complete!';
+
         // Update summary numbers instead of chart
         summaryKills.textContent = levelKills;
         summaryResources.textContent = levelResources;
         summaryScoreBonus.textContent = scoreBonus;
 
-        summary.classList.add('open'); 
-        level++; 
+        summary.classList.add('open');
+        level++;
         summaryTimeout = setTimeout(startNextLevel, 5000);
       }
 
@@ -734,46 +1018,50 @@
       pad.addEventListener('pointermove', function (e) { if (!dragging) return; updateInputFromPoint(e.clientX, e.clientY); });
       pad.addEventListener('pointerup', endDrag); pad.addEventListener('pointercancel', endDrag); pad.addEventListener('lostpointercapture', endDrag);
 
-      beamBtn.addEventListener('click', function() { if (gameState === 'playing' && beam.cd <= 0) { beam.active = true; aiBeam = false; } }); // Allow manual override
-      
+      beamBtn.addEventListener('click', function () { if (gameState === 'playing' && beam.cd <= 0) { beam.active = true; aiBeam = false; } }); // Allow manual override
+
       // ====== Paddle Controls ======
-      wingmanLeftBtn.addEventListener('click', function() { if (wingmen[0].state === 'dock') { wingmen[0].state = 'launch'; aiWingmanLeft = false; } }); // Allow manual override
-      wingmanRightBtn.addEventListener('click', function() { if (wingmen[1].state === 'dock') { wingmen[1].state = 'launch'; aiWingmanRight = false; } }); // Allow manual override
-      harvesterBtn.addEventListener('click', function() { if (harvester.state === 'dock' && resources.length > 0) { harvester.state = 'seek'; aiHarvester = false; } }); // Allow manual override
+      wingmanLeftBtn.addEventListener('click', function () { if (wingmen[0].state === 'dock') { wingmen[0].state = 'launch'; aiWingmanLeft = false; triggerCallout('wingman', wingmanPhrases.launchAttack[Math.floor(R() * wingmanPhrases.launchAttack.length)], wingmen[0].x, wingmen[0].y); } }); // Allow manual override
+      wingmanRightBtn.addEventListener('click', function () { if (wingmen[1].state === 'dock') { wingmen[1].state = 'launch'; aiWingmanRight = false; triggerCallout('wingman', wingmanPhrases.launchAttack[Math.floor(R() * wingmanPhrases.launchAttack.length)], wingmen[1].x, wingmen[1].y); } }); // Allow manual override
+      harvesterBtn.addEventListener('click', function () { if (harvester.state === 'dock' && resources.length > 0) { harvester.state = 'seek'; aiHarvester = false; triggerCallout('harvester', harvesterPhrases.seekGrab[Math.floor(R() * harvesterPhrases.seekGrab.length)], harvester.x, harvester.y); } }); // Allow manual override
 
       // ====== Sonic Bomb ======
       function deploySonicBomb() {
         if (gameState !== 'playing' || sonicBomb.cd > 0 || (totalResources + levelResources) < CFG.SONIC_BOMB_COST) {
-            return false;
+          return false;
         }
         var cost = CFG.SONIC_BOMB_COST;
         if (levelResources >= cost) {
-            levelResources -= cost;
+          levelResources -= cost;
         } else {
-            cost -= levelResources;
-            levelResources = 0;
-            totalResources -= cost;
+          cost -= levelResources;
+          levelResources = 0;
+          totalResources -= cost;
         }
         sonicBomb.cd = CFG.SONIC_BOMB_COOLDOWN;
+
+        triggerCallout('ship', shipPhrases.sonicBomb[Math.floor(R() * shipPhrases.sonicBomb.length)], ship.x, ship.y);
+        playSonicBombSound();
+
         enemies.forEach(function (e) { effects.push({ x: e.x, y: e.y, t: 260, r: 36 }); });
         enemies.length = 0;
         effects.push({ x: ship.x, y: ship.y, t: 800, r: W, sonic: true });
         updateHUD();
         return true;
       }
-      sonicBtn.addEventListener('click', function() { deploySonicBomb(); aiSonicBomb = false; }); // Allow manual override
+      sonicBtn.addEventListener('click', function () { deploySonicBomb(); aiSonicBomb = false; }); // Allow manual override
 
       // ====== Spawners ======
       function spawnRing() { var r = rand(CFG.RING_RADIUS[0], CFG.RING_RADIUS[1]); var key = Object.keys(PRE_RINGS).reduce(function (prev, curr) { return (Math.abs(curr - r) < Math.abs(prev - r) ? curr : prev); }); rings.push({ x: clamp(ship.x + rand(-W * 0.35, W * 0.35), W * 0.08, W * 0.92), y: -r - 20, r: parseInt(key), tex: PRE_RINGS[key] }); }
-      function spawnEnemyWave() { 
-        var n = Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0], CFG.ENEMY_WAVE_SIZE[1] + 1)); 
-        var i; 
+      function spawnEnemyWave() {
+        var n = Math.floor(rand(CFG.ENEMY_WAVE_SIZE[0], CFG.ENEMY_WAVE_SIZE[1] + 1));
+        var i;
         var currentHueOffset = (level - 1) * 30; // Change hue by 30 degrees per level
-        for (i = 0; i < n; i++) { 
-          var side = (R() < 0.5) ? -1 : 1; 
-          var ex = (side < 0) ? rand(W * 0.05, W * 0.4) : rand(W * 0.6, W * 0.95); 
-          enemies.push({ x: ex, y: -40 - i * 30, vx: rand(-40, 40), vy: rand(100, 150), hp: CFG.ENEMY_HP, phase: rand(0, 6.28), ttl: 12000, drift: rand(0.6, 1.2), hueOffset: currentHueOffset }); 
-        } 
+        for (i = 0; i < n; i++) {
+          var side = (R() < 0.5) ? -1 : 1;
+          var ex = (side < 0) ? rand(W * 0.05, W * 0.4) : rand(W * 0.6, W * 0.95);
+          enemies.push({ x: ex, y: -40 - i * 30, vx: rand(-40, 40), vy: rand(100, 150), hp: CFG.ENEMY_HP, phase: rand(0, 6.28), ttl: 12000, drift: rand(0.6, 1.2), hueOffset: currentHueOffset });
+        }
       }
       function spawnResource() { resources.push({ x: rand(W * 0.25, W * 0.75), y: -20, vx: rand(-20, 20), vy: rand(40, 80), rot: R() * 6.28 }); }
 
@@ -788,12 +1076,12 @@
       function chooseObjective() {
         // If current objective is no longer valid (e.g., collected or too far down)
         if (objective && validRing(objective.ref) && objective.ref.y > ship.y + objective.ref.r * 2) {
-            objective = null;
+          objective = null;
         }
-        
+
         // If we have a valid objective, stick to it
         if (objective && validRing(objective.ref)) {
-            return;
+          return;
         }
 
         // Find the closest ring that is above the ship's 20% Y-line threshold
@@ -825,35 +1113,38 @@
         // AI for wingmen (only if AI is enabled for them)
         if (aiWingmanLeft && enemies.length > 0 && wingmen[0].state === 'dock' && wingmen[0].cool <= 0) {
           wingmen[0].state = 'launch';
+          triggerCallout('wingman', wingmanPhrases.launchAttack[Math.floor(R() * wingmanPhrases.launchAttack.length)], wingmen[0].x, wingmen[0].y);
         }
         if (aiWingmanRight && enemies.length > 0 && wingmen[1].state === 'dock' && wingmen[1].cool <= 0) {
           wingmen[1].state = 'launch';
+          triggerCallout('wingman', wingmanPhrases.launchAttack[Math.floor(R() * wingmanPhrases.launchAttack.length)], wingmen[1].x, wingmen[1].y);
         }
 
         // AI for harvester (only if AI is enabled for it)
         if (aiHarvester && resources.length > 0 && harvester.state === 'dock' && harvester.cd <= 0) {
           harvester.state = 'seek';
+          triggerCallout('harvester', harvesterPhrases.seekGrab[Math.floor(R() * harvesterPhrases.seekGrab.length)], harvester.x, harvester.y);
         }
 
         // AI for beam (auto-collect visible resources if no harvester is out and AI is enabled for it)
         if (aiBeam && resources.length > 0 && !harvester.grab && harvester.state === 'dock' && beam.cd <= 0) {
-            let nearestResource = null;
-            let minDist = Infinity;
-            resources.forEach(res => {
-                const dist = Math.hypot(res.x - ship.x, res.y - ship.y);
-                if (dist < minDist && res.y < ship.y && res.y > ship.y - CFG.BEAM_LEN) {
-                    minDist = dist;
-                    nearestResource = res;
-                }
-            });
-            if (nearestResource && minDist < CFG.BEAM_HALF_W * 2) { // Within beam's general horizontal range
-                beam.active = true;
+          let nearestResource = null;
+          let minDist = Infinity;
+          resources.forEach(res => {
+            const dist = Math.hypot(res.x - ship.x, res.y - ship.y);
+            if (dist < minDist && res.y < ship.y && res.y > ship.y - CFG.BEAM_LEN) {
+              minDist = dist;
+              nearestResource = res;
             }
+          });
+          if (nearestResource && minDist < CFG.BEAM_HALF_W * 2) { // Within beam's general horizontal range
+            beam.active = true;
+          }
         }
 
         // AI for sonic bomb (auto-deploy if many enemies and AI is enabled for it)
         if (aiSonicBomb && enemies.length >= CFG.AUTO_BOMB_ENEMY_COUNT && sonicBomb.cd <= 0 && (totalResources + levelResources) >= CFG.SONIC_BOMB_COST) {
-            deploySonicBomb();
+          deploySonicBomb();
         }
 
         // Update button states and add/remove 'active-control' class
@@ -870,7 +1161,7 @@
         } else {
           beamBtn.classList.remove('active-control');
         }
-        
+
         wingmanLeftBtn.disabled = wingmen[0].state !== 'dock' || wingmen[0].cool > 0;
         if (wingmen[0].state !== 'dock') {
           wingmanLeftBtn.classList.add('active-control');
@@ -894,142 +1185,143 @@
       }
 
       // ====== Wingmen AI ======
-      function updateWingman(w, dt, t) { 
-        w.cool = Math.max(0, w.cool - dt); 
-        w.fireCd = Math.max(0, w.fireCd - dt); 
-        w.tpT = Math.max(0, w.tpT - dt); 
-        var dockX = ship.x + w.side * CFG.WING_OFFSET, dockY = ship.y + 8; 
-        
-        if (w.state === 'dock') { 
-          w.x = dockX; 
-          w.y = dockY; 
+      function updateWingman(w, dt, t) {
+        w.cool = Math.max(0, w.cool - dt);
+        w.fireCd = Math.max(0, w.fireCd - dt);
+        w.tpT = Math.max(0, w.tpT - dt);
+        var dockX = ship.x + w.side * CFG.WING_OFFSET, dockY = ship.y + 8;
+
+        if (w.state === 'dock') {
+          w.x = dockX;
+          w.y = dockY;
           if (!aiWingmanLeft && w.side === -1 || !aiWingmanRight && w.side === 1) {
             // Manual control was used, ensure AI is re-enabled once it docks and cools down
             if (w.side === -1) aiWingmanLeft = true;
             if (w.side === 1) aiWingmanRight = true;
           }
-        } else if (w.state === 'launch') { 
-          w.x = lerp(w.x || dockX, dockX, 0.1); 
-          w.y = lerp(w.y || dockY, ship.y - 60, 0.1); 
-          if (Math.abs((w.y || dockY) - (ship.y - 60)) < 5) { 
-            w.state = 'attack'; 
-            w.target = -1; 
-            w.tpT = 0; 
-          } 
-        } else if (w.state === 'attack') { 
-          if (enemies.length === 0) { 
-            w.state = 'return'; 
-          } else { 
-            if (w.target < 0 || !enemies[w.target]) { 
-              var best = 1e9, idx = -1, j; 
-              for (j = 0; j < enemies.length; j++) { 
-                var e = enemies[j]; 
-                if (w.side < 0 ? e.x > W / 2 : e.x < W / 2) continue; 
-                var ahead = (e.y < ship.y - 10); 
-                if (!ahead) continue; 
-                var d = Math.hypot(e.x - (w.x || dockX), e.y - (w.y || dockY)); 
-                if (d < best) { best = d; idx = j; } 
-              } 
-              w.target = idx; 
-            } 
-            var tar = enemies[w.target]; 
-            if (!tar) { 
-              w.state = 'return'; 
-            } else { 
-              if (w.tpT <= 0) { 
-                var ang = (t * 0.002 + (w.side > 0 ? 0 : Math.PI)) % (Math.PI * 2); 
-                var radius = 48; 
-                w.x = tar.x + Math.cos(ang) * radius; 
-                w.y = tar.y + Math.sin(ang) * radius; 
-                w.tpT = 220; 
-                if (w.fireCd <= 0) { 
-                  if (R() < 0.5) { 
-                    fireRadial(w.x, w.y, 6, 220); 
-                  } else { 
-                    var a = Math.atan2(tar.y - w.y, tar.x - w.x); 
-                    fireOrb(w.x, w.y, a, 280); 
-                    fireOrb(w.x, w.y, a + 0.12, 260); 
-                    fireOrb(w.x, w.y, a - 0.12, 260); 
-                  } 
-                  w.fireCd = 220; 
-                } 
-              } else { 
-                w.x = lerp(w.x, tar.x + w.side * 36, 0.08); 
-                w.y = lerp(w.y, tar.y, 0.08); 
-              } 
-              if (tar.y > ship.y + 120) { 
-                w.state = 'return'; 
-              } 
-            } 
-          } 
-        } else if (w.state === 'return') { 
-          w.x = lerp(w.x, dockX, 0.12); 
-          w.y = lerp(w.y, dockY, 0.12); 
-          if (Math.hypot(w.x - dockX, w.y - dockY) < 4) { 
-            w.state = 'cool'; 
-            w.cool = CFG.WING_COOLDOWN; 
-          } 
-        } else if (w.state === 'cool') { 
-          w.x = dockX; 
-          w.y = dockY; 
-          if (w.cool <= 0) { 
-            w.state = 'dock'; 
-          } 
-        } 
+        } else if (w.state === 'launch') {
+          w.x = lerp(w.x || dockX, dockX, 0.1);
+          w.y = lerp(w.y || dockY, ship.y - 60, 0.1);
+          if (Math.abs((w.y || dockY) - (ship.y - 60)) < 5) {
+            w.state = 'attack';
+            w.target = -1;
+            w.tpT = 0;
+          }
+        } else if (w.state === 'attack') {
+          if (enemies.length === 0) {
+            w.state = 'return';
+          } else {
+            if (w.target < 0 || !enemies[w.target]) {
+              var best = 1e9, idx = -1, j;
+              for (j = 0; j < enemies.length; j++) {
+                var e = enemies[j];
+                if (w.side < 0 ? e.x > W / 2 : e.x < W / 2) continue;
+                var ahead = (e.y < ship.y - 10);
+                if (!ahead) continue;
+                var d = Math.hypot(e.x - (w.x || dockX), e.y - (w.y || dockY));
+                if (d < best) { best = d; idx = j; }
+              }
+              w.target = idx;
+            }
+            var tar = enemies[w.target];
+            if (!tar) {
+              w.state = 'return';
+            } else {
+              if (w.tpT <= 0) {
+                var ang = (t * 0.002 + (w.side > 0 ? 0 : Math.PI)) % (Math.PI * 2);
+                var radius = 48;
+                w.x = tar.x + Math.cos(ang) * radius;
+                w.y = tar.y + Math.sin(ang) * radius;
+                w.tpT = 220;
+                if (w.fireCd <= 0) {
+                  if (R() < 0.5) {
+                    fireRadial(w.x, w.y, 6, 220);
+                  } else {
+                    var a = Math.atan2(tar.y - w.y, tar.x - w.x);
+                    fireOrb(w.x, w.y, a, 280);
+                    fireOrb(w.x, w.y, a + 0.12, 260);
+                    fireOrb(w.x, w.y, a - 0.12, 260);
+                  }
+                  w.fireCd = 220;
+                }
+              } else {
+                w.x = lerp(w.x, tar.x + w.side * 36, 0.08);
+                w.y = lerp(w.y, tar.y, 0.08);
+              }
+              if (tar.y > ship.y + 120) {
+                w.state = 'return';
+              }
+            }
+          }
+        } else if (w.state === 'return') {
+          w.x = lerp(w.x, dockX, 0.12);
+          w.y = lerp(w.y, dockY, 0.12);
+          if (Math.hypot(w.x - dockX, w.y - dockY) < 4) {
+            w.state = 'cool';
+            w.cool = CFG.WING_COOLDOWN;
+          }
+        } else if (w.state === 'cool') {
+          w.x = dockX;
+          w.y = dockY;
+          if (w.cool <= 0) {
+            w.state = 'dock';
+          }
+        }
       }
 
       // ====== Harvester AI ======
-      function updateHarvester(h, dt) { 
-        h.cd = Math.max(0, h.cd - dt); 
-        var dockX = ship.x, dockY = ship.y - 16; 
-        
-        if (h.state === 'dock') { 
-          h.x = dockX; 
-          h.y = dockY; 
-          h.grab = false; 
+      function updateHarvester(h, dt) {
+        h.cd = Math.max(0, h.cd - dt);
+        var dockX = ship.x, dockY = ship.y - 16;
+
+        if (h.state === 'dock') {
+          h.x = dockX;
+          h.y = dockY;
+          h.grab = false;
           if (!aiHarvester) { // Manual control was used, re-enable AI once it docks and cools down
             aiHarvester = true;
           }
-        } else if (h.state === 'seek') { 
-          var s = resources[h.target]; 
-          if (!s) { 
-            var idx = -1, bestDy = 0, i; 
-            for (i = 0; i < resources.length; i++) { 
-              var res = resources[i]; 
-              var ahead = (res.y < ship.y - 10); 
-              if (!ahead) continue; 
-              var dy = ship.y - res.y; 
-              if (dy > bestDy) { bestDy = dy; idx = i; } 
-            } 
-            if (idx >= 0) { h.target = idx; } else { h.state = 'return'; } 
-          } else { 
-            h.x = lerp(h.x, s.x, 0.16); 
-            h.y = lerp(h.y, s.y + 20, 0.16); 
-            if (Math.hypot(h.x - s.x, h.y - s.y) < 16) { h.state = 'grab'; h.grab = true; } 
-            if (s.y > ship.y + 60) { h.state = 'return'; } 
-          } 
-        } else if (h.state === 'grab') { 
-          var s2 = resources[h.target]; 
-          if (!s2) { h.state = 'return'; } 
-          else { 
-            h.x = lerp(h.x, dockX, 0.14); 
-            h.y = lerp(h.y, dockY, 0.14); 
-            s2.x = lerp(s2.x, dockX, 0.18); 
-            s2.y = lerp(s2.y, dockY, 0.18); 
-            if (Math.hypot(s2.x - dockX, s2.y - dockY) < 12) { 
-              var idxS = resources.indexOf(s2); 
-              if (idxS !== -1) resources.splice(idxS, 1); 
-              score += 25; levelResources++; updateHUD(); h.state = 'return'; h.cd = 1200; 
-            } 
-          } 
-        } else if (h.state === 'return') { 
-          h.x = lerp(h.x, dockX, 0.14); 
-          h.y = lerp(h.y, dockY, 0.14); 
-          if (Math.hypot(h.x - dockX, h.y - dockY) < 4) { 
-            h.state = 'dock'; 
-            h.grab = false; 
-          } 
-        } 
+        } else if (h.state === 'seek') {
+          var s = resources[h.target];
+          if (!s) {
+            var idx = -1, bestDy = 0, i;
+            for (i = 0; i < resources.length; i++) {
+              var res = resources[i];
+              var ahead = (res.y < ship.y - 10);
+              if (!ahead) continue;
+              var dy = ship.y - res.y;
+              if (dy > bestDy) { bestDy = dy; idx = i; }
+            }
+            if (idx >= 0) { h.target = idx; } else { h.state = 'return'; }
+          } else {
+            h.x = lerp(h.x, s.x, 0.16);
+            h.y = lerp(h.y, s.y + 20, 0.16);
+            if (Math.hypot(h.x - s.x, h.y - s.y) < 16) { h.state = 'grab'; h.grab = true; }
+            if (s.y > ship.y + 60) { h.state = 'return'; }
+          }
+        } else if (h.state === 'grab') {
+          var s2 = resources[h.target];
+          if (!s2) { h.state = 'return'; }
+          else {
+            h.x = lerp(h.x, dockX, 0.14);
+            h.y = lerp(h.y, dockY, 0.14);
+            s2.x = lerp(s2.x, dockX, 0.18);
+            s2.y = lerp(s2.y, dockY, 0.18);
+            if (Math.hypot(s2.x - dockX, s2.y - dockY) < 12) {
+              var idxS = resources.indexOf(s2);
+              if (idxS !== -1) resources.splice(idxS, 1);
+              score += 25; levelResources++; updateHUD(); h.state = 'return'; h.cd = 1200;
+              triggerCallout('harvester', harvesterPhrases.seekGrab[Math.floor(R() * harvesterPhrases.seekGrab.length)], harvester.x, harvester.y); // Callout on resource grab
+            }
+          }
+        } else if (h.state === 'return') {
+          h.x = lerp(h.x, dockX, 0.14);
+          h.y = lerp(h.y, dockY, 0.14);
+          if (Math.hypot(h.x - dockX, h.y - dockY) < 4) {
+            h.state = 'dock';
+            h.grab = false;
+          }
+        }
       }
 
       // ====== Main Game Loop ======
@@ -1056,25 +1348,25 @@
         chooseObjective();
         var desiredX = objective ? objective.ref.x : ship.x;
         var desiredY = objective ? objective.ref.y : ship.y;
-        
+
         var far = objective ? (Math.hypot(desiredX - ship.x, desiredY - ship.y) > CFG.CATCHUP_DIST) : false; var boost = far ? CFG.CATCHUP_BOOST : 1;
-        var aiVX = (desiredX - ship.x) * CFG.SHIP_ACC_X * boost; 
+        var aiVX = (desiredX - ship.x) * CFG.SHIP_ACC_X * boost;
         var aiVY = (desiredY - ship.y) * CFG.SHIP_ACC_Y * boost;
 
         // Combine AI input with potential manual input from pad (for visual simulation)
-        var stickDX = clamp(aiVX / CFG.SHIP_MAX_VX, -1, 1) + input.x; 
+        var stickDX = clamp(aiVX / CFG.SHIP_MAX_VX, -1, 1) + input.x;
         var stickDY = clamp(aiVY / CFG.SHIP_MAX_VY, -1, 1) + input.y;
         setStick(clamp(stickDX, -1, 1) * PAD_R, clamp(stickDY, -1, 1) * PAD_R);
-        var nudgeX = input.x * 220, nudgeY = input.y * 180; 
-        
+        var nudgeX = input.x * 220, nudgeY = input.y * 180;
+
         // Ship movement
-        ship.vx += (aiVX + nudgeX) * dtSec; 
-        ship.vy += (aiVY + nudgeY) * dtSec; 
-        ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX * boost, CFG.SHIP_MAX_VX * boost); 
-        ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY * boost, CFG.SHIP_MAX_VY * boost); 
-        ship.vx *= CFG.SHIP_DAMP; 
-        ship.vy *= CFG.SHIP_DAMP; 
-        ship.x += ship.vx * dtSec; 
+        ship.vx += (aiVX + nudgeX) * dtSec;
+        ship.vy += (aiVY + nudgeY) * dtSec;
+        ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX * boost, CFG.SHIP_MAX_VX * boost);
+        ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY * boost, CFG.SHIP_MAX_VY * boost);
+        ship.vx *= CFG.SHIP_DAMP;
+        ship.vy *= CFG.SHIP_DAMP;
+        ship.x += ship.vx * dtSec;
         ship.y += ship.vy * dtSec;
         ship.x = clamp(ship.x, W * 0.08, W * 0.92); ship.y = clamp(ship.y, H * 0.7, H * 0.8);
         ship.rot = lerp(ship.rot, clamp(ship.vx, -260, 260) / 1000, 0.2);
@@ -1089,7 +1381,16 @@
         for (i = 0; i < bokeh.length; i++) { var bk = bokeh[i]; bk.y += scroll * 0.25; if (bk.y > H) { bk.y = 0; bk.x = R() * W; } }
 
         // Rings
-        for (i = rings.length - 1; i >= 0; i--) { var r = rings[i]; r.y += scroll * 0.8; var d = Math.hypot(r.x - ship.x, r.y - ship.y); if (d < r.r * 1.15) { rings.splice(i, 1); ringsCleared++; score += 10; if (R() < 0.6) spawnResource(); if (objective && objective.ref === r) { objective = null; } if (ringsCleared >= ringsGoal) { showLevelSummary(); } else { updateHUD(); } } else if (r.y - r.r > H + 60) { rings.splice(i, 1); if (objective && objective.ref === r) { objective = null; } } }
+        for (i = rings.length - 1; i >= 0; i--) {
+          var r = rings[i]; r.y += scroll * 0.8; var d = Math.hypot(r.x - ship.x, r.y - ship.y);
+          if (d < r.r * 1.15) {
+            rings.splice(i, 1); ringsCleared++; score += 10;
+            playRingSound(); // Play sound on ring capture
+            if (R() < 0.6) spawnResource();
+            if (objective && objective.ref === r) { objective = null; }
+            if (ringsCleared >= ringsGoal) { showLevelSummary(); } else { updateHUD(); }
+          } else if (r.y - r.r > H + 60) { rings.splice(i, 1); if (objective && objective.ref === r) { objective = null; } }
+        }
 
         // Enemies
         for (i = enemies.length - 1; i >= 0; i--) { var e = enemies[i]; e.ttl -= dt; var swayX = Math.sin((t * 0.002 + e.phase) * 2.0) * 40 * e.drift; var swayY = Math.cos((t * 0.002 + e.phase) * 1.6) * 10 * e.drift; e.x += (e.vx * dtSec) + swayX * dtSec; e.y += (e.vy * dtSec) + (scroll * 0.25) + swayY * dtSec; if (e.x < 20 || e.x > W - 20) e.vx *= -1; if (e.y > H + 60 || e.ttl <= 0) { enemies.splice(i, 1); } }
@@ -1097,11 +1398,44 @@
         updateHarvester(harvester, dt);
 
         // Bullets
-        for (i = bullets.length - 1; i >= 0; i--) { var b = bullets[i]; b.x += b.vx * dtSec; b.y += b.vy * dtSec - scroll * 0.05; b.life -= dt; if (b.life <= 0 || b.x < -80 || b.x > W + 80 || b.y < -120 || b.y > H + 120) { bullets.splice(i, 1); continue; } for (var j = enemies.length - 1; j >= 0; j--) { var en = enemies[j]; var hitR = (b.kind === 'orb' ? 10 : 22); var d2 = (en.x - b.x) * (en.x - b.x) + (en.y - b.y) * (en.y - b.y); if (d2 < hitR * hitR) { en.hp--; bullets.splice(i, 1); score += 15; if (en.hp <= 0) { enemies.splice(j, 1); levelKills++; updateHUD(); effects.push({ x: en.x, y: en.y, t: 260, r: 36 }); } break; } } }
+        for (i = bullets.length - 1; i >= 0; i--) {
+          var b = bullets[i]; b.x += b.vx * dtSec; b.y += b.vy * dtSec - scroll * 0.05; b.life -= dt;
+          if (b.life <= 0 || b.x < -80 || b.x > W + 80 || b.y < -120 || b.y > H + 120) { bullets.splice(i, 1); continue; }
+          for (var j = enemies.length - 1; j >= 0; j--) {
+            var en = enemies[j]; var hitR = (b.kind === 'orb' ? 10 : 22); var d2 = (en.x - b.x) * (en.x - b.x) + (en.y - b.y) * (en.y - b.y);
+            if (d2 < hitR * hitR) {
+              en.hp--; bullets.splice(i, 1); score += 15;
+              if (en.hp <= 0) {
+                enemies.splice(j, 1); levelKills++; updateHUD(); effects.push({ x: en.x, y: en.y, t: 260, r: 36 });
+                // Check if a wingman made the kill for callout
+                if (wingmen[0].target === j || wingmen[1].target === j) {
+                    triggerCallout('wingman', wingmanPhrases.enemyDown[Math.floor(R() * wingmanPhrases.enemyDown.length)], en.x, en.y);
+                } else {
+                    triggerCallout('ship', shipPhrases.generic[Math.floor(R() * shipPhrases.generic.length)], ship.x, ship.y);
+                }
+              }
+              break;
+            }
+          }
+        }
 
         // Beam & Resources
-        for (i = resources.length - 1; i >= 0; i--) { var s = resources[i]; if (harvester.grab && i === harvester.target) { continue; } s.x += s.vx * dtSec; s.y += s.vy * dtSec + scroll * 0.4; s.rot += 0.02; if (beam.active) { var bx = ship.x, by = ship.y - 8; var dx3 = s.x - bx, dy3 = s.y - by; if (dy3 < 0 && -dy3 < CFG.BEAM_LEN) { var half = CFG.BEAM_HALF_W * (-dy3 / CFG.BEAM_LEN); if (Math.abs(dx3) < half) { s.x = lerp(s.x, bx, 0.18); s.y = lerp(s.y, by, 0.18); if (Math.hypot(s.x - bx, s.y - by) < 12) { resources.splice(i, 1); score += 25; levelResources++; updateHUD(); continue; } } } } if (s.y > H + 40) { resources.splice(i, 1); } }
-        if (beam.active && beam.cd <= 0) { beam.cd = CFG.BEAM_COOLDOWN; aiBeam = true;} // Set cooldown only if beam was activated, re-enable AI
+        for (i = resources.length - 1; i >= 0; i--) {
+          var s = resources[i]; if (harvester.grab && i === harvester.target) { continue; } s.x += s.vx * dtSec; s.y += s.vy * dtSec + scroll * 0.4; s.rot += 0.02;
+          if (beam.active) {
+            var bx = ship.x, by = ship.y - 8; var dx3 = s.x - bx, dy3 = s.y - by;
+            if (dy3 < 0 && -dy3 < CFG.BEAM_LEN) {
+              var half = CFG.BEAM_HALF_W * (-dy3 / CFG.BEAM_LEN);
+              if (Math.abs(dx3) < half) {
+                s.x = lerp(s.x, bx, 0.18); s.y = lerp(s.y, by, 0.18);
+                if (Math.hypot(s.x - bx, s.y - by) < 12) {
+                  resources.splice(i, 1); score += 25; levelResources++; updateHUD(); continue;
+                }
+              }
+            }
+          } if (s.y > H + 40) { resources.splice(i, 1); }
+        }
+        if (beam.active && beam.cd <= 0) { beam.cd = CFG.BEAM_COOLDOWN; aiBeam = true; } // Set cooldown only if beam was activated, re-enable AI
         for (i = effects.length - 1; i >= 0; i--) { var fx = effects[i]; fx.t -= dt; if (fx.t <= 0) effects.splice(i, 1); }
 
         // ====== Render ======
@@ -1141,20 +1475,20 @@
         drawShip(ship.x, ship.y, ship.rot, 1, currentShipColor);
 
         // HUD Update
-        var res = totalResources + levelResources; 
+        var res = totalResources + levelResources;
         var cd = sonicBomb.cd;
         var cdPercent = cd / CFG.SONIC_BOMB_COOLDOWN;
         sonicBtn.disabled = res < CFG.SONIC_BOMB_COST || cd > 0;
         sonicFill.style.width = (1 - cdPercent) * 100 + '%';
         sonicText.textContent = cd > 0 ? '💥 Recharging (' + (cd / 1000).toFixed(1) + 's)' : '💥 Sonic Bomb (' + CFG.SONIC_BOMB_COST + ')';
-        
-        updateHUD(); 
-        frames++; 
-        accFps += dt; 
-        if (accFps > 250) { 
-            uiFPS.textContent = String(Math.round(1000 / (accFps / frames))); 
-            accFps = 0; 
-            frames = 0; 
+
+        updateHUD();
+        frames++;
+        accFps += dt;
+        if (accFps > 250) {
+          uiFPS.textContent = String(Math.round(1000 / (accFps / frames)));
+          accFps = 0;
+          frames = 0;
         }
       }
 
