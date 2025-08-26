@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cosmic Glider 2D — v1.1 (AI &amp; Ship Constraints)</title>
+  <title>Space War — v1.2</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -15,6 +15,7 @@
       --ink: #e5e7eb;
       --mut: #cbd5e1;
       --neon: rgba(110, 231, 183, 0.9);
+      --charge: rgba(110, 231, 183, 0.4);
     }
 
     html,
@@ -120,6 +121,12 @@
       font-size: 26px;
       letter-spacing: .3px;
     }
+    
+    .modal h2 {
+        font-size: 16px;
+        margin: 10px 0 -5px;
+        opacity: 0.8;
+    }
 
     /* Menu Specifics */
     .cards {
@@ -214,12 +221,19 @@
     }
 
     /* Level Summary Graph */
-    #summaryChart {
+    .summary-charts-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        width: 100%;
+    }
+    
+    .summary-chart {
       display: flex;
       justify-content: center;
       align-items: flex-end;
       gap: 24px;
-      margin: 20px 0;
+      margin-top: 10px;
       height: 150px;
       border-bottom: 1px solid var(--br);
       padding-bottom: 10px;
@@ -305,6 +319,7 @@
     }
 
     .act {
+      position: relative;
       min-width: 140px;
       background: var(--panel2);
       border: 1px solid var(--br);
@@ -314,6 +329,23 @@
       cursor: pointer;
       box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
       color: var(--ink);
+      overflow: hidden; /* For the fill effect */
+    }
+    
+    #sonicFill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: var(--charge);
+        border-radius: 10px;
+        transition: width 0.1s linear;
+    }
+
+    #sonicText {
+        position: relative;
+        z-index: 1;
     }
 
     .act:disabled {
@@ -359,7 +391,10 @@
     <div id="stick"></div>
   </div>
   <div id="actions">
-    <button class="act" id="sonicBtn">💥 Sonic Bomb (3)</button>
+    <button class="act" id="sonicBtn">
+        <span id="sonicFill"></span>
+        <span id="sonicText">💥 Sonic Bomb (3)</span>
+    </button>
     <button class="act" id="warpBtn">⚡ Warp</button>
     <button class="act" id="beamBtn">🧲 Beam: Auto</button>
   </div>
@@ -399,21 +434,46 @@
   <div id="levelSummary" class="modal" aria-modal="true" role="dialog">
     <div class="wrap">
       <h1 id="summaryTitle">Level 1 Complete!</h1>
-      <div id="summaryChart">
-        <div class="bar-item">
-          <div class="bar" id="summaryBarKills"></div>
-          <div class="bar-label">Kills</div>
-          <div class="bar-value" id="summaryValueKills">0</div>
+      <div class="summary-charts-container">
+        <div>
+            <h2>Level Stats</h2>
+            <div id="summaryChartLevel" class="summary-chart">
+                <div class="bar-item">
+                    <div class="bar" id="summaryBarKills"></div>
+                    <div class="bar-label">Kills</div>
+                    <div class="bar-value" id="summaryValueKills">0</div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar" id="summaryBarResources"></div>
+                    <div class="bar-label">Resources</div>
+                    <div class="bar-value" id="summaryValueResources">0</div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar" id="summaryBarScore"></div>
+                    <div class="bar-label">Score Bonus</div>
+                    <div class="bar-value" id="summaryValueScore">0</div>
+                </div>
+            </div>
         </div>
-        <div class="bar-item">
-          <div class="bar" id="summaryBarResources"></div>
-          <div class="bar-label">Resources</div>
-          <div class="bar-value" id="summaryValueResources">0</div>
-        </div>
-        <div class="bar-item">
-          <div class="bar" id="summaryBarScore"></div>
-          <div class="bar-label">Score Bonus</div>
-          <div class="bar-value" id="summaryValueScore">0</div>
+        <div>
+            <h2>Cumulative Stats</h2>
+            <div id="summaryChartCumulative" class="summary-chart">
+                 <div class="bar-item">
+                    <div class="bar" id="summaryBarKillsTotal"></div>
+                    <div class="bar-label">Kills</div>
+                    <div class="bar-value" id="summaryValueKillsTotal">0</div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar" id="summaryBarResourcesTotal"></div>
+                    <div class="bar-label">Resources</div>
+                    <div class="bar-value" id="summaryValueResourcesTotal">0</div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar" id="summaryBarScoreTotal"></div>
+                    <div class="bar-label">Score Bonus</div>
+                    <div class="bar-value" id="summaryValueScoreTotal">0</div>
+                </div>
+            </div>
         </div>
       </div>
       <p id="summaryNextLevel">Preparing for Level 2...</p>
@@ -441,10 +501,11 @@
         SHIP_MAX_VX: 620, SHIP_MAX_VY: 520, CATCHUP_DIST: 220, CATCHUP_BOOST: 1.25,
         WING_OFFSET: 46, WING_COOLDOWN: 1000,
         BEAM_AUTO: true, BEAM_LEN: 220, BEAM_HALF_W: 92, BEAM_COOLDOWN: 900,
-        SONIC_BOMB_COST: 3, SONIC_BOMB_COOLDOWN: 20000
+        SONIC_BOMB_COST: 3, SONIC_BOMB_COOLDOWN: 20000,
+        AUTO_BOMB_ENEMY_COUNT: 6, // NEW: Auto-deploy sonic bomb threshold
       };
       var MODES = {
-        A: { name: 'A • Arcade', RING_INTERVAL: [1.2, 2.4], SHIP_ACC_X: 3.8, SHIP_ACC_Y: 3.2, SHIP_MAX_VX: 700, SHIP_MAX_VY: 560, CATCHUP_BOOST: 1.35, ENEMY_WAVE_CHANCE: 0.12, ENEMY_WAVE_SIZE: [2, 4], RES_SPAWN_CHANCE: 0.06, BEAM_AUTO: true },
+        A: { name: 'A • Arcade', RING_INTERVAL: [1.2, 2.4], SHIP_ACC_X: 4.0, SHIP_ACC_Y: 3.4, SHIP_MAX_VX: 700, SHIP_MAX_VY: 560, CATCHUP_BOOST: 1.4, ENEMY_WAVE_CHANCE: 0.12, ENEMY_WAVE_SIZE: [2, 4], RES_SPAWN_CHANCE: 0.06, BEAM_AUTO: true },
         B: { name: 'B • Balanced' },
         C: { name: 'C • Chill', RING_INTERVAL: [2.2, 3.8], SHIP_ACC_X: 2.6, SHIP_ACC_Y: 2.2, SHIP_MAX_VX: 520, SHIP_MAX_VY: 460, ENEMY_WAVE_CHANCE: 0.06, ENEMY_WAVE_SIZE: [1, 2], RES_SPAWN_CHANCE: 0.03, BEAM_AUTO: false }
       };
@@ -461,10 +522,15 @@
       // ====== DOM refs ======
       var uiMode = document.getElementById('uiMode'), uiLevel = document.getElementById('uiLevel'), uiScore = document.getElementById('uiScore'), uiRings = document.getElementById('uiRings'), uiEnemies = document.getElementById('uiEnemies'), uiKills = document.getElementById('uiKills'), uiBeam = document.getElementById('uiBeam'), uiFPS = document.getElementById('uiFPS'), uiResources = document.getElementById('uiResources');
       var menu = document.getElementById('cosmicMenu'), menuBtn = document.getElementById('menuBtn'), startBtn = document.getElementById('startBtn'), toggleBeamAuto = document.getElementById('toggleBeamAuto');
-      var pad = document.getElementById('pad'), stick = document.getElementById('stick'), warpBtn = document.getElementById('warpBtn'), beamBtn = document.getElementById('beamBtn'), sonicBtn = document.getElementById('sonicBtn');
+      var pad = document.getElementById('pad'), stick = document.getElementById('stick'), warpBtn = document.getElementById('warpBtn'), beamBtn = document.getElementById('beamBtn'), sonicBtn = document.getElementById('sonicBtn'), sonicFill = document.getElementById('sonicFill'), sonicText = document.getElementById('sonicText');
       var summary = document.getElementById('levelSummary'), summaryTitle = document.getElementById('summaryTitle'), summaryNextLevel = document.getElementById('summaryNextLevel');
+      // Level Stats
       var summaryBarKills = document.getElementById('summaryBarKills'), summaryBarResources = document.getElementById('summaryBarResources'), summaryBarScore = document.getElementById('summaryBarScore');
       var summaryValueKills = document.getElementById('summaryValueKills'), summaryValueResources = document.getElementById('summaryValueResources'), summaryValueScore = document.getElementById('summaryValueScore');
+      // Cumulative Stats
+      var summaryBarKillsTotal = document.getElementById('summaryBarKillsTotal'), summaryBarResourcesTotal = document.getElementById('summaryBarResourcesTotal'), summaryBarScoreTotal = document.getElementById('summaryBarScoreTotal');
+      var summaryValueKillsTotal = document.getElementById('summaryValueKillsTotal'), summaryValueResourcesTotal = document.getElementById('summaryValueResourcesTotal'), summaryValueScoreTotal = document.getElementById('summaryValueScoreTotal');
+
 
       // ====== Helpers ======
       function R() { return Math.random(); }
@@ -495,7 +561,7 @@
 
       // ====== State ======
       var gameState = 'menu'; // 'menu', 'playing', 'summary'
-      var level = 1, score = 0, totalKills = 0, totalResources = 0;
+      var level = 1, score = 0, totalKills = 0, totalResources = 0, totalScoreBonus = 0;
       var levelKills = 0, levelResources = 0;
       var ringsCleared = 0, ringsGoal = 0, nextRingAt = 0;
       var bullets = [], enemies = [], rings = [], farthest = [], far = [], deep = [], mid = [], near = [], bokeh = [], effects = [], resources = [];
@@ -524,17 +590,45 @@
       var cards = document.querySelectorAll('.card'); var ci; for (ci = 0; ci < cards.length; ci++) { randomizeStars(cards[ci]); }
       function applyModeKey(key) { var sel = (key === 'A') ? MODES.A : (key === 'C') ? MODES.C : MODES.B; CFG = _merge(BASE, sel); CFG.name = sel.name || 'B • Balanced'; beam.auto = (sel.BEAM_AUTO !== undefined) ? sel.BEAM_AUTO : BASE.BEAM_AUTO; beamBtn.textContent = '🧲 Beam: ' + (beam.auto ? 'Auto' : 'Manual'); updateHUD(); regenSky(); }
       var currentModeKey = 'B';
-      function startGame() { currentModeKey = currentModeKey || 'B'; applyModeKey(currentModeKey); level = 1; score = 0; totalKills = 0; totalResources = 0; menu.classList.remove('open'); startNextLevel(); }
+      function startGame() { currentModeKey = currentModeKey || 'B'; applyModeKey(currentModeKey); level = 1; score = 0; totalKills = 0; totalResources = 0; totalScoreBonus = 0; menu.classList.remove('open'); startNextLevel(); }
       function startNextLevel() { clearTimeout(summaryTimeout); summary.classList.remove('open'); currentShipColor = shipColors[level % shipColors.length]; resetForLevel(); regenSky(); gameState = 'playing'; }
       function showLevelSummary() {
-        totalKills += levelKills; totalResources += levelResources; var scoreBonus = levelKills * 15 + levelResources * 25; score += scoreBonus; gameState = 'summary'; summaryTitle.textContent = 'Level ' + level + ' Complete!'; summaryValueKills.textContent = levelKills; summaryValueResources.textContent = levelResources; summaryValueScore.textContent = scoreBonus; summaryNextLevel.textContent = 'Preparing for Level ' + (level + 1) + '...';
-        var maxStat = Math.max(1, levelKills, levelResources, scoreBonus);
+        var scoreBonus = levelKills * 15 + levelResources * 25; 
+        score += scoreBonus; 
+        totalKills += levelKills; 
+        totalResources += levelResources;
+        totalScoreBonus += scoreBonus;
+        gameState = 'summary'; 
+        
+        summaryTitle.textContent = 'Level ' + level + ' Complete!'; 
+        summaryNextLevel.textContent = 'Preparing for Level ' + (level + 1) + '...';
+        
+        // Update level stats
+        summaryValueKills.textContent = levelKills; 
+        summaryValueResources.textContent = levelResources; 
+        summaryValueScore.textContent = scoreBonus; 
+        
+        // Update cumulative stats
+        summaryValueKillsTotal.textContent = totalKills;
+        summaryValueResourcesTotal.textContent = totalResources;
+        summaryValueScoreTotal.textContent = totalScoreBonus;
+
+        var maxStatLevel = Math.max(1, levelKills, levelResources, scoreBonus);
+        var maxStatTotal = Math.max(1, totalKills, totalResources, totalScoreBonus);
+
         setTimeout(function () {
-          summaryBarKills.style.height = (levelKills / maxStat * 100) + '%';
-          summaryBarResources.style.height = (levelResources / maxStat * 100) + '%';
-          summaryBarScore.style.height = (scoreBonus / maxStat * 100) + '%';
+          // Animate level bars
+          summaryBarKills.style.height = (levelKills / maxStatLevel * 100) + '%';
+          summaryBarResources.style.height = (levelResources / maxStatLevel * 100) + '%';
+          summaryBarScore.style.height = (scoreBonus / maxStatLevel * 100) + '%';
+          // Animate cumulative bars
+          summaryBarKillsTotal.style.height = (totalKills / maxStatTotal * 100) + '%';
+          summaryBarResourcesTotal.style.height = (totalResources / maxStatTotal * 100) + '%';
+          summaryBarScoreTotal.style.height = (totalScoreBonus / maxStatTotal * 100) + '%';
         }, 100);
-        summary.classList.add('open'); level++; summaryTimeout = setTimeout(startNextLevel, 4000);
+        summary.classList.add('open'); 
+        level++; 
+        summaryTimeout = setTimeout(startNextLevel, 5000);
       }
       menuBtn.addEventListener('click', function () { menu.classList.add('open'); gameState = 'menu'; });
       startBtn.addEventListener('click', startGame);
@@ -550,7 +644,28 @@
       pad.addEventListener('pointerup', endDrag); pad.addEventListener('pointercancel', endDrag); pad.addEventListener('lostpointercapture', endDrag);
       warpBtn.addEventListener('click', function () { if (gameState === 'playing') ship.warp = 1; });
       beamBtn.addEventListener('click', function () { if (beam.auto) { beam.auto = false; } else { beam.active = !beam.active; } beamBtn.textContent = '🧲 Beam: ' + (beam.auto ? 'Auto' : (beam.active ? 'On' : 'Manual')); updateHUD(); });
-      sonicBtn.addEventListener('click', function () { if (gameState === 'playing' && sonicBomb.cd <= 0 && (totalResources + levelResources) >= CFG.SONIC_BOMB_COST) { totalResources -= CFG.SONIC_BOMB_COST; if (totalResources < 0) { levelResources += totalResources; totalResources = 0; } sonicBomb.cd = CFG.SONIC_BOMB_COOLDOWN; enemies.forEach(function (e) { effects.push({ x: e.x, y: e.y, t: 260, r: 36 }); }); enemies.length = 0; effects.push({ x: ship.x, y: ship.y, t: 800, r: W, sonic: true }); } });
+      
+      // ====== Sonic Bomb ======
+      function deploySonicBomb() {
+        if (gameState !== 'playing' || sonicBomb.cd > 0 || (totalResources + levelResources) < CFG.SONIC_BOMB_COST) {
+            return false;
+        }
+        var cost = CFG.SONIC_BOMB_COST;
+        if (levelResources >= cost) {
+            levelResources -= cost;
+        } else {
+            cost -= levelResources;
+            levelResources = 0;
+            totalResources -= cost;
+        }
+        sonicBomb.cd = CFG.SONIC_BOMB_COOLDOWN;
+        enemies.forEach(function (e) { effects.push({ x: e.x, y: e.y, t: 260, r: 36 }); });
+        enemies.length = 0;
+        effects.push({ x: ship.x, y: ship.y, t: 800, r: W, sonic: true });
+        updateHUD();
+        return true;
+      }
+      sonicBtn.addEventListener('click', deploySonicBomb);
 
       // ====== Spawners ======
       function spawnRing() { var r = rand(CFG.RING_RADIUS[0], CFG.RING_RADIUS[1]); var key = Object.keys(PRE_RINGS).reduce(function (prev, curr) { return (Math.abs(curr - r) < Math.abs(prev - r) ? curr : prev); }); rings.push({ x: clamp(ship.x + rand(-W * 0.35, W * 0.35), W * 0.08, W * 0.92), y: -r - 20, r: parseInt(key), tex: PRE_RINGS[key] }); }
@@ -566,13 +681,22 @@
       // ====== Objective selection ======
       function validRing(r) { return r && (rings.indexOf(r) !== -1); }
       function chooseObjective() {
-        if (objective && validRing(objective.ref) && objective.ref.y > ship.y - objective.ref.r) { return; }
+        // AI FIX 1: If current objective is behind the ship, drop it.
+        if (objective && validRing(objective.ref) && objective.ref.y > ship.y) {
+            objective = null;
+        }
+        
+        // If we still have a valid objective that's ahead, keep it.
+        if (objective && validRing(objective.ref)) {
+            return;
+        }
+
         var bestR = null, bestDy = 1e9, i;
         for (i = 0; i < rings.length; i++) {
           var r = rings[i];
-          // UPDATED: Target rings between 40% and 80% of screen height
-          if (r.y < H * 0.8 && r.y > H * 0.4) {
-            var dy = Math.abs(r.y - (ship.y - 80));
+          // AI FIX 2: Only target rings that are ahead of the ship and on-screen.
+          if (r.y < ship.y - r.r && r.y > 0) {
+            var dy = Math.abs(r.y - ship.y);
             if (dy < bestDy) { bestDy = dy; bestR = r; }
           }
         }
@@ -597,23 +721,36 @@
         }
 
         var dtSec = dt / 1000;
-        var tts = t / 1000; // BUGFIX: Define tts for animations
+        var tts = t / 1000;
         sonicBomb.cd = Math.max(0, sonicBomb.cd - dt);
 
         if (t >= nextRingAt) { spawnRing(); nextRingAt = t + rand(CFG.RING_INTERVAL[0], CFG.RING_INTERVAL[1]) * 1000; }
         if (R() < CFG.ENEMY_WAVE_CHANCE * dtSec) { spawnEnemyWave(); }
         if (R() < CFG.RES_SPAWN_CHANCE * dtSec) { spawnResource(); }
 
+        // NEW: Auto-deploy sonic bomb
+        if (enemies.length > CFG.AUTO_BOMB_ENEMY_COUNT) {
+            var visibleEnemies = 0;
+            for(var i=0; i < enemies.length; i++) {
+                if (enemies[i].y > 0) visibleEnemies++;
+            }
+            if (visibleEnemies > CFG.AUTO_BOMB_ENEMY_COUNT) {
+                deploySonicBomb();
+            }
+        }
+
         chooseObjective();
         var desiredX = objective ? objective.ref.x : ship.x;
-        // UPDATED: AI respects new ship Y constraints
-        var desiredY = objective ? clamp(objective.ref.y + 40, H * 0.7, H * 0.8) : H * 0.75;
+        // AI FIX 3: More aggressive vertical targeting to prevent slowdown.
+        var desiredY = objective ? objective.ref.y : ship.y;
+        
         var far = objective ? (Math.hypot(desiredX - ship.x, desiredY - ship.y) > CFG.CATCHUP_DIST) : false; var boost = far ? CFG.CATCHUP_BOOST : 1;
-        var aiVX = (desiredX - ship.x) * CFG.SHIP_ACC_X * boost; var aiVY = (desiredY - ship.y) * CFG.SHIP_ACC_Y * boost;
+        var aiVX = (desiredX - ship.x) * CFG.SHIP_ACC_X * boost; 
+        var aiVY = (desiredY - ship.y) * CFG.SHIP_ACC_Y * boost;
+
         var stickDX = clamp(aiVX / CFG.SHIP_MAX_VX, -1, 1) + input.x; var stickDY = clamp(aiVY / CFG.SHIP_MAX_VY, -1, 1) + input.y;
         setStick(clamp(stickDX, -1, 1) * PAD_R, clamp(stickDY, -1, 1) * PAD_R);
         var nudgeX = input.x * 220, nudgeY = input.y * 180; ship.vx += (aiVX + nudgeX) * dtSec; ship.vy += (aiVY + nudgeY) * dtSec; ship.vx = clamp(ship.vx, -CFG.SHIP_MAX_VX * boost, CFG.SHIP_MAX_VX * boost); ship.vy = clamp(ship.vy, -CFG.SHIP_MAX_VY * boost, CFG.SHIP_MAX_VY * boost); ship.vx *= CFG.SHIP_DAMP; ship.vy *= CFG.SHIP_DAMP; ship.x += ship.vx * dtSec; ship.y += ship.vy * dtSec;
-        // UPDATED: Ship Y position is constrained
         ship.x = clamp(ship.x, W * 0.08, W * 0.92); ship.y = clamp(ship.y, H * 0.7, H * 0.8);
         ship.rot = lerp(ship.rot, clamp(ship.vx, -260, 260) / 1000, 0.2);
         var scroll = (BASE.SPEED + (ship.warp ? 220 : 0)) * dtSec; ship.warp = 0;
@@ -680,10 +817,21 @@
         drawShip(ship.x, ship.y, ship.rot, 1, currentShipColor);
 
         // HUD Update
-        var res = totalResources + levelResources; var cd = sonicBomb.cd / 1000;
+        var res = totalResources + levelResources; 
+        var cd = sonicBomb.cd;
+        var cdPercent = cd / CFG.SONIC_BOMB_COOLDOWN;
         sonicBtn.disabled = res < CFG.SONIC_BOMB_COST || cd > 0;
-        sonicBtn.textContent = cd > 0 ? '💥 Recharging (' + cd.toFixed(1) + 's)' : '💥 Sonic Bomb (' + CFG.SONIC_BOMB_COST + ')';
-        updateHUD(); frames++; accFps += dt; if (accFps > 250) { uiFPS.textContent = String(Math.round(1000 / (accFps / frames))); accFps = 0; frames = 0; }
+        sonicFill.style.width = (1 - cdPercent) * 100 + '%';
+        sonicText.textContent = cd > 0 ? '💥 Recharging (' + (cd / 1000).toFixed(1) + 's)' : '💥 Sonic Bomb (' + CFG.SONIC_BOMB_COST + ')';
+        
+        updateHUD(); 
+        frames++; 
+        accFps += dt; 
+        if (accFps > 250) { 
+            uiFPS.textContent = String(Math.round(1000 / (accFps / frames))); 
+            accFps = 0; 
+            frames = 0; 
+        }
       }
 
       // First paint & show menu
