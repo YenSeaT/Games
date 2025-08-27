@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Robot v1</title>
+  <title>Robot v1.6 — Clean Build (Reviewed)</title>
   <style>
     :root{
       --shell:#edf3f9; --line:#4f5b76; --face:#0f1b2e; --eye:#72f1d5; --accent:#28d9c9; --glow:.6;
@@ -17,7 +17,7 @@
     /* Fullscreen stage */
     .stage{position:relative;width:100vw;height:100vh;overflow:hidden}
     .bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 60% 30%, #1b2540 0%, #0f172a 40%, #0b1220 100%)}
-    .stars{position:absolute;inset:0;background-image:radial-gradient(#ffffff40 1px, transparent 1px);background-size:3px 3px;opacity:.25;mix-blend-mode:screen}
+    .stars{position:absolute;inset:0;background-image:radial-gradient(#ffffff30 1px, transparent 1px);background-size:3px 3px;opacity:.22;mix-blend-mode:screen}
 
     /* Robot container is draggable */
     .robot-wrap{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);touch-action:none;cursor:grab}
@@ -56,6 +56,9 @@
 
     .eyes{display:flex;gap:38px;align-items:center;justify-content:center;margin-bottom:12px}
     .eye{width:35px;height:35px;border-radius:50%;background:var(--eye);box-shadow:0 0 calc(12px*var(--glow)) var(--eye);position:relative;overflow:hidden;transform-origin:center}
+    /* Blink */
+    @keyframes blinkOnce{0%{transform:scaleY(1)}45%{transform:scaleY(.15)}55%{transform:scaleY(.15)}100%{transform:scaleY(1)}}
+    .blink{animation:blinkOnce 160ms linear}
     .pupil{position:absolute;left:50%;top:50%;width:14px;height:14px;background:#0b1626;border-radius:50%;transform:translate(-50%,-50%)}
     .eye .highlight{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;left:28%;top:28%;opacity:.9}
 
@@ -72,10 +75,20 @@
 
     .wing{fill:var(--shell);stroke:var(--line);stroke-width:3;stroke-linejoin:round}
 
+    /* Battery charge animation */
+    #batteryFill{stroke-linecap:round}
+    .charge #batteryFill{stroke-dasharray:240;stroke-dashoffset:240;animation:charge 2.2s ease-in-out forwards;filter:drop-shadow(0 0 6px var(--eye))}
+    @keyframes charge{to{stroke-dashoffset:0}}
+
     /* Controls bar */
     .controls{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
     .btn{appearance:none;border:1px solid var(--line);background:#111827;color:#e5e7eb;padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:active{transform:translateY(1px)}
+
+    @media (prefers-reduced-motion: reduce){
+      .robot{animation:none}
+      .nod .head, .tilt .head, .wiggle .ear.left, .wiggle .ear.right{animation:none}
+    }
   </style>
 </head>
 <body>
@@ -83,7 +96,7 @@
     <div class="bg"></div>
     <div class="stars"></div>
 
-    <div class="robot-wrap" id="robotWrap">
+    <div class="robot-wrap" id="robotWrap" aria-label="Draggable robot">
       <div class="robot" id="robot">
         <div class="head" id="head">
           <div class="antenna"></div>
@@ -101,15 +114,16 @@
         <div class="neck"></div>
 
         <div class="torso-wrap">
-          <svg id="torsoSVG" viewBox="0 0 260 270" xmlns="http://www.w3.org/2000/svg">
+          <svg id="torsoSVG" viewBox="0 0 260 270" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#ffffff" stop-opacity=".45"/>
                 <stop offset="100%" stop-color="#000000" stop-opacity=".06"/>
               </linearGradient>
+              <!-- Battery gradient definition. This will be updated dynamically by the JS -->
               <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#0ad9c9"/>
-                <stop offset="100%" stop-color="#66e5c4"/>
+                <stop id="batteryGradStop1" offset="0%" stop-color="#0ad9c9"/>
+                <stop id="batteryGradStop2" offset="100%" stop-color="#66e5c4"/>
               </linearGradient>
               <path id="torsoPath" d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z" />
               <clipPath id="clipTorso"><use href="#torsoPath"/></clipPath>
@@ -118,8 +132,8 @@
             <use href="#torsoPath" fill="var(--shell)" stroke="var(--line)" stroke-width="3"/>
 
             <!-- Group arms for transform-based anims -->
-            <g id="armL"><path id="wingLeft" class="wing"/></g>
-            <g id="armR"><path id="wingRight" class="wing"/></g>
+            <g id="leftArm"><path id="leftWing" class="wing"/></g>
+            <g id="rightArm"><path id="rightWing" class="wing"/></g>
 
             <g clip-path="url(#clipTorso)">
               <rect x="0" y="0" width="260" height="270" fill="url(#panelGrad)" opacity=".55"/>
@@ -135,7 +149,7 @@
       </div>
     </div>
 
-    <div class="controls">
+    <div class="controls" role="toolbar" aria-label="Robot controls">
       <button class="btn" id="demo">Demo</button>
       <button class="btn" id="speak">Speak</button>
       <button class="btn" id="nod">Nod</button>
@@ -144,6 +158,7 @@
       <button class="btn" id="hover">Hover On/Off</button>
       <button class="btn" id="charge">Charge Bar</button>
       <button class="btn" id="theme">Theme</button>
+      <button class="btn" id="resetAll">Reset All</button>
       <!-- Arm controls -->
       <button class="btn" id="armWaveL">Wave L</button>
       <button class="btn" id="armWaveR">Wave R</button>
@@ -161,21 +176,22 @@
   </div>
 
   <script>
-    // ====== Eyes blink + glance ======
+    // ---------- Utils ----------
+    const wait = (ms)=> new Promise(r=>setTimeout(r,ms));
+
+    // ---------- Eyes ----------
     const eyes=[document.getElementById('eyeL'), document.getElementById('eyeR')];
     function doBlink(){ eyes.forEach(e=>{ e.classList.add('blink'); setTimeout(()=>e.classList.remove('blink'), 180); }); }
     (function blinkLoop(){ const t=1200+Math.random()*1800; setTimeout(()=>{ doBlink(); blinkLoop(); }, t); })();
     function glance(dx,dy){ document.querySelectorAll('.pupil').forEach(p=>{ p.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }); }
 
-    // ====== Drag to move the robot ======
+    // ---------- Drag to move the robot ----------
     const wrap = document.getElementById('robotWrap');
     let dragging=false, startX=0, startY=0, baseX=0, baseY=0;
     function setWrap(x,y){ wrap.style.left = x+"px"; wrap.style.top = y+"px"; wrap.style.transform = "translate(-50%,-50%)"; }
-    // center initially
     const stage = document.getElementById('stage');
     setWrap(stage.clientWidth/2, stage.clientHeight*0.55);
     window.addEventListener('resize', ()=> setWrap(stage.clientWidth/2, stage.clientHeight*0.55));
-
     wrap.addEventListener('pointerdown', (e)=>{
       if(e.target.closest('.controls')) return; // ignore when clicking buttons
       dragging=true; wrap.classList.add('dragging'); wrap.setPointerCapture(e.pointerId);
@@ -185,10 +201,11 @@
     wrap.addEventListener('pointermove', (e)=>{
       if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; setWrap(baseX+dx, baseY+dy);
     });
-    wrap.addEventListener('pointerup', (e)=>{ dragging=false; wrap.classList.remove('dragging'); });
-    wrap.addEventListener('pointercancel', ()=>{ dragging=false; wrap.classList.remove('dragging'); });
+    function stopDrag(){ dragging=false; wrap.classList.remove('dragging'); }
+    wrap.addEventListener('pointerup', stopDrag);
+    wrap.addEventListener('pointercancel', stopDrag);
 
-    // ====== The usual toggles ======
+    // ---------- General toggles ----------
     const robot=document.getElementById('robot');
     document.getElementById('speak').addEventListener('click',()=>robot.classList.toggle('speaking'));
     document.getElementById('nod').addEventListener('click',()=>robot.classList.toggle('nod'));
@@ -199,14 +216,34 @@
     const torso=document.querySelector('.torso-wrap');
     document.getElementById('charge').addEventListener('click',()=>{ torso.classList.remove('charge'); void torso.offsetWidth; torso.classList.add('charge'); });
 
+    // The battery gradient stops are now given IDs to be easily updated by the script.
+    const batteryGradStop1 = document.getElementById('batteryGradStop1');
+    const batteryGradStop2 = document.getElementById('batteryGradStop2');
+
+    // Themes now include a secondary color for the gradient.
     const themes=[
-      {shell:'#edf3f9', line:'#4f5b76', face:'#0f1b2e', eye:'#72f1d5', accent:'#28d9c9'},
-      {shell:'#fff3ea', line:'#7a4b3d', face:'#2a1a20', eye:'#ffd166', accent:'#ef476f'},
-      {shell:'#ecfff6', line:'#437c6b', face:'#0e2220', eye:'#8cf8c7', accent:'#22c55e'},
-      {shell:'#f4f6f8', line:'#2f3747', face:'#0e1116', eye:'#a5b4fc', accent:'#60a5fa'}
+      {shell:'#edf3f9', line:'#4f5b76', face:'#0f1b2e', eye:'#72f1d5', accent:'#28d9c9', accentLight:'#66e5c4'},
+      {shell:'#fff3ea', line:'#7a4b3d', face:'#2a1a20', eye:'#ffd166', accent:'#ef476f', accentLight:'#f2829c'},
+      {shell:'#ecfff6', line:'#437c6b', face:'#0e2220', eye:'#8cf8c7', accent:'#22c55e', accentLight:'#74f686'},
+      {shell:'#f4f6f8', line:'#2f3747', face:'#0e1116', eye:'#a5b4fc', accent:'#60a5fa', accentLight:'#8eacf7'}
     ];
     let themeIdx=0;
-    function applyTheme(t){const r=document.documentElement.style; r.setProperty('--shell', t.shell); r.setProperty('--line', t.line); r.setProperty('--face', t.face); r.setProperty('--eye', t.eye); r.setProperty('--accent', t.accent);} 
+    
+    // The applyTheme function now also updates the battery bar gradient stops.
+    function applyTheme(t){
+      const r=document.documentElement.style; 
+      r.setProperty('--shell', t.shell);
+      r.setProperty('--line', t.line);
+      r.setProperty('--face', t.face);
+      r.setProperty('--eye', t.eye);
+      r.setProperty('--accent', t.accent);
+      // Update the battery gradient colors based on the theme's accent colors
+      batteryGradStop1.setAttribute('stop-color', t.accent);
+      batteryGradStop2.setAttribute('stop-color', t.accentLight);
+    } 
+    // Apply the initial theme on load
+    applyTheme(themes[themeIdx]);
+
     document.getElementById('theme').addEventListener('click',()=>{ themeIdx=(themeIdx+1)%themes.length; applyTheme(themes[themeIdx]); });
 
     document.getElementById('demo').addEventListener('click', async ()=>{
@@ -218,110 +255,93 @@
       robot.classList.remove('speaking','wiggle'); stopWave('both');
     });
 
-    // ====== ARMS (geometry) ======
-    const gL = document.getElementById('armL');
-    const gR = document.getElementById('armR');
-    const L = document.getElementById('wingLeft');
-    const R = document.getElementById('wingRight');
+    document.getElementById('resetAll').addEventListener('click',()=>{
+      ['speaking','wiggle','nod','tilt','nohover'].forEach(c=> robot.classList.remove(c));
+      torso.classList.remove('charge');
+      stopWave('both'); stopFloat(); drawArms(); glance(0,0); doBlink();
+    });
 
-    function wingAirfoilLeft(ax, ay, len, bulge, tip, innerCurve){
+    // ---------- Arms (geometry) ----------
+    const leftArm = document.getElementById('leftArm');
+    const rightArm = document.getElementById('rightArm');
+    const leftWing = document.getElementById('leftWing');
+    const rightWing = document.getElementById('rightWing');
+
+    // Defines the SVG path data for the left arm.
+    function wingAirfoilLeftPath(ax, ay, len, bulge, tip, innerCurve){
       const topY = ay; const botY = ay + len; const midY = (topY + botY)/2; const r = tip/2;
       return [`M ${ax} ${topY}`,`Q ${ax+innerCurve} ${midY}, ${ax} ${botY}`,`Q ${ax - bulge/2} ${botY + r}, ${ax} ${botY + tip}`,`Q ${ax - bulge} ${midY}, ${ax} ${topY}`,'Z'].join(' ');
     }
-    function wingAirfoilRight(ax, ay, len, bulge, tip, innerCurve){
+    // Defines the SVG path data for the right arm, which is a mirror of the left.
+    function wingAirfoilRightPath(ax, ay, len, bulge, tip, innerCurve){
       const topY = ay; const botY = ay + len; const midY = (topY + botY)/2; const r = tip/2;
       return [`M ${ax} ${topY}`,`Q ${ax-innerCurve} ${midY}, ${ax} ${botY}`,`Q ${ax + bulge/2} ${botY + r}, ${ax} ${botY + tip}`,`Q ${ax + bulge} ${midY}, ${ax} ${topY}`,'Z'].join(' ');
     }
 
-    // Final locked sizing/position
-    const size = { len:134, bulge:53, tip:22, innerCurve:6 };
-    const align = { anchorY:75, inset:-9 };
+    const size = { len:134, bulge:53, tip:22, innerCurve:6 }; // locked
+    const align = { anchorY:75, inset:-9 }; // locked
 
     function drawArms(){
       const {len, bulge, tip, innerCurve} = size; const {anchorY, inset} = align;
       const axL = 40 + inset; const axR = 220 - inset;
-      L.setAttribute('d', wingAirfoilLeft(axL, anchorY, len, bulge, tip, innerCurve));
-      R.setAttribute('d', wingAirfoilRight(axR, anchorY, len, bulge, tip, innerCurve));
-      gL.setAttribute('transform', `rotate(0 ${axL} ${anchorY})`);
-      gR.setAttribute('transform', `rotate(0 ${axR} ${anchorY})`);
+      leftWing.setAttribute('d', wingAirfoilLeftPath(axL, anchorY, len, bulge, tip, innerCurve));
+      rightWing.setAttribute('d', wingAirfoilRightPath(axR, anchorY, len, bulge, tip, innerCurve));
+      leftArm.setAttribute('transform', `rotate(0 ${axL} ${anchorY})`);
+      rightArm.setAttribute('transform', `rotate(0 ${axR} ${anchorY})`);
     }
     drawArms();
 
-    // ====== Arm animations ======
-    let waveTimerL=null, waveTimerR=null, floatTimer=null; 
+    // ---------- Arm animations (single rAF loop) ----------
+    let rafId=null;
+    const waveState={left:false,right:false,start:0,amp:6,period:1200};
+    const flareState={active:false,base:0,peak:0,start:0,dur:600};
+    const floatState={active:false,base:align.anchorY,amp:4,period:1800,start:0};
+
+    function animLoop(ts){
+      if(!waveState.start) waveState.start=ts;
+      // compute angles
+      const tw=(ts-waveState.start)%waveState.period;
+      const ang=Math.sin(tw/waveState.period*2*Math.PI)*waveState.amp;
+      const {inset}=align; let {anchorY}=align; const axL=40+inset, axR=220-inset;
+      // float
+      if(floatState.active){ if(!floatState.start) floatState.start=ts; const tf=(ts-floatState.start)%floatState.period; anchorY = floatState.base + Math.sin(tf/floatState.period*2*Math.PI)*floatState.amp; }
+      // flare
+      if(flareState.active){ if(!flareState.start) flareState.start=ts; const p=Math.min(1,(ts-flareState.start)/flareState.dur); const eased=Math.sin(p*Math.PI); size.bulge = flareState.base + eased*(flareState.peak-flareState.base); if(p>=1){ size.bulge=flareState.base; flareState.active=false; } }
+      // draw with updated parameters
+      const prevY=align.anchorY; align.anchorY=anchorY; drawArms(); align.anchorY=prevY; // keep config stable
+      // apply rotations
+      if(waveState.left) leftArm.setAttribute('transform', `rotate(${ang} ${axL} ${anchorY})`); else leftArm.setAttribute('transform', `rotate(0 ${axL} ${anchorY})`);
+      if(waveState.right) rightArm.setAttribute('transform', `rotate(${-ang} ${axR} ${anchorY})`); else rightArm.setAttribute('transform', `rotate(0 ${axR} ${anchorY})`);
+      // keep looping if anything active
+      if(waveState.left||waveState.right||floatState.active||flareState.active){ rafId=requestAnimationFrame(animLoop); } else { rafId=null; }
+    }
 
     function startWave(which='both'){
-      const speed=18, amp=6, period=1200;
-      function drive(side){
-        const start=performance.now();
-        const loop=()=>{
-          const t=(performance.now()-start)%period;
-          const angle=Math.sin(t/period*2*Math.PI)*amp;
-          const {anchorY, inset}=align; const axL=40+inset, axR=220-inset;
-          if(side==='L' || side==='both') gL.setAttribute('transform', `rotate(${angle} ${axL} ${anchorY})`);
-          if(side==='R' || side==='both') gR.setAttribute('transform', `rotate(${ -angle} ${axR} ${anchorY})`);
-        };
-        return setInterval(loop, speed);
-      }
-      if(which==='L' || which==='both') waveTimerL = drive('L');
-      if(which==='R' || which==='both') waveTimerR = drive('R');
+      if(which==='left'||which==='both') waveState.left=true; if(which==='right'||which==='both') waveState.right=true;
+      if(!rafId) rafId=requestAnimationFrame(animLoop);
     }
     function stopWave(which='both'){
-      if((which==='L'||which==='both') && waveTimerL){clearInterval(waveTimerL); waveTimerL=null;}
-      if((which==='R'||which==='both') && waveTimerR){clearInterval(waveTimerR); waveTimerR=null;}
-      drawArms();
+      if(which==='left'||which==='both') waveState.left=false; if(which==='right'||which==='both') waveState.right=false;
+      if(!waveState.left && !waveState.right && !floatState.active && !flareState.active){ cancelAnimationFrame(rafId); rafId=null; drawArms(); }
     }
+    function flareArms(){ if(flareState.active) return; flareState.active=true; flareState.base=size.bulge; flareState.peak=size.bulge+10; flareState.start=0; if(!rafId) rafId=requestAnimationFrame(animLoop); }
+    function floatArms(){ if(floatState.active) return; floatState.active=true; floatState.base=align.anchorY; floatState.start=0; if(!rafId) rafId=requestAnimationFrame(animLoop); }
+    function stopFloat(){ floatState.active=false; if(!waveState.left && !waveState.right && !flareState.active){ cancelAnimationFrame(rafId); rafId=null; drawArms(); } }
 
-    function flareArms(){
-      const base=size.bulge, peak=base+10, dur=600, steps=24; let i=0;
-      const timer=setInterval(()=>{ const p=i/steps; size.bulge= base + Math.sin(p*Math.PI)*(peak-base); drawArms(); if(++i>steps){ clearInterval(timer); size.bulge=base; drawArms(); } }, dur/steps);
-    }
-
-    function floatArms(){
-      if(floatTimer) return; const base=align.anchorY, amp=4, period=1800, speed=18, start=performance.now();
-      floatTimer=setInterval(()=>{ const t=(performance.now()-start)%period; align.anchorY = base + Math.sin(t/period*2*Math.PI)*amp; drawArms(); }, speed);
-    }
-    function stopFloat(){ if(floatTimer){ clearInterval(floatTimer); floatTimer=null; } }
-
-    document.getElementById('armWaveL').addEventListener('click',()=>{ if(waveTimerL){stopWave('L');} else {startWave('L');} });
-    document.getElementById('armWaveR').addEventListener('click',()=>{ if(waveTimerR){stopWave('R');} else {startWave('R');} });
-    document.getElementById('armWaveBoth').addEventListener('click',()=>{ if(waveTimerL||waveTimerR){stopWave('both');} else {startWave('both');} });
+    // Buttons -> arm anims
+    document.getElementById('armWaveL').addEventListener('click',()=>{ waveState.left ? stopWave('left') : startWave('left'); });
+    document.getElementById('armWaveR').addEventListener('click',()=>{ waveState.right ? stopWave('right') : startWave('right'); });
+    document.getElementById('armWaveBoth').addEventListener('click',()=>{ (waveState.left||waveState.right) ? stopWave('both') : startWave('both'); });
     document.getElementById('armFlare').addEventListener('click', flareArms);
-    document.getElementById('armFloat').addEventListener('click',()=>{ if(floatTimer){ stopFloat(); } else { floatArms(); } });
+    document.getElementById('armFloat').addEventListener('click',()=>{ floatState.active ? stopFloat() : floatArms(); });
     document.getElementById('armReset').addEventListener('click',()=>{ stopWave('both'); stopFloat(); drawArms(); });
 
-    // ====== Storytelling Macros ======
-    const wait = (ms)=> new Promise(r=>setTimeout(r,ms));
-
-    async function storyGreet(){
-      robot.classList.add('speaking'); startWave('L'); glance(-4,0); await wait(900);
-      glance(4,0); await wait(900); doBlink(); stopWave('L'); robot.classList.remove('speaking');
-    }
-
-    async function storyShy(){
-      robot.classList.add('tilt'); startWave('R'); glance(-3,2); await wait(600); doBlink(); await wait(600);
-      stopWave('R'); robot.classList.remove('tilt');
-    }
-
-    async function storyPresent(){
-      // arms flare and open slightly as if presenting something
-      const {anchorY,inset}=align; const axL=40+inset, axR=220-inset;
-      gL.setAttribute('transform', `rotate(-8 ${axL} ${anchorY})`);
-      gR.setAttribute('transform', `rotate(8 ${axR} ${anchorY})`);
-      flareArms(); glance(0,-2); await wait(1200);
-      drawArms();
-    }
-
-    async function storyThink(){
-      // head nodding + small arm float
-      robot.classList.add('nod'); floatArms(); glance(0,4); await wait(1800); doBlink();
-      robot.classList.remove('nod'); stopFloat(); drawArms();
-    }
-
-    async function storyCelebrate(){
-      startWave('both'); torso.classList.add('charge'); glance(0,-4); await wait(1200); doBlink(); await wait(900);
-      stopWave('both');
-    }
+    // ---------- Storytelling Macros ----------
+    async function storyGreet(){ robot.classList.add('speaking'); startWave('left'); glance(-4,0); await wait(900); glance(4,0); await wait(900); doBlink(); stopWave('left'); robot.classList.remove('speaking'); }
+    async function storyShy(){ robot.classList.add('tilt'); startWave('right'); glance(-3,2); await wait(600); doBlink(); await wait(600); stopWave('right'); robot.classList.remove('tilt'); }
+    async function storyPresent(){ const {anchorY,inset}=align; const axL=40+inset, axR=220-inset; leftArm.setAttribute('transform', `rotate(-8 ${axL} ${anchorY})`); rightArm.setAttribute('transform', `rotate(8 ${axR} ${anchorY})`); flareArms(); glance(0,-2); await wait(1200); drawArms(); }
+    async function storyThink(){ robot.classList.add('nod'); floatArms(); glance(0,4); await wait(1800); doBlink(); robot.classList.remove('nod'); stopFloat(); drawArms(); }
+    async function storyCelebrate(){ startWave('both'); torso.classList.add('charge'); glance(0,-4); await wait(1200); doBlink(); await wait(900); stopWave('both'); }
 
     document.getElementById('storyGreet').addEventListener('click', storyGreet);
     document.getElementById('storyShy').addEventListener('click', storyShy);
