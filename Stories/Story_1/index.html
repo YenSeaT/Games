@@ -1,526 +1,1427 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Robot v2.0 — Stage A (Modes + Panels + Scaling)</title>
-  <!-- Inter font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --shell:#edf3f9; --line:#4f5b76; --face:#0f1b2e; --eye:#72f1d5; --accent:#28d9c9; --glow:.6;
-      --head-w:240px; --torso-w:260px; --torso-h:270px;
-      --neck-width:74px; --neck-overlap:-5px; --gap-neck-torso:-71px; --neck-height:20px; --neck-radius:80px;
-      --robot-scale:1;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:#0b1220;font-family:Inter,system-ui,sans-serif;color:#dbe3f4;overflow:hidden}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Robot v2.0 — Stage A (Modes + Panels + Scaling, Port/Starboard Arms)
+    </title>
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --shell: #edf3f9;
+        --line: #4f5b76;
+        --face: #0f1b2e;
+        --eye: #72f1d5;
+        --accent: #28d9c9;
+        --glow: 0.6;
+        --head-w: 240px;
+        --torso-w: 260px;
+        --torso-h: 270px;
+        --neck-width: 74px;
+        --neck-overlap: -5px;
+        --gap-neck-torso: -71px;
+        --neck-height: 20px;
+        --neck-radius: 80px;
+        --robot-scale: 1;
+      }
 
-    /* -------------- APP GRID (Stage A) -------------- */
-    .app{display:grid; grid-template-columns:320px 1fr 0px; grid-template-rows:1fr; width:100vw; height:100vh;}
-    .app.debug{grid-template-columns:320px 1fr 0px;}
-    .app.story{grid-template-columns:0px 1fr 0px;}
-    .app.feedback{grid-template-columns:0px 1fr 360px;}
+      * {
+        box-sizing: border-box;
+      }
 
-    /* Mode switcher */
-    .mode-switch{position:fixed; right:12px; top:12px; z-index:9999; display:flex; gap:6px}
-    .btn{appearance:none;border:1px solid var(--line);background:#111827;color:#e5e7eb;padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:active{transform:translateY(1px)}
-    .mode-switch .btn{background:#0f1b2a; border-color:#2c3b60}
-    .mode-switch .btn.active{outline:2px solid var(--eye);}
+      html,
+      body {
+        height: 100%;
+      }
 
-    /* Left & Right Panels */
-    .panel{height:100vh; overflow:auto; background:#0e1628; border-right:1px solid #2a3651;}
-    .panel h3{margin:12px 12px 6px; font-size:14px; color:#99a7c2}
-    .section{padding:8px 12px; border-top:1px dashed #22314c}
-    .section label{display:block; font-size:13px; margin:6px 0 2px; color:#c9d6ee}
-    .section .row{display:flex; gap:8px; align-items:center}
-    .section input[type="range"]{width:100%}
-    .panel-right{height:100vh; overflow:auto; background:#0e1628; border-left:1px solid #2a3651}
+      body {
+        margin: 0;
+        background: #0b1220;
+        font-family: Inter, system-ui, sans-serif;
+        color: #dbe3f4;
+        overflow: hidden;
+      }
 
-    /* Center Stage (your original scene lives here) */
-    .stage{position:relative;width:100%;height:100%;overflow:hidden; user-select:none}
-    .bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 60% 30%, #1b2540 0%, #0f172a 40%, #0b1220 100%)}
-    .stars{position:absolute;inset:0;background-image:radial-gradient(#ffffff30 1px, transparent 1px);background-size:3px 3px;opacity:.22;mix-blend-mode:screen}
+      /* -------------- APP GRID (Stage A) -------------- */
+      .app {
+        display: grid;
+        grid-template-columns: 320px 1fr 0px;
+        grid-template-rows: 1fr;
+        width: 100vw;
+        height: 100vh;
+      }
 
-    /* Robot container is draggable & scalable */
-    .robot-wrap{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%) scale(var(--robot-scale));transform-origin:center;touch-action:none;cursor:grab}
-    .robot-wrap.dragging{cursor:grabbing}
+      .app.debug {
+        grid-template-columns: 320px 1fr 0px;
+      }
 
-    .robot{display:flex;flex-direction:column;align-items:center;gap:0;position:relative}
+      .app.story {
+        grid-template-columns: 0px 1fr 0px;
+      }
 
-    /* Base hover of whole robot */
-    @keyframes hover {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    .robot:not(.nohover){animation:hover 5s ease-in-out infinite}
+      .app.feedback {
+        grid-template-columns: 0px 1fr 360px;
+      }
 
-    .head{width:var(--head-w);height:calc(var(--head-w)*0.79);border-radius:52%/40%;background:var(--shell);border:2.5px solid var(--line);position:relative;display:flex;justify-content:center;align-items:center;transform-origin:50% 100%;z-index:3}
+      /* Mode switcher */
+      .mode-switch {
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 9999;
+        display: flex;
+        gap: 6px;
+      }
 
-    /* Head motions */
-    .nod .head{animation:nod 2.2s ease-in-out infinite}
-    @keyframes nod{0%,100%{transform:rotate(0deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}}
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: #111827;
+        color: #e5e7eb;
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
 
-    @keyframes tiltShort{0%{transform:rotate(0)}30%{transform:rotate(-6deg)}60%{transform:rotate(5deg)}100%{transform:rotate(0)}}
-    .tilt .head{animation:tiltShort 600ms ease-in-out}
+      .btn:active {
+        transform: translateY(1px);
+      }
 
-    .ear{position:absolute;top:36%;width:20px;height:40px;border-radius:10px;background:var(--shell);border:2.5px solid var(--line);transform-origin:50% 10%;z-index:2}
-    .ear.left{left:-22px}.ear.right{right:-22px}
+      .mode-switch .btn {
+        background: #0f1b2a;
+        border-color: #2c3b60;
+      }
 
-    /* Ear wiggle */
-    .wiggle .ear.left{animation:earL 1.6s ease-in-out infinite}
-    .wiggle .ear.right{animation:earR 1.6s ease-in-out infinite}
-    @keyframes earL{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
-    @keyframes earR{0%,100%{transform:rotate(0)}50%{transform:rotate(8deg)}}
+      .mode-switch .btn.active {
+        outline: 2px solid var(--eye);
+      }
 
-    .antenna{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:12px;height:28px;background:var(--line);border-radius:6px;overflow:visible;z-index:2}
-    .antenna::after{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--eye);box-shadow:0 0 10px var(--eye)}
-    @keyframes ping{0%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) scale(1.6);opacity:0}}
-    .antenna::before{content:"";position:absolute;top:-14px;left:50%;width:18px;height:18px;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 0 rgba(114,241,213,.7);animation:ping 1.8s ease-out infinite}
+      /* Left & Right Panels */
+      .panel {
+        height: 100vh;
+        overflow: auto;
+        background: #0e1628;
+        border-right: 1px solid #2a3651;
+      }
 
-    .face{width:87%;height:86%;background:var(--face);border-radius:42%/36%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #5c6986;overflow:hidden;z-index:2}
+      .panel h3 {
+        margin: 12px 12px 6px;
+        font-size: 14px;
+        color: #99a7c2;
+      }
 
-    .eyes{display:flex;gap:38px;align-items:center;justify-content:center;margin-bottom:12px}
-    .eye{width:35px;height:35px;border-radius:50%;background:var(--eye);box-shadow:0 0 calc(12px*var(--glow)) var(--eye);position:relative;overflow:hidden;transform-origin:center}
-    /* Blink */
-    @keyframes blinkOnce{0%{transform:scaleY(1)}45%{transform:scaleY(.15)}55%{transform:scaleY(.15)}100%{transform:scaleY(1)}}
-    .blink{animation:blinkOnce 160ms linear}
-    .pupil{position:absolute;left:50%;top:50%;width:14px;height:14px;background:#0b1626;border-radius:50%;transform:translate(-50%,-50%)}
-    .eye .highlight{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;left:28%;top:28%;opacity:.9}
+      .section {
+        padding: 8px 12px;
+        border-top: 1px dashed #22314c;
+      }
 
-    /* Speaking mouth */
-    .mouth{width:48px;height:18px;border-radius:0 0 40px 40px;background:var(--accent);box-shadow:inset 0 -4px 6px rgba(0,0,0,.25),0 0 calc(8px*var(--glow)) var(--eye)}
-    @keyframes speak{0%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}20%{height:26px;border-bottom-left-radius:28px;border-bottom-right-radius:28px}40%{height:14px;border-bottom-left-radius:36px;border-bottom-right-radius:36px}60%{height:24px;border-bottom-left-radius:20px;border-bottom-right-radius:20px}80%{height:16px;border-bottom-left-radius:34px;border-bottom-right-radius:34px}100%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}}
-    .speaking .mouth{animation:speak 700ms ease-in-out infinite}
+      .section label {
+        display: block;
+        font-size: 13px;
+        margin: 6px 0 2px;
+        color: #c9d6ee;
+      }
 
-    .neck{width:var(--neck-width);height:var(--neck-height);background:var(--shell);border:2.5px solid var(--line);border-top:none;border-radius:0 0 var(--neck-radius) var(--neck-radius);margin-top:var(--neck-overlap);z-index:2;position:relative}
+      .section .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
 
-    .torso-wrap{position:relative;width:var(--torso-w);height:var(--torso-h);margin-top:var(--gap-neck-torso);z-index:1}
-    svg{display:block;width:100%;height:100%}
-    .torso-wrap, .torso-wrap svg{overflow:visible}
+      .section input[type="range"] {
+        width: 100%;
+      }
 
-    .wing{fill:var(--shell);stroke:var(--line);stroke-width:3;stroke-linejoin:round}
+      .panel-right {
+        height: 100vh;
+        overflow: auto;
+        background: #0e1628;
+        border-left: 1px solid #2a3651;
+      }
 
-    /* Battery charge animation */
-    #batteryFill{stroke-linecap:round}
-    .charge #batteryFill{stroke-dasharray:240;stroke-dashoffset:240;animation:charge 2.2s ease-in-out forwards;filter:drop-shadow(0 0 6px var(--eye))}
-    @keyframes charge{to{stroke-dashoffset:0}}
+      /* Center Stage (your original scene lives here) */
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        user-select: none;
+      }
 
-    /* Legacy controls bar (visible only in debug) */
-    .controls{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-    .app.story .controls, .app.story .panel, .app.story .panel-right{display:none}
+      .bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          1200px 700px at 60% 30%,
+          #1b2540 0%,
+          #0f172a 40%,
+          #0b1220 100%
+        );
+      }
 
-    /* Feedback UI */
-    .feedback-form textarea, .feedback-form input[type="text"]{width:100%; background:#0b1220; color:#e5e7eb; border:1px solid #2b3b5f; border-radius:8px; padding:8px}
-    .feedback-form textarea{min-height:120px; resize:vertical}
-    .feedback-tags{display:flex; flex-wrap:wrap; gap:6px}
-    .feedback-tags .tag{padding:4px 8px; border:1px solid #2b3b5f; border-radius:999px; cursor:pointer}
-    .feedback-actions{display:flex; gap:8px; margin-top:8px}
-  </style>
-</head>
-<body>
-  <!-- Mode switcher -->
-  <div class="mode-switch" aria-label="Mode switch">
-    <button class="btn" id="modeDebug">Debug</button>
-    <button class="btn" id="modeStory">Story</button>
-    <button class="btn" id="modeFeedback">Feedback</button>
-  </div>
+      .stars {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(#ffffff30 1px, transparent 1px);
+        background-size: 3px 3px;
+        opacity: 0.22;
+        mix-blend-mode: screen;
+      }
 
-  <!-- APP GRID (Stage A) -->
-  <div class="app debug" id="app">
-    <!-- Left: Debug panel -->
-    <aside class="panel" id="debugPanel" aria-label="Debug controls">
-      <h3>Robot Debug</h3>
-      <div class="section">
-        <strong>Robot Scale</strong>
-        <div class="row">
-          <input type="range" id="scaleRange" min="0.4" max="2" step="0.05" value="1">
-          <span id="scaleVal">1.00x</span>
-        </div>
-      </div>
+      /* Robot container is draggable & scalable */
+      .robot-wrap {
+        position: absolute;
+        left: 50%;
+        top: 55%;
+        transform: translate(-50%, -50%) scale(var(--robot-scale));
+        transform-origin: center;
+        touch-action: none;
+        cursor: grab;
+      }
 
-      <div class="section"><strong>Head & Face</strong>
-        <div class="row"><button class="btn" id="dbgSpeak">Speak</button><button class="btn" id="dbgBlink">Blink</button></div>
-        <div class="row"><button class="btn" id="dbgNod">Nod</button><button class="btn" id="dbgTilt">Tilt</button></div>
-        <div class="row"><button class="btn" id="dbgEars">Wiggle Ears</button></div>
-      </div>
+      .robot-wrap.dragging {
+        cursor: grabbing;
+      }
 
-      <div class="section"><strong>Arms</strong>
-        <div class="row"><button class="btn" id="dbgWaveL">Wave Left</button><button class="btn" id="dbgWaveR">Wave Right</button></div>
-        <div class="row"><button class="btn" id="dbgWaveBoth">Wave Both</button><button class="btn" id="dbgFlare">Flare</button></div>
-        <div class="row"><button class="btn" id="dbgFloat">Float</button><button class="btn" id="dbgArmsReset">Reset</button></div>
-      </div>
+      .robot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        position: relative;
+      }
 
-      <div class="section"><strong>Torso & FX</strong>
-        <div class="row"><button class="btn" id="dbgCharge">Charge</button><button class="btn" id="dbgTheme">Theme</button></div>
-        <div class="row"><button class="btn" id="dbgHover">Hover On/Off</button><button class="btn" id="dbgResetAll">Reset All</button></div>
-      </div>
+      /* Base hover of whole robot */
+      @keyframes hover {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
 
-      <div class="section"><strong>Story Macros</strong>
-        <div class="row" style="flex-wrap:wrap">
-          <button class="btn" id="dbgStoryGreet">Greet</button>
-          <button class="btn" id="dbgStoryShy">Shy</button>
-          <button class="btn" id="dbgStoryPresent">Present</button>
-          <button class="btn" id="dbgStoryThink">Think</button>
-          <button class="btn" id="dbgStoryCelebrate">Celebrate</button>
-        </div>
-      </div>
-    </aside>
+        50% {
+          transform: translateY(-6px);
+        }
+      }
 
-    <!-- Center: Original Scene -->
-    <div class="stage" id="stage">
-      <div class="bg"></div>
-      <div class="stars"></div>
+      .robot:not(.nohover) {
+        animation: hover 5s ease-in-out infinite;
+      }
 
-      <div class="robot-wrap" id="robotWrap" aria-label="Draggable robot">
-        <div class="robot" id="robot">
-          <div class="head" id="head">
-            <div class="antenna"></div>
-            <div class="ear left"></div>
-            <div class="ear right"></div>
-            <div class="face">
-              <div class="eyes">
-                <div class="eye" id="eyeL"><div class="pupil"></div><div class="highlight"></div></div>
-                <div class="eye" id="eyeR"><div class="pupil"></div><div class="highlight"></div></div>
-              </div>
-              <div class="mouth"></div>
-            </div>
-          </div>
+      .head {
+        width: var(--head-w);
+        height: calc(var(--head-w) * 0.79);
+        border-radius: 52%/40%;
+        background: var(--shell);
+        border: 2.5px solid var(--line);
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform-origin: 50% 100%;
+        z-index: 3;
+      }
 
-          <div class="neck"></div>
+      /* Head motions */
+      .nod .head {
+        animation: nod 2.2s ease-in-out infinite;
+      }
 
-          <div class="torso-wrap">
-            <svg id="torsoSVG" viewBox="0 0 260 270" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#ffffff" stop-opacity=".45"/>
-                  <stop offset="100%" stop-color="#000000" stop-opacity=".06"/>
-                </linearGradient>
-                <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop id="batteryGradStop1" offset="0%" stop-color="#0ad9c9"/>
-                  <stop id="batteryGradStop2" offset="100%" stop-color="#66e5c4"/>
-                </linearGradient>
-                <path id="torsoPath" d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z" />
-                <clipPath id="clipTorso"><use href="#torsoPath"/></clipPath>
-              </defs>
+      @keyframes nod {
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
 
-              <use href="#torsoPath" fill="var(--shell)" stroke="var(--line)" stroke-width="3"/>
+        40% {
+          transform: rotate(3deg);
+        }
 
-              <!-- Arms -->
-              <g id="leftArm"><path id="leftWing" class="wing"/></g>
-              <g id="rightArm"><path id="rightWing" class="wing"/></g>
+        60% {
+          transform: rotate(-2deg);
+        }
+      }
 
-              <g clip-path="url(#clipTorso)">
-                <rect x="0" y="0" width="260" height="270" fill="url(#panelGrad)" opacity=".55"/>
-                <path d="M60 130 Q130 116 200 130" stroke="#c9d3e2" stroke-width="8" opacity=".45"/>
-                <path d="M66 164 Q130 158 194 164" stroke="#d7dee9" stroke-width="6" opacity=".5"/>
-                <path d="M74 198 Q130 216 186 198" stroke="#d7dee9" stroke-width="10" opacity=".6"/>
-              </g>
+      @keyframes tiltShort {
+        0% {
+          transform: rotate(0);
+        }
 
-              <path id="batteryTrack" d="M60 110 Q130 100 200 110" fill="none" stroke="rgba(100,110,140,.28)" stroke-width="12" stroke-linecap="round"/>
-              <path id="batteryFill" d="M60 110 Q130 100 200 110" fill="none" stroke="url(#batteryGrad)" stroke-width="12" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
+        30% {
+          transform: rotate(-6deg);
+        }
 
-      <!-- Legacy controls (kept; hidden in Story mode) -->
-      <div class="controls" role="toolbar" aria-label="Robot controls">
-        <button class="btn" id="demo">Demo</button>
-        <button class="btn" id="speak">Speak</button>
-        <button class="btn" id="nod">Nod</button>
-        <button class="btn" id="ears">Wiggle Ears</button>
-        <button class="btn" id="tilt">Head Tilt</button>
-        <button class="btn" id="hover">Hover On/Off</button>
-        <button class="btn" id="charge">Charge Bar</button>
-        <button class="btn" id="theme">Theme</button>
-        <button class="btn" id="resetAll">Reset All</button>
-        <button class="btn" id="armWaveL">Wave L</button>
-        <button class="btn" id="armWaveR">Wave R</button>
-        <button class="btn" id="armWaveBoth">Wave Both</button>
-        <button class="btn" id="armFlare">Flare</button>
-        <button class="btn" id="armFloat">Float</button>
-        <button class="btn" id="armReset">Reset Arms</button>
-        <button class="btn" id="storyGreet">Story: Greet</button>
-        <button class="btn" id="storyShy">Story: Shy</button>
-        <button class="btn" id="storyPresent">Story: Present</button>
-        <button class="btn" id="storyThink">Story: Think</button>
-        <button class="btn" id="storyCelebrate">Story: Celebrate</button>
-      </div>
+        60% {
+          transform: rotate(5deg);
+        }
+
+        100% {
+          transform: rotate(0);
+        }
+      }
+
+      .tilt .head {
+        animation: tiltShort 600ms ease-in-out;
+      }
+
+      .ear {
+        position: absolute;
+        top: 36%;
+        width: 20px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--shell);
+        border: 2.5px solid var(--line);
+        transform-origin: 50% 10%;
+        z-index: 2;
+      }
+
+      .ear.left {
+        left: -22px;
+      }
+
+      .ear.right {
+        right: -22px;
+      }
+
+      /* Ear wiggle */
+      .wiggle .ear.left {
+        animation: earL 1.6s ease-in-out infinite;
+      }
+
+      .wiggle .ear.right {
+        animation: earR 1.6s ease-in-out infinite;
+      }
+
+      @keyframes earL {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+
+        50% {
+          transform: rotate(-8deg);
+        }
+      }
+
+      @keyframes earR {
+        0%,
+        100% {
+          transform: rotate(0);
+        }
+
+        50% {
+          transform: rotate(8deg);
+        }
+      }
+
+      .antenna {
+        position: absolute;
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 12px;
+        height: 28px;
+        background: var(--line);
+        border-radius: 6px;
+        overflow: visible;
+        z-index: 2;
+      }
+
+      .antenna::after {
+        content: "";
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--eye);
+        box-shadow: 0 0 10px var(--eye);
+      }
+
+      @keyframes ping {
+        0% {
+          transform: translateX(-50%) scale(1);
+          opacity: 1;
+        }
+
+        100% {
+          transform: translateX(-50%) scale(1.6);
+          opacity: 0;
+        }
+      }
+
+      .antenna::before {
+        content: "";
+        position: absolute;
+        top: -14px;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(114, 241, 213, 0.7);
+        animation: ping 1.8s ease-out infinite;
+      }
+
+      .face {
+        width: 87%;
+        height: 86%;
+        background: var(--face);
+        border-radius: 42%/36%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #5c6986;
+        overflow: hidden;
+        z-index: 2;
+      }
+
+      .eyes {
+        display: flex;
+        gap: 38px;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      .eye {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: var(--eye);
+        box-shadow: 0 0 calc(12px * var(--glow)) var(--eye);
+        position: relative;
+        overflow: hidden;
+        transform-origin: center;
+      }
+
+      /* Blink */
+      @keyframes blinkOnce {
+        0% {
+          transform: scaleY(1);
+        }
+
+        45% {
+          transform: scaleY(0.15);
+        }
+
+        55% {
+          transform: scaleY(0.15);
+        }
+
+        100% {
+          transform: scaleY(1);
+        }
+      }
+
+      .blink {
+        animation: blinkOnce 160ms linear;
+      }
+
+      .pupil {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        background: #0b1626;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .eye .highlight {
+        content: "";
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #fff;
+        left: 28%;
+        top: 28%;
+        opacity: 0.9;
+      }
+
+      /* Speaking mouth */
+      .mouth {
+        width: 48px;
+        height: 18px;
+        border-radius: 0 0 40px 40px;
+        background: var(--accent);
+        box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.25),
+          0 0 calc(8px * var(--glow)) var(--eye);
+      }
+
+      @keyframes speak {
+        0% {
+          height: 18px;
+          border-bottom-left-radius: 40px;
+          border-bottom-right-radius: 40px;
+        }
+
+        20% {
+          height: 26px;
+          border-bottom-left-radius: 28px;
+          border-bottom-right-radius: 28px;
+        }
+
+        40% {
+          height: 14px;
+          border-bottom-left-radius: 36px;
+          border-bottom-right-radius: 36px;
+        }
+
+        60% {
+          height: 24px;
+          border-bottom-left-radius: 20px;
+          border-bottom-right-radius: 20px;
+        }
+
+        80% {
+          height: 16px;
+          border-bottom-left-radius: 34px;
+          border-bottom-right-radius: 34px;
+        }
+
+        100% {
+          height: 18px;
+          border-bottom-left-radius: 40px;
+          border-bottom-right-radius: 40px;
+        }
+      }
+
+      .speaking .mouth {
+        animation: speak 700ms ease-in-out infinite;
+      }
+
+      .neck {
+        width: var(--neck-width);
+        height: var(--neck-height);
+        background: var(--shell);
+        border: 2.5px solid var(--line);
+        border-top: none;
+        border-radius: 0 0 var(--neck-radius) var(--neck-radius);
+        margin-top: var(--neck-overlap);
+        z-index: 2;
+        position: relative;
+      }
+
+      .torso-wrap {
+        position: relative;
+        width: var(--torso-w);
+        height: var(--torso-h);
+        margin-top: var(--gap-neck-torso);
+        z-index: 1;
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .torso-wrap,
+      .torso-wrap svg {
+        overflow: visible;
+      }
+
+      .wing {
+        fill: var(--shell);
+        stroke: var(--line);
+        stroke-width: 3;
+        stroke-linejoin: round;
+      }
+
+      /* Battery charge animation */
+      #batteryFill {
+        stroke-linecap: round;
+      }
+
+      .charge #batteryFill {
+        stroke-dasharray: 240;
+        stroke-dashoffset: 240;
+        animation: charge 2.2s ease-in-out forwards;
+        filter: drop-shadow(0 0 6px var(--eye));
+      }
+
+      @keyframes charge {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* Legacy controls bar (visible only in debug) */
+      .controls {
+        position: absolute;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .app.story .controls,
+      .app.story .panel,
+      .app.story .panel-right {
+        display: none;
+      }
+
+      /* Feedback UI */
+      .feedback-form textarea,
+      .feedback-form input[type="text"] {
+        width: 100%;
+        background: #0b1220;
+        color: #e5e7eb;
+        border: 1px solid #2b3b5f;
+        border-radius: 8px;
+        padding: 8px;
+      }
+
+      .feedback-form textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      .feedback-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .feedback-tags .tag {
+        padding: 4px 8px;
+        border: 1px solid #2b3b5f;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .feedback-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Mode switcher -->
+    <div class="mode-switch" aria-label="Mode switch">
+      <button class="btn" id="modeDebug">Debug</button>
+      <button class="btn" id="modeStory">Story</button>
+      <button class="btn" id="modeFeedback">Feedback</button>
     </div>
 
-    <!-- Right: Feedback panel -->
-    <aside class="panel-right" id="feedbackPanel" aria-label="Feedback panel">
-      <div class="section">
-        <h3>Give Feedback</h3>
-        <div class="feedback-tags" id="fbTags">
-          <div class="tag" data-t="UI">UI</div>
-          <div class="tag" data-t="Art">Art</div>
-          <div class="tag" data-t="Timing">Timing</div>
-          <div class="tag" data-t="Copy">Copy</div>
-          <div class="tag" data-t="Audio">Audio</div>
-          <div class="tag" data-t="Perf">Perf</div>
+    <!-- APP GRID (Stage A) -->
+    <div class="app debug" id="app">
+      <!-- Left: Debug panel -->
+      <aside class="panel" id="debugPanel" aria-label="Debug controls">
+        <h3>Robot Debug</h3>
+        <div class="section">
+          <strong>Robot Scale</strong>
+          <div class="row">
+            <input
+              type="range"
+              id="scaleRange"
+              min="0.4"
+              max="2"
+              step="0.05"
+              value="1"
+            />
+            <span id="scaleVal">1.00x</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <strong>Head & Face</strong>
+          <div class="row">
+            <button class="btn" id="dbgSpeak">Speak</button
+            ><button class="btn" id="dbgBlink">Blink</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="dbgNod">Nod</button
+            ><button class="btn" id="dbgTilt">Tilt</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="dbgEars">Wiggle Ears</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <strong>Arms</strong>
+          <div class="row">
+            <button class="btn" id="dbgWavePort">Wave Port</button
+            ><button class="btn" id="dbgWaveStar">Wave Starboard</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="dbgWaveBoth">Wave Both</button
+            ><button class="btn" id="dbgFlare">Flare</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="dbgFloat">Float</button
+            ><button class="btn" id="dbgArmsReset">Reset</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <strong>Torso & FX</strong>
+          <div class="row">
+            <button class="btn" id="dbgCharge">Charge</button
+            ><button class="btn" id="dbgTheme">Theme</button>
+          </div>
+          <div class="row">
+            <button class="btn" id="dbgHover">Hover On/Off</button
+            ><button class="btn" id="dbgResetAll">Reset All</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <strong>Story Macros</strong>
+          <div class="row" style="flex-wrap: wrap">
+            <button class="btn" id="dbgStoryGreet">Greet</button>
+            <button class="btn" id="dbgStoryShy">Shy</button>
+            <button class="btn" id="dbgStoryPresent">Present</button>
+            <button class="btn" id="dbgStoryThink">Think</button>
+            <button class="btn" id="dbgStoryCelebrate">Celebrate</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center: Original Scene -->
+      <div class="stage" id="stage">
+        <div class="bg"></div>
+        <div class="stars"></div>
+
+        <div class="robot-wrap" id="robotWrap" aria-label="Draggable robot">
+          <div class="robot" id="robot">
+            <div class="head" id="head">
+              <div class="antenna"></div>
+              <div class="ear left"></div>
+              <div class="ear right"></div>
+              <div class="face">
+                <div class="eyes">
+                  <div class="eye" id="eyeL">
+                    <div class="pupil"></div>
+                    <div class="highlight"></div>
+                  </div>
+                  <div class="eye" id="eyeR">
+                    <div class="pupil"></div>
+                    <div class="highlight"></div>
+                  </div>
+                </div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+
+            <div class="neck"></div>
+
+            <div class="torso-wrap">
+              <svg
+                id="torsoSVG"
+                viewBox="0 0 260 270"
+                preserveAspectRatio="xMidYMid meet"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity=".45" />
+                    <stop
+                      offset="100%"
+                      stop-color="#000000"
+                      stop-opacity=".06"
+                    />
+                  </linearGradient>
+                  <linearGradient
+                    id="batteryGrad"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="0%"
+                  >
+                    <stop
+                      id="batteryGradStop1"
+                      offset="0%"
+                      stop-color="#0ad9c9"
+                    />
+                    <stop
+                      id="batteryGradStop2"
+                      offset="100%"
+                      stop-color="#66e5c4"
+                    />
+                  </linearGradient>
+                  <path
+                    id="torsoPath"
+                    d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z"
+                  />
+                  <clipPath id="clipTorso">
+                    <use href="#torsoPath" />
+                  </clipPath>
+                </defs>
+
+                <use
+                  href="#torsoPath"
+                  fill="var(--shell)"
+                  stroke="var(--line)"
+                  stroke-width="3"
+                />
+
+                <!-- Arms renamed to Port (robot-left) and Starboard (robot-right) -->
+                <g id="armPort">
+                  <path id="wingPort" class="wing" />
+                </g>
+                <g id="armStar">
+                  <path id="wingStar" class="wing" />
+                </g>
+
+                <g clip-path="url(#clipTorso)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="260"
+                    height="270"
+                    fill="url(#panelGrad)"
+                    opacity=".55"
+                  />
+                  <path
+                    d="M60 130 Q130 116 200 130"
+                    stroke="#c9d3e2"
+                    stroke-width="8"
+                    opacity=".45"
+                  />
+                  <path
+                    d="M66 164 Q130 158 194 164"
+                    stroke="#d7dee9"
+                    stroke-width="6"
+                    opacity=".5"
+                  />
+                  <path
+                    d="M74 198 Q130 216 186 198"
+                    stroke="#d7dee9"
+                    stroke-width="10"
+                    opacity=".6"
+                  />
+                </g>
+
+                <path
+                  id="batteryTrack"
+                  d="M60 110 Q130 100 200 110"
+                  fill="none"
+                  stroke="rgba(100,110,140,.28)"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                />
+                <path
+                  id="batteryFill"
+                  d="M60 110 Q130 100 200 110"
+                  fill="none"
+                  stroke="url(#batteryGrad)"
+                  stroke-width="12"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legacy controls (kept; hidden in Story mode) -->
+        <div class="controls" role="toolbar" aria-label="Robot controls">
+          <button class="btn" id="demo">Demo</button>
+          <button class="btn" id="speak">Speak</button>
+          <button class="btn" id="nod">Nod</button>
+          <button class="btn" id="ears">Wiggle Ears</button>
+          <button class="btn" id="tilt">Head Tilt</button>
+          <button class="btn" id="hover">Hover On/Off</button>
+          <button class="btn" id="charge">Charge Bar</button>
+          <button class="btn" id="theme">Theme</button>
+          <button class="btn" id="resetAll">Reset All</button>
+          <button class="btn" id="armWavePort">Wave Port</button>
+          <button class="btn" id="armWaveStar">Wave Star</button>
+          <button class="btn" id="armWaveBoth">Wave Both</button>
+          <button class="btn" id="armFlare">Flare</button>
+          <button class="btn" id="armFloat">Float</button>
+          <button class="btn" id="armReset">Reset Arms</button>
+          <button class="btn" id="storyGreet">Story: Greet</button>
+          <button class="btn" id="storyShy">Story: Shy</button>
+          <button class="btn" id="storyPresent">Story: Present</button>
+          <button class="btn" id="storyThink">Story: Think</button>
+          <button class="btn" id="storyCelebrate">Story: Celebrate</button>
         </div>
       </div>
-      <div class="section feedback-form">
-        <label for="fbTitle">Title</label>
-        <input type="text" id="fbTitle" placeholder="Short summary…">
-        <label for="fbNotes">Details</label>
-        <textarea id="fbNotes" placeholder="What should change? Why? Where in the story?"></textarea>
-        <div class="feedback-actions">
-          <button class="btn" id="fbCopy">Copy JSON</button>
-          <button class="btn" id="fbClear">Clear</button>
+
+      <!-- Right: Feedback panel -->
+      <aside class="panel-right" id="feedbackPanel" aria-label="Feedback panel">
+        <div class="section">
+          <h3>Give Feedback</h3>
+          <div class="feedback-tags" id="fbTags">
+            <div class="tag" data-t="UI">UI</div>
+            <div class="tag" data-t="Art">Art</div>
+            <div class="tag" data-t="Timing">Timing</div>
+            <div class="tag" data-t="Copy">Copy</div>
+            <div class="tag" data-t="Audio">Audio</div>
+            <div class="tag" data-t="Perf">Perf</div>
+          </div>
         </div>
-        <p id="fbStatus" style="font-size:12px;color:#9fb3d7;margin-top:6px"></p>
-      </div>
-    </aside>
-  </div>
+        <div class="section feedback-form">
+          <label for="fbTitle">Title</label>
+          <input type="text" id="fbTitle" placeholder="Short summary…" />
+          <label for="fbNotes">Details</label>
+          <textarea
+            id="fbNotes"
+            placeholder="What should change? Why? Where in the story?"
+          ></textarea>
+          <div class="feedback-actions">
+            <button class="btn" id="fbCopy">Copy JSON</button>
+            <button class="btn" id="fbClear">Clear</button>
+          </div>
+          <p
+            id="fbStatus"
+            style="font-size: 12px; color: #9fb3d7; margin-top: 6px"
+          ></p>
+        </div>
+      </aside>
+    </div>
 
-  <script>
-    // ---------- Utils ----------
-    const wait = (ms)=> new Promise(r=>setTimeout(r,ms));
+    <script>
+      // ---------- Utils ----------
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    // ---------- Eyes ----------
-    const eyes=[document.getElementById('eyeL'), document.getElementById('eyeR')];
-    function doBlink(){ eyes.forEach(e=>{ e.classList.add('blink'); setTimeout(()=>e.classList.remove('blink'), 180); }); }
-    (function blinkLoop(){ const t=1200+Math.random()*1800; setTimeout(()=>{ doBlink(); blinkLoop(); }, t); })();
-    function glance(dx,dy){ document.querySelectorAll('.pupil').forEach(p=>{ p.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }); }
+      // ---------- Eyes ----------
+      const eyes = [
+        document.getElementById("eyeL"),
+        document.getElementById("eyeR"),
+      ];
+      function doBlink() {
+        eyes.forEach((e) => {
+          e.classList.add("blink");
+          setTimeout(() => e.classList.remove("blink"), 180);
+        });
+      }
+      (function blinkLoop() {
+        const t = 1200 + Math.random() * 1800;
+        setTimeout(() => {
+          doBlink();
+          blinkLoop();
+        }, t);
+      })();
+      function glance(dx, dy) {
+        document.querySelectorAll(".pupil").forEach((p) => {
+          p.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        });
+      }
 
-    // ---------- Drag to move the robot (center stage element) ----------
-    const stage = document.getElementById('stage');
-    const wrap = document.getElementById('robotWrap');
-    let dragging=false, startX=0, startY=0, baseX=0, baseY=0;
-    function setWrap(x,y){ wrap.style.left = x+"px"; wrap.style.top = y+"px"; wrap.style.transform = `translate(-50%,-50%) scale(var(--robot-scale))`; }
-    function centerRobot(){ setWrap(stage.clientWidth/2, stage.clientHeight*0.55); }
-    centerRobot();
-    window.addEventListener('resize', centerRobot);
-    wrap.addEventListener('pointerdown', (e)=>{
-      if(e.target.closest('.controls')) return; // ignore when clicking buttons
-      dragging=true; wrap.classList.add('dragging'); wrap.setPointerCapture(e.pointerId);
-      const rect = wrap.getBoundingClientRect();
-      startX = e.clientX; startY = e.clientY; baseX = rect.left + rect.width/2; baseY = rect.top + rect.height/2;
-    });
-    wrap.addEventListener('pointermove', (e)=>{
-      if(!dragging) return; const dx=e.clientX-startX, dy=e.clientY-startY; setWrap(baseX+dx, baseY+dy);
-    });
-    function stopDrag(){ dragging=false; wrap.classList.remove('dragging'); }
-    wrap.addEventListener('pointerup', stopDrag);
-    wrap.addEventListener('pointercancel', stopDrag);
+      // ---------- Drag to move the robot ----------
+      const stage = document.getElementById("stage");
+      const wrap = document.getElementById("robotWrap");
+      let dragging = false,
+        startX = 0,
+        startY = 0,
+        baseX = 0,
+        baseY = 0;
+      function setWrap(x, y) {
+        wrap.style.left = x + "px";
+        wrap.style.top = y + "px";
+        wrap.style.transform = `translate(-50%,-50%) scale(var(--robot-scale))`;
+      }
+      function centerRobot() {
+        setWrap(stage.clientWidth / 2, stage.clientHeight * 0.55);
+      }
+      centerRobot();
+      window.addEventListener("resize", centerRobot);
+      wrap.addEventListener("pointerdown", (e) => {
+        if (e.target.closest(".controls")) return;
+        dragging = true;
+        wrap.classList.add("dragging");
+        wrap.setPointerCapture(e.pointerId);
+        const rect = wrap.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        baseX = rect.left + rect.width / 2;
+        baseY = rect.top + rect.height / 2;
+      });
+      wrap.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX,
+          dy = e.clientY - startY;
+        setWrap(baseX + dx, baseY + dy);
+      });
+      function stopDrag() {
+        dragging = false;
+        wrap.classList.remove("dragging");
+      }
+      wrap.addEventListener("pointerup", stopDrag);
+      wrap.addEventListener("pointercancel", stopDrag);
 
-    // ---------- General toggles ----------
-    const robot=document.getElementById('robot');
-    document.getElementById('speak').addEventListener('click',()=>robot.classList.toggle('speaking'));
-    document.getElementById('nod').addEventListener('click',()=>robot.classList.toggle('nod'));
-    document.getElementById('ears').addEventListener('click',()=>robot.classList.toggle('wiggle'));
-    document.getElementById('tilt').addEventListener('click',()=>{ robot.classList.add('tilt'); setTimeout(()=>robot.classList.remove('tilt'), 620); });
-    document.getElementById('hover').addEventListener('click',()=>robot.classList.toggle('nohover'));
+      // ---------- General toggles ----------
+      const robot = document.getElementById("robot");
+      document
+        .getElementById("speak")
+        .addEventListener("click", () => robot.classList.toggle("speaking"));
+      document
+        .getElementById("nod")
+        .addEventListener("click", () => robot.classList.toggle("nod"));
+      document
+        .getElementById("ears")
+        .addEventListener("click", () => robot.classList.toggle("wiggle"));
+      document.getElementById("tilt").addEventListener("click", () => {
+        robot.classList.add("tilt");
+        setTimeout(() => robot.classList.remove("tilt"), 620);
+      });
+      document
+        .getElementById("hover")
+        .addEventListener("click", () => robot.classList.toggle("nohover"));
 
-    const torso=document.querySelector('.torso-wrap');
-    document.getElementById('charge').addEventListener('click',()=>{ torso.classList.remove('charge'); void torso.offsetWidth; torso.classList.add('charge'); });
+      const torso = document.querySelector(".torso-wrap");
+      document.getElementById("charge").addEventListener("click", () => {
+        torso.classList.remove("charge");
+        void torso.offsetWidth;
+        torso.classList.add("charge");
+      });
 
-    const batteryGradStop1 = document.getElementById('batteryGradStop1');
-    const batteryGradStop2 = document.getElementById('batteryGradStop2');
+      const batteryGradStop1 = document.getElementById("batteryGradStop1");
+      const batteryGradStop2 = document.getElementById("batteryGradStop2");
 
-    const themes=[
-      {shell:'#edf3f9', line:'#4f5b76', face:'#0f1b2e', eye:'#72f1d5', accent:'#28d9c9', accentLight:'#66e5c4'},
-      {shell:'#fff3ea', line:'#7a4b3d', face:'#2a1a20', eye:'#ffd166', accent:'#ef476f', accentLight:'#f2829c'},
-      {shell:'#ecfff6', line:'#437c6b', face:'#0e2220', eye:'#8cf8c7', accent:'#22c55e', accentLight:'#74f686'},
-      {shell:'#f4f6f8', line:'#2f3747', face:'#0e1116', eye:'#a5b4fc', accent:'#60a5fa', accentLight:'#8eacf7'}
-    ];
-    let themeIdx=0;
-    function applyTheme(t){
-      const r=document.documentElement.style; 
-      r.setProperty('--shell', t.shell);
-      r.setProperty('--line', t.line);
-      r.setProperty('--face', t.face);
-      r.setProperty('--eye', t.eye);
-      r.setProperty('--accent', t.accent);
-      batteryGradStop1.setAttribute('stop-color', t.accent);
-      batteryGradStop2.setAttribute('stop-color', t.accentLight);
-    } 
-    applyTheme(themes[themeIdx]);
-    document.getElementById('theme').addEventListener('click',()=>{ themeIdx=(themeIdx+1)%themes.length; applyTheme(themes[themeIdx]); });
+      const themes = [
+        {
+          shell: "#edf3f9",
+          line: "#4f5b76",
+          face: "#0f1b2e",
+          eye: "#72f1d5",
+          accent: "#28d9c9",
+          accentLight: "#66e5c4",
+        },
+        {
+          shell: "#fff3ea",
+          line: "#7a4b3d",
+          face: "#2a1a20",
+          eye: "#ffd166",
+          accent: "#ef476f",
+          accentLight: "#f2829c",
+        },
+        {
+          shell: "#ecfff6",
+          line: "#437c6b",
+          face: "#0e2220",
+          eye: "#8cf8c7",
+          accent: "#22c55e",
+          accentLight: "#74f686",
+        },
+        {
+          shell: "#f4f6f8",
+          line: "#2f3747",
+          face: "#0e1116",
+          eye: "#a5b4fc",
+          accent: "#60a5fa",
+          accentLight: "#8eacf7",
+        },
+      ];
+      let themeIdx = 0;
+      function applyTheme(t) {
+        const r = document.documentElement.style;
+        r.setProperty("--shell", t.shell);
+        r.setProperty("--line", t.line);
+        r.setProperty("--face", t.face);
+        r.setProperty("--eye", t.eye);
+        r.setProperty("--accent", t.accent);
+        batteryGradStop1.setAttribute("stop-color", t.accent);
+        batteryGradStop2.setAttribute("stop-color", t.accentLight);
+      }
+      applyTheme(themes[themeIdx]);
+      document.getElementById("theme").addEventListener("click", () => {
+        themeIdx = (themeIdx + 1) % themes.length;
+        applyTheme(themes[themeIdx]);
+      });
 
-    document.getElementById('demo').addEventListener('click', async ()=>{
-      doBlink(); glance(6,0); setTimeout(()=>glance(0,0), 500);
-      robot.classList.add('speaking','wiggle','nod');
-      torso.classList.add('charge');
-      startWave('both'); flareArms();
-      await wait(2600);
-      robot.classList.remove('speaking','wiggle'); stopWave('both');
-    });
+      document.getElementById("demo").addEventListener("click", async () => {
+        doBlink();
+        glance(6, 0);
+        setTimeout(() => glance(0, 0), 500);
+        robot.classList.add("speaking", "wiggle", "nod");
+        torso.classList.add("charge");
+        startWave("both");
+        flareArms();
+        await wait(2600);
+        robot.classList.remove("speaking", "wiggle");
+        stopWave("both");
+      });
 
-    document.getElementById('resetAll').addEventListener('click',()=>{
-      ['speaking','wiggle','nod','tilt','nohover'].forEach(c=> robot.classList.remove(c));
-      torso.classList.remove('charge');
-      stopWave('both'); stopFloat(); drawArms(); glance(0,0); doBlink();
-    });
+      document.getElementById("resetAll").addEventListener("click", () => {
+        ["speaking", "wiggle", "nod", "tilt", "nohover"].forEach((c) =>
+          robot.classList.remove(c)
+        );
+        torso.classList.remove("charge");
+        stopWave("both");
+        stopFloat();
+        drawArms();
+        glance(0, 0);
+        doBlink();
+      });
 
-    // ---------- Arms (geometry) ----------
-    const leftArm = document.getElementById('leftArm');
-    const rightArm = document.getElementById('rightArm');
-    const leftWing = document.getElementById('leftWing');
-    const rightWing = document.getElementById('rightWing');
+      // ---------- Arms (geometry) - Port/Starboard ----------
+      const armPort = document.getElementById("armPort"); // robot-left (viewer-right)
+      const armStar = document.getElementById("armStar"); // robot-right (viewer-left)
+      const wingPort = document.getElementById("wingPort");
+      const wingStar = document.getElementById("wingStar");
 
-    function wingAirfoilLeftPath(ax, ay, len, bulge, tip, innerCurve){
-      const topY = ay; const botY = ay + len; const midY = (topY + botY)/2; const r = tip/2;
-      return [`M ${ax} ${topY}`,`Q ${ax+innerCurve} ${midY}, ${ax} ${botY}`,`Q ${ax - bulge/2} ${botY + r}, ${ax} ${botY + tip}`,`Q ${ax - bulge} ${midY}, ${ax} ${topY}`,'Z'].join(' ');
-    }
-    function wingAirfoilRightPath(ax, ay, len, bulge, tip, innerCurve){
-      const topY = ay; const botY = ay + len; const midY = (topY + botY)/2; const r = tip/2;
-      return [`M ${ax} ${topY}`,`Q ${ax-innerCurve} ${midY}, ${ax} ${botY}`,`Q ${ax + bulge/2} ${botY + r}, ${ax} ${botY + tip}`,`Q ${ax + bulge} ${midY}, ${ax} ${topY}`,'Z'].join(' ');
-    }
+      function wingAirfoilLeftPath(ax, ay, len, bulge, tip, innerCurve) {
+        const topY = ay;
+        const botY = ay + len;
+        const midY = (topY + botY) / 2;
+        const r = tip / 2;
+        return [
+          `M ${ax} ${topY}`,
+          `Q ${ax + innerCurve} ${midY}, ${ax} ${botY}`,
+          `Q ${ax - bulge / 2} ${botY + r}, ${ax} ${botY + tip}`,
+          `Q ${ax - bulge} ${midY}, ${ax} ${topY}`,
+          "Z",
+        ].join(" ");
+      }
+      function wingAirfoilRightPath(ax, ay, len, bulge, tip, innerCurve) {
+        const topY = ay;
+        const botY = ay + len;
+        const midY = (topY + botY) / 2;
+        const r = tip / 2;
+        return [
+          `M ${ax} ${topY}`,
+          `Q ${ax - innerCurve} ${midY}, ${ax} ${botY}`,
+          `Q ${ax + bulge / 2} ${botY + r}, ${ax} ${botY + tip}`,
+          `Q ${ax + bulge} ${midY}, ${ax} ${topY}`,
+          "Z",
+        ].join(" ");
+      }
 
-    const size = { len:134, bulge:53, tip:22, innerCurve:6 }; // locked
-    const align = { anchorY:75, inset:-9 }; // locked
+      const size = { len: 134, bulge: 53, tip: 22, innerCurve: 6 }; // locked
+      const align = { anchorY: 75, inset: -9 }; // locked
 
-    function drawArms(){
-      const {len, bulge, tip, innerCurve} = size; const {anchorY, inset} = align;
-      const axL = 40 + inset; const axR = 220 - inset;
-      leftWing.setAttribute('d', wingAirfoilLeftPath(axL, anchorY, len, bulge, tip, innerCurve));
-      rightWing.setAttribute('d', wingAirfoilRightPath(axR, anchorY, len, bulge, tip, innerCurve));
-      leftArm.setAttribute('transform', `rotate(0 ${axL} ${anchorY})`);
-      rightArm.setAttribute('transform', `rotate(0 ${axR} ${anchorY})`);
-    }
-    drawArms();
+      function drawArms() {
+        const { len, bulge, tip, innerCurve } = size;
+        const { anchorY, inset } = align;
+        const axStar = 40 + inset; // starboard pivot (viewer-left)
+        const axPort = 220 - inset; // port pivot (viewer-right)
+        // Starboard (robot-right) is on viewer-left -> use LEFT airfoil shape
+        wingStar.setAttribute(
+          "d",
+          wingAirfoilLeftPath(axStar, anchorY, len, bulge, tip, innerCurve)
+        );
+        // Port (robot-left) is on viewer-right -> use RIGHT airfoil shape
+        wingPort.setAttribute(
+          "d",
+          wingAirfoilRightPath(axPort, anchorY, len, bulge, tip, innerCurve)
+        );
+        armStar.setAttribute("transform", `rotate(0 ${axStar} ${anchorY})`);
+        armPort.setAttribute("transform", `rotate(0 ${axPort} ${anchorY})`);
+      }
+      drawArms();
 
-    // ---------- Arm animations (single rAF loop) ----------
-    let rafId=null;
-    const waveState={left:false,right:false,start:0,amp:6,period:1200};
-    const flareState={active:false,base:0,peak:0,start:0,dur:600};
-    const floatState={active:false,base:align.anchorY,amp:4,period:1800,start:0};
-
-    function animLoop(ts){
-      if(!waveState.start) waveState.start=ts;
-      const tw=(ts-waveState.start)%waveState.period;
-      const ang=Math.sin(tw/waveState.period*2*Math.PI)*waveState.amp;
-      const {inset}=align; let {anchorY}=align; const axL=40+inset, axR=220-inset;
-      if(floatState.active){ if(!floatState.start) floatState.start=ts; const tf=(ts-floatState.start)%floatState.period; anchorY = floatState.base + Math.sin(tf/floatState.period*2*Math.PI)*floatState.amp; }
-      if(flareState.active){ if(!flareState.start) flareState.start=ts; const p=Math.min(1,(ts-flareState.start)/flareState.dur); const eased=Math.sin(p*Math.PI); size.bulge = flareState.base + eased*(flareState.peak-flareState.base); if(p>=1){ size.bulge=flareState.base; flareState.active=false; } }
-      const prevY=align.anchorY; align.anchorY=anchorY; drawArms(); align.anchorY=prevY;
-      if(waveState.left) leftArm.setAttribute('transform', `rotate(${ang} ${axL} ${anchorY})`); else leftArm.setAttribute('transform', `rotate(0 ${axL} ${anchorY})`);
-      if(waveState.right) rightArm.setAttribute('transform', `rotate(${-ang} ${axR} ${anchorY})`); else rightArm.setAttribute('transform', `rotate(0 ${axR} ${anchorY})`);
-      if(waveState.left||waveState.right||floatState.active||flareState.active){ rafId=requestAnimationFrame(animLoop); } else { rafId=null; }
-    }
-
-    function startWave(which='both'){
-      if(which==='left'||which==='both') waveState.left=true; if(which==='right'||which==='both') waveState.right=true;
-      if(!rafId) rafId=requestAnimationFrame(animLoop);
-    }
-    function stopWave(which='both'){
-      if(which==='left'||which==='both') waveState.left=false; if(which==='right'||which==='both') waveState.right=false;
-      if(!waveState.left && !waveState.right && !floatState.active && !flareState.active){ cancelAnimationFrame(rafId); rafId=null; drawArms(); }
-    }
-    function flareArms(){ if(flareState.active) return; flareState.active=true; flareState.base=size.bulge; flareState.peak=size.bulge+10; flareState.start=0; if(!rafId) rafId=requestAnimationFrame(animLoop); }
-    function floatArms(){ if(floatState.active) return; floatState.active=true; floatState.base=align.anchorY; floatState.start=0; if(!rafId) rafId=requestAnimationFrame(animLoop); }
-    function stopFloat(){ floatState.active=false; if(!waveState.left && !waveState.right && !flareState.active){ cancelAnimationFrame(rafId); rafId=null; drawArms(); } }
-
-    // Buttons -> arm anims
-    document.getElementById('armWaveL').addEventListener('click',()=>{ waveState.left ? stopWave('left') : startWave('left'); });
-    document.getElementById('armWaveR').addEventListener('click',()=>{ waveState.right ? stopWave('right') : startWave('right'); });
-    document.getElementById('armWaveBoth').addEventListener('click',()=>{ (waveState.left||waveState.right) ? stopWave('both') : startWave('both'); });
-    document.getElementById('armFlare').addEventListener('click', flareArms);
-    document.getElementById('armFloat').addEventListener('click',()=>{ floatState.active ? stopFloat() : floatArms(); });
-    document.getElementById('armReset').addEventListener('click',()=>{ stopWave('both'); stopFloat(); drawArms(); });
-
-    // ---------- Storytelling Macros (existing) ----------
-    async function storyGreet(){ robot.classList.add('speaking'); startWave('left'); glance(-4,0); await wait(900); glance(4,0); await wait(900); doBlink(); stopWave('left'); robot.classList.remove('speaking'); }
-    async function storyShy(){ robot.classList.add('tilt'); startWave('right'); glance(-3,2); await wait(600); doBlink(); await wait(600); stopWave('right'); robot.classList.remove('tilt'); }
-    async function storyPresent(){ const {anchorY,inset}=align; const axL=40+inset, axR=220-inset; leftArm.setAttribute('transform', `rotate(-8 ${axL} ${anchorY})`); rightArm.setAttribute('transform', `rotate(8 ${axR} ${anchorY})`); flareArms(); glance(0,-2); await wait(1200); drawArms(); }
-    async function storyThink(){ robot.classList.add('nod'); floatArms(); glance(0,4); await wait(1800); doBlink(); robot.classList.remove('nod'); stopFloat(); drawArms(); }
-    async function storyCelebrate(){ startWave('both'); torso.classList.add('charge'); glance(0,-4); await wait(1200); doBlink(); await wait(900); stopWave('both'); }
-
-    document.getElementById('storyGreet').addEventListener('click', storyGreet);
-    document.getElementById('storyShy').addEventListener('click', storyShy);
-    document.getElementById('storyPresent').addEventListener('click', storyPresent);
-    document.getElementById('storyThink').addEventListener('click', storyThink);
-    document.getElementById('storyCelebrate').addEventListener('click', storyCelebrate);
-
-    /* ---------------- Stage A: Mode Manager & Panels ---------------- */
-    const appEl = document.getElementById('app');
-    const btnDebug = document.getElementById('modeDebug');
-    const btnStory = document.getElementById('modeStory');
-    const btnFeedback = document.getElementById('modeFeedback');
-
-    function setMode(m){
-      appEl.classList.remove('debug','story','feedback');
-      appEl.classList.add(m);
-      [btnDebug,btnStory,btnFeedback].forEach(b=>b.classList.remove('active'));
-      ({debug:btnDebug, story:btnStory, feedback:btnFeedback}[m]).classList.add('active');
-      localStorage.setItem('robotMode', m);
-      location.hash = m;
-    }
-    [btnDebug,btnStory,btnFeedback].forEach((b)=>{
-      b.addEventListener('click', ()=> setMode(b.id.replace('mode','').toLowerCase()));
-    });
-    const bootMode = (location.hash?.replace('#','')) || localStorage.getItem('robotMode') || 'debug';
-    setMode(bootMode);
-
-    // Robot Scale
-    const scaleRange = document.getElementById('scaleRange');
-    const scaleVal = document.getElementById('scaleVal');
-    function applyScale(v){ document.documentElement.style.setProperty('--robot-scale', v); scaleVal.textContent = `${Number(v).toFixed(2)}x`; }
-    scaleRange.addEventListener('input', (e)=> applyScale(e.target.value));
-    applyScale(scaleRange.value);
-
-    // Debug panel bindings (map to existing functions)
-    const mapClick = (id, fn)=> document.getElementById(id)?.addEventListener('click', fn);
-    mapClick('dbgSpeak', ()=> robot.classList.toggle('speaking'));
-    mapClick('dbgBlink', ()=> doBlink());
-    mapClick('dbgNod', ()=> robot.classList.toggle('nod'));
-    mapClick('dbgTilt', ()=> { robot.classList.add('tilt'); setTimeout(()=>robot.classList.remove('tilt'), 620); });
-    mapClick('dbgEars', ()=> robot.classList.toggle('wiggle'));
-    mapClick('dbgCharge', ()=> { torso.classList.remove('charge'); void torso.offsetWidth; torso.classList.add('charge'); });
-    mapClick('dbgTheme', ()=> { themeIdx=(themeIdx+1)%themes.length; applyTheme(themes[themeIdx]); });
-    mapClick('dbgHover', ()=> robot.classList.toggle('nohover'));
-    mapClick('dbgResetAll', ()=> { ['speaking','wiggle','nod','tilt','nohover'].forEach(c=> robot.classList.remove(c)); torso.classList.remove('charge'); stopWave('both'); stopFloat(); drawArms(); glance(0,0); doBlink(); });
-    mapClick('dbgWaveL', ()=> { waveState.left ? stopWave('left') : startWave('left'); });
-    mapClick('dbgWaveR', ()=> { waveState.right ? stopWave('right') : startWave('right'); });
-    mapClick('dbgWaveBoth', ()=> { (waveState.left||waveState.right) ? stopWave('both') : startWave('both'); });
-    mapClick('dbgFlare', ()=> flareArms());
-    mapClick('dbgFloat', ()=> { floatState.active ? stopFloat() : floatArms(); });
-    mapClick('dbgArmsReset', ()=> { stopWave('both'); stopFloat(); drawArms(); });
-
-    // Feedback panel
-    const fbTags = document.getElementById('fbTags');
-    const fbTitle = document.getElementById('fbTitle');
-    const fbNotes = document.getElementById('fbNotes');
-    const fbCopy = document.getElementById('fbCopy');
-    const fbClear = document.getElementById('fbClear');
-    const fbStatus = document.getElementById('fbStatus');
-    const activeTags = new Set();
-
-    fbTags?.addEventListener('click', (e)=>{
-      const tag = e.target.closest('.tag'); if(!tag) return;
-      const t = tag.dataset.t;
-      if(activeTags.has(t)){ activeTags.delete(t); tag.style.outline='none'; }
-      else { activeTags.add(t); tag.style.outline='2px solid var(--eye)'; }
-    });
-
-    function makeFeedbackJSON(){
-      return {
-        when: new Date().toISOString(),
-        mode: (['debug','story','feedback'].find(m=>appEl.classList.contains(m)) || 'debug'),
-        tags: [...activeTags],
-        title: fbTitle.value.trim(),
-        notes: fbNotes.value.trim(),
-        robot: { scale: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--robot-scale')) || 1 }
+      // ---------- Arm animations (single rAF loop) ----------
+      let rafId = null;
+      const waveState = {
+        port: false,
+        star: false,
+        start: 0,
+        amp: 6,
+        period: 1200,
       };
-    }
+      const flareState = {
+        active: false,
+        base: 0,
+        peak: 0,
+        start: 0,
+        dur: 600,
+      };
+      const floatState = {
+        active: false,
+        base: align.anchorY,
+        amp: 4,
+        period: 1800,
+        start: 0,
+      };
 
-    fbCopy?.addEventListener('click', ()=>{
-      const payload = JSON.stringify(makeFeedbackJSON(), null, 2);
-      navigator.clipboard?.writeText(payload);
-      fbStatus.textContent = "Copied JSON to clipboard.";
-      setTimeout(()=> fbStatus.textContent="", 1600);
-    });
+      function animLoop(ts) {
+        if (!waveState.start) waveState.start = ts;
+        const tw = (ts - waveState.start) % waveState.period;
+        const ang =
+          Math.sin((tw / waveState.period) * 2 * Math.PI) * waveState.amp;
+        const { inset } = align;
+        let { anchorY } = align;
+        const axStar = 40 + inset,
+          axPort = 220 - inset;
+        if (floatState.active) {
+          if (!floatState.start) floatState.start = ts;
+          const tf = (ts - floatState.start) % floatState.period;
+          anchorY =
+            floatState.base +
+            Math.sin((tf / floatState.period) * 2 * Math.PI) * floatState.amp;
+        }
+        if (flareState.active) {
+          if (!flareState.start) flareState.start = ts;
+          const p = Math.min(1, (ts - flareState.start) / flareState.dur);
+          const eased = Math.sin(p * Math.PI);
+          size.bulge =
+            flareState.base + eased * (flareState.peak - flareState.base);
+          if (p >= 1) {
+            size.bulge = flareState.base;
+            flareState.active = false;
+          }
+        }
+        const prevY = align.anchorY;
+        align.anchorY = anchorY;
+        drawArms();
+        align.anchorY = prevY;
+        if (waveState.port)
+          armPort.setAttribute(
+            "transform",
+            `rotate(${-ang} ${axPort} ${anchorY})`
+          );
+        else
+          armPort.setAttribute("transform", `rotate(0 ${axPort} ${anchorY})`);
+        if (waveState.star)
+          armStar.setAttribute(
+            "transform",
+            `rotate(${ang} ${axStar} ${anchorY})`
+          );
+        else
+          armStar.setAttribute("transform", `rotate(0 ${axStar} ${anchorY})`);
+        if (
+          waveState.port ||
+          waveState.star ||
+          floatState.active ||
+          flareState.active
+        ) {
+          rafId = requestAnimationFrame(animLoop);
+        } else {
+          rafId = null;
+        }
+      }
 
-    fbClear?.addEventListener('click', ()=>{
-      activeTags.clear(); fbTitle.value = ""; fbNotes.value = "";
-      fbTags.querySelectorAll('.tag').forEach(t=> t.style.outline='none');
-      fbStatus.textContent = "Cleared."; setTimeout(()=> fbStatus.textContent="", 1000);
-    });
-  </script>
-</body>
+      function startWave(which = "both") {
+        if (which === "port" || which === "both") waveState.port = true;
+        if (which === "star" || which === "both") waveState.star = true;
+        if (!rafId) rafId = requestAnimationFrame(animLoop);
+      }
+      function stopWave(which = "both") {
+        if (which === "port" || which === "both") waveState.port = false;
+        if (which === "star" || which === "both") waveState.star = false;
+        if (
+          !waveState.port &&
+          !waveState.star &&
+          !floatState.active &&
+          !flareState.active
+        ) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+          drawArms();
+        }
+      }
+      function flareArms() {
+        if (flareState.active) return;
+        flareState.active = true;
+        flareState.base = size.bulge;
+        flareState.peak = size.bulge + 10;
+        flareState.start = 0;
+        if (!rafId) rafId = requestAnimationFrame(animLoop);
+      }
+      function floatArms() {
+        if (floatState.active) return;
+        floatState.active = true;
+        floatState.base = align.anchorY;
+        floatState.start = 0;
+        if (!rafId) rafId = requestAnimationFrame(animLoop);
+      }
+      function stopFloat() {
+        floatState.active = false;
+        if (!waveState.port && !waveState.star && !flareState.active) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+          drawArms();
+        }
+      }
+
+      // Buttons -> arm anims (Port/Star)
+      document.getElementById("armWavePort").addEventListener("click", () => {
+        waveState.port ? stopWave("port") : startWave("port");
+      });
+      document.getElementById("armWaveStar").addEventListener("click", () => {
+        waveState.star ? stopWave("star") : startWave("star");
+      });
+      document.getElementById("armWaveBoth").addEventListener("click", () => {
+        waveState.port || waveState.star ? stopWave("both") : startWave("both");
+      });
+      document.getElementById("armFlare").addEventListener("click", flareArms);
+      document.getElementById("armFloat").addEventListener("click", () => {
+        floatState.active ? stopFloat() : floatArms();
+      });
+      document.getElementById("armReset").addEventListener("click", () => {
+        stopWave("both");
+        stopFloat();
+        drawArms();
+      });
+
+      // ---------- Storytelling Macros updated to port/star ----------
+      async function storyGreet() {
+        robot.classList.add("speaking");
+        startWave("port");
+        glance(-4, 0);
+        await wait(900);
+        glance(4, 0);
+        await wait(900);
+        doBlink();
+        stopWave("port");
+        robot.classList.remove("speaking");
+      }
+      async function storyShy() {
+        robot.classList.add("tilt");
+        startWave("star");
+        glance(-3, 2);
+        await wait(600);
+        doBlink();
+        await wait(600);
+        stopWave("star");
+        robot.classList.remove("tilt");
+      }
+      async function storyPresent() {
+        const { anchorY, inset } = align;
+        const axStar = 40 + inset,
+          axPort = 220 - inset;
+        armPort.setAttribute("transform", `rotate(-8 ${axPort} ${anchorY})`);
+        armStar.setAttribute("transform", `rotate(8 ${axStar} ${anchorY})`);
+        flareArms();
+        glance(0, -2);
+        await wait(1200);
+        drawArms();
+      }
+      async function storyThink() {
+        robot.classList.add("nod");
+        floatArms();
+        glance(0, 4);
+        await wait(1800);
+        doBlink();
+        robot.classList.remove("nod");
+        stopFloat();
+        drawArms();
+      }
+      async function storyCelebrate() {
+        startWave("both");
+        torso.classList.add("charge");
+        glance(0, -4);
+        await wait(1200);
+        doBlink();
+        await wait(900);
+        stopWave("both");
+      }
+
+      document
+        .getElementById("storyGreet")
+        .addEventListener("click", storyGreet);
+      document.getElementById("storyShy").addEventListener("click", storyShy);
+      document
+        .getElementById("storyPresent")
+        .addEventListener("click", storyPresent);
+      document
+        .getElementById("storyThink")
+        .addEventListener("click", storyThink);
+      document
+        .getElementById("storyCelebrate")
+        .addEventListener("click", storyCelebrate);
+
+      /* ---------------- Stage A: Mode Manager & Panels ---------------- */
+      const appEl = document.getElementById("app");
+      const btnDebug = document.getElementById("modeDebug");
+      const btnStory = document.getElementById("modeStory");
+      const btnFeedback = document.getElementById("modeFeedback");
+
+      function setMode(m) {
+        appEl.classList.remove("debug", "story", "feedback");
+        appEl.classList.add(m);
+        [btnDebug, btnStory, btnFeedback].forEach((b) =>
+          b.classList.remove("active")
+        );
+        ({ debug: btnDebug, story: btnStory, feedback: btnFeedback })[
+          m
+        ].classList.add("active");
+        localStorage.setItem("robotMode", m);
+        location.hash = m;
+      }
+      [btnDebug, btnStory, btnFeedback].forEach((b) => {
+        b.addEventListener("click", () =>
+          setMode(b.id.replace("mode", "").toLowerCase())
+        );
+      });
+      const bootMode =
+        location.hash?.replace("#", "") ||
+        localStorage.getItem("robotMode") ||
+        "debug";
+      setMode(bootMode);
+
+      // Robot Scale
+      const scaleRange = document.getElementById("scaleRange");
+      const scaleVal = document.getElementById("scaleVal");
+      function applyScale(v) {
+        document.documentElement.style.setProperty("--robot-scale", v);
+        scaleVal.textContent = `${Number(v).toFixed(2)}x`;
+      }
+      scaleRange.addEventListener("input", (e) => applyScale(e.target.value));
+      applyScale(scaleRange.value);
+
+      // Debug panel bindings (map to existing functions)
+      const mapClick = (id, fn) =>
+        document.getElementById(id)?.addEventListener("click", fn);
+      mapClick("dbgSpeak", () => robot.classList.toggle("speaking"));
+      mapClick("dbgBlink", () => doBlink());
+      mapClick("dbgNod", () => robot.classList.toggle("nod"));
+      mapClick("dbgTilt", () => {
+        robot.classList.add("tilt");
+        setTimeout(() => robot.classList.remove("tilt"), 620);
+      });
+      mapClick("dbgEars", () => robot.classList.toggle("wiggle"));
+      mapClick("dbgCharge", () => {
+        torso.classList.remove("charge");
+        void torso.offsetWidth;
+        torso.classList.add("charge");
+      });
+      mapClick("dbgTheme", () => {
+        themeIdx = (themeIdx + 1) % themes.length;
+        applyTheme(themes[themeIdx]);
+      });
+      mapClick("dbgHover", () => robot.classList.toggle("nohover"));
+      mapClick("dbgResetAll", () => {
+        ["speaking", "wiggle", "nod", "tilt", "nohover"].forEach((c) =>
+          robot.classList.remove(c)
+        );
+        torso.classList.remove("charge");
+        stopWave("both");
+        stopFloat();
+        drawArms();
+        glance(0, 0);
+        doBlink();
+      });
+      mapClick("dbgWavePort", () => {
+        waveState.port ? stopWave("port") : startWave("port");
+      });
+      mapClick("dbgWaveStar", () => {
+        waveState.star ? stopWave("star") : startWave("star");
+      });
+      mapClick("dbgWaveBoth", () => {
+        waveState.port || waveState.star ? stopWave("both") : startWave("both");
+      });
+      mapClick("dbgFlare", () => flareArms());
+      mapClick("dbgFloat", () => {
+        floatState.active ? stopFloat() : floatArms();
+      });
+      mapClick("dbgArmsReset", () => {
+        stopWave("both");
+        stopFloat();
+        drawArms();
+      });
+    </script>
+  </body>
 </html>
