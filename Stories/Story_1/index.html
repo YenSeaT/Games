@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Robot v2.2 — Controller + Audio + Stage Panels (JavaScript)</title>
-    <!-- Inter font -->
+    <title>
+      Robot v2.3 — Story Mode Centering + Lip‑Sync + Controller (JS)
+    </title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -44,7 +45,7 @@
         overflow: hidden;
       }
 
-      /* -------------- APP GRID -------------- */
+      /* APP GRID */
       .app {
         display: grid;
         grid-template-columns: 320px 1fr 0px;
@@ -177,7 +178,25 @@
         mix-blend-mode: screen;
       }
 
-      /* Robot container is draggable & scalable */
+      /* Story mode: robust centering, no drag */
+      .app.story .stage {
+        display: grid;
+        place-items: center;
+      }
+      .app.story .robot-wrap {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: scale(var(--robot-scale));
+        transform-origin: center;
+        margin: auto;
+        cursor: auto;
+      }
+      .app.story .robot-wrap.dragging {
+        cursor: auto;
+      }
+
+      /* Robot (debug/feedback modes use absolute + drag) */
       .robot-wrap {
         position: absolute;
         left: 50%;
@@ -423,7 +442,6 @@
         opacity: 0.9;
       }
 
-      /* Speaking mouth */
       .mouth {
         width: 48px;
         height: 18px;
@@ -504,7 +522,6 @@
         stroke-linejoin: round;
       }
 
-      /* Battery charge animation */
       #batteryFill {
         stroke-linecap: round;
       }
@@ -520,7 +537,6 @@
         }
       }
 
-      /* Controls bar (visible only in debug) */
       .controls {
         position: absolute;
         left: 50%;
@@ -537,7 +553,6 @@
         display: none;
       }
 
-      /* Feedback UI */
       .feedback-form textarea,
       .feedback-form input[type="text"] {
         width: 100%;
@@ -551,17 +566,6 @@
         min-height: 100px;
         resize: vertical;
       }
-      .feedback-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .feedback-tags .tag {
-        padding: 4px 8px;
-        border: 1px solid #2b3b5f;
-        border-radius: 999px;
-        cursor: pointer;
-      }
       .feedback-actions {
         display: flex;
         gap: 8px;
@@ -574,7 +578,6 @@
     </style>
   </head>
   <body>
-    <!-- Mode switcher -->
     <div class="mode-switch" aria-label="Mode switch">
       <button class="btn" id="modeDebug">Debug</button>
       <button class="btn" id="modeStory">Story</button>
@@ -582,9 +585,7 @@
       <button class="btn" id="playSample">Play Sample</button>
     </div>
 
-    <!-- APP GRID -->
     <div class="app debug" id="app">
-      <!-- Left: Debug panel -->
       <aside class="panel" id="debugPanel" aria-label="Debug controls">
         <h3>Robot Debug</h3>
         <div class="section">
@@ -655,7 +656,7 @@
             <button class="btn" id="dbgStoryCelebrate">Celebrate</button>
           </div>
           <div class="subtle">
-            These directly trigger the macros via RobotController.
+            Directly triggers macros via RobotController.
           </div>
         </div>
 
@@ -666,21 +667,19 @@
           </div>
           <ul class="checklist">
             <li>Stage A — <b>Complete</b> ✅</li>
-            <li>Stage B — Story templates & bubbles — <i>In Progress</i></li>
+            <li>Stage B — Controller + Audio + Bubbles — <i>In Progress</i></li>
             <li>Stage C — Timeline editor UI — <i>Planned</i></li>
             <li>Stage D — Assets & transitions — <i>Planned</i></li>
-            <li>Stage E — Feedback export/share — <i>Planned</i></li>
-            <li>Stage F — Perf & mobile polish — <i>Planned</i></li>
+            <li>Stage E — Export/share — <i>Planned</i></li>
+            <li>Stage F — Perf & mobile — <i>Planned</i></li>
           </ul>
         </div>
       </aside>
 
-      <!-- Center: Scene -->
       <div class="stage" id="stage">
         <div class="bg"></div>
         <div class="stars"></div>
 
-        <!-- Story-mode audio gate -->
         <button
           id="enableAudio"
           style="
@@ -772,7 +771,6 @@
                   stroke-width="3"
                 />
 
-                <!-- Arms Left/Right -->
                 <g id="armLeft"><path id="wingLeft" class="wing" /></g>
                 <g id="armRight"><path id="wingRight" class="wing" /></g>
 
@@ -826,7 +824,6 @@
           </div>
         </div>
 
-        <!-- Legacy controls (kept; hidden in Story mode) -->
         <div class="controls" role="toolbar" aria-label="Robot controls">
           <button class="btn" id="demo">Demo</button>
           <button class="btn" id="speak">Speak</button>
@@ -851,7 +848,6 @@
         </div>
       </div>
 
-      <!-- Right: Feedback panel (upgraded) -->
       <aside class="panel-right" id="feedbackPanel" aria-label="Feedback panel">
         <div class="section">
           <h3>Project Stages</h3>
@@ -889,61 +885,50 @@
           <h3>Feedback (by element)</h3>
           <label for="fbTitle">Title</label>
           <input type="text" id="fbTitle" placeholder="Short summary…" />
-
           <label>Head & Face</label>
           <textarea
             id="fbHead"
             placeholder="Eyes, blink, mouth, antenna…"
           ></textarea>
-
           <label>Arms</label>
           <textarea id="fbArms" placeholder="Waves, float, flare…"></textarea>
-
           <label>Torso & Battery</label>
           <textarea
             id="fbTorso"
             placeholder="Panel, charge bar visuals…"
           ></textarea>
-
           <label>Motion</label>
           <textarea
             id="fbMotion"
             placeholder="Hover, nod, tilt timing…"
           ></textarea>
-
           <label>Theme & Colors</label>
           <textarea
             id="fbThemeNotes"
             placeholder="Palettes, gradients, contrast…"
           ></textarea>
-
           <label>Story & Script</label>
           <textarea
             id="fbStory"
             placeholder="Macro beats, lines, pacing…"
           ></textarea>
-
           <label>UI & Bubbles</label>
           <textarea
             id="fbUI"
             placeholder="Controls, captions, future bubbles…"
           ></textarea>
-
           <label>Audio & Voice</label>
           <textarea
             id="fbAudio"
             placeholder="Voice settings, SFX, timing…"
           ></textarea>
-
           <label>Performance</label>
           <textarea
             id="fbPerf"
             placeholder="Frame rate, CPU, animation budget…"
           ></textarea>
-
           <label>Other</label>
           <textarea id="fbOther" placeholder="Anything else…"></textarea>
-
           <div class="feedback-actions">
             <button class="btn" id="fbCopy">Copy JSON</button>
             <button class="btn" id="fbClear">Clear</button>
@@ -954,10 +939,9 @@
     </div>
 
     <script>
-      // ---------- Utils ----------
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-      // ---------- Eyes ----------
+      // Eyes
       const eyes = [
         document.getElementById("eyeL"),
         document.getElementById("eyeR"),
@@ -981,7 +965,7 @@
         });
       }
 
-      // ---------- Drag to move the robot ----------
+      // Drag
       const stage = document.getElementById("stage");
       const wrap = document.getElementById("robotWrap");
       let dragging = false,
@@ -1000,6 +984,7 @@
       centerRobot();
       window.addEventListener("resize", centerRobot);
       wrap.addEventListener("pointerdown", (e) => {
+        if (document.getElementById("app").classList.contains("story")) return; // no drag in story
         if (e.target.closest(".controls")) return;
         dragging = true;
         wrap.classList.add("dragging");
@@ -1023,7 +1008,7 @@
       wrap.addEventListener("pointerup", stopDrag);
       wrap.addEventListener("pointercancel", stopDrag);
 
-      // ---------- General toggles ----------
+      // Toggles
       const robot = document.getElementById("robot");
       document
         .getElementById("speak")
@@ -1098,7 +1083,6 @@
         batteryGradStop2.setAttribute("stop-color", t.accentLight);
       }
       applyTheme(themes[themeIdx]);
-
       document.getElementById("theme").addEventListener("click", () => {
         themeIdx = (themeIdx + 1) % themes.length;
         applyTheme(themes[themeIdx]);
@@ -1129,9 +1113,9 @@
         doBlink();
       });
 
-      // ---------- Arms (geometry) - Left/Right ----------
-      const armLeft = document.getElementById("armLeft"); // robot-left (viewer-right)
-      const armRight = document.getElementById("armRight"); // robot-right (viewer-left)
+      // Arms geometry
+      const armLeft = document.getElementById("armLeft");
+      const armRight = document.getElementById("armRight");
       const wingLeft = document.getElementById("wingLeft");
       const wingRight = document.getElementById("wingRight");
 
@@ -1162,20 +1146,18 @@
         ].join(" ");
       }
 
-      const size = { len: 134, bulge: 53, tip: 22, innerCurve: 6 }; // locked
-      const align = { anchorY: 75, inset: -9 }; // locked
+      const size = { len: 134, bulge: 53, tip: 22, innerCurve: 6 };
+      const align = { anchorY: 75, inset: -9 };
 
       function drawArms() {
         const { len, bulge, tip, innerCurve } = size;
         const { anchorY, inset } = align;
-        const axRight = 40 + inset; // robot-right pivot (viewer-left)
-        const axLeft = 220 - inset; // robot-left pivot (viewer-right)
-        // Right (robot-right) is on viewer-left -> use LEFT airfoil
+        const axRight = 40 + inset;
+        const axLeft = 220 - inset;
         wingRight.setAttribute(
           "d",
           wingAirfoilLeftPath(axRight, anchorY, len, bulge, tip, innerCurve)
         );
-        // Left (robot-left) is on viewer-right -> use RIGHT airfoil
         wingLeft.setAttribute(
           "d",
           wingAirfoilRightPath(axLeft, anchorY, len, bulge, tip, innerCurve)
@@ -1185,7 +1167,7 @@
       }
       drawArms();
 
-      // ---------- Arm animations (single rAF loop) ----------
+      // Arm animations
       let rafId = null;
       const waveState = {
         left: false,
@@ -1309,7 +1291,7 @@
         }
       }
 
-      // Buttons -> arm anims (Left/Right)
+      // Buttons
       document.getElementById("armWaveLeft").addEventListener("click", () => {
         waveState.left ? stopWave("left") : startWave("left");
       });
@@ -1331,7 +1313,7 @@
         drawArms();
       });
 
-      // ---------- Audio Engine ----------
+      // AudioEngine
       class AudioEngine {
         constructor() {
           this.audioUnlocked = false;
@@ -1345,30 +1327,25 @@
             new (window.AudioContext || window.webkitAudioContext)();
           if (this.ctx.state === "suspended") await this.ctx.resume();
           if ("speechSynthesis" in window) {
-            this.voices = window.speechSynthesis.getVoices();
+            this.voices = speechSynthesis.getVoices();
             if (!this.voices.length) {
               await new Promise((r) => {
                 const onv = () => {
-                  this.voices = window.speechSynthesis.getVoices();
+                  this.voices = speechSynthesis.getVoices();
                   r();
-                  window.speechSynthesis.removeEventListener(
-                    "voiceschanged",
-                    onv
-                  );
+                  speechSynthesis.removeEventListener("voiceschanged", onv);
                 };
-                window.speechSynthesis.addEventListener("voiceschanged", onv);
-                window.speechSynthesis.getVoices();
+                speechSynthesis.addEventListener("voiceschanged", onv);
+                speechSynthesis.getVoices();
               });
             }
           }
           this.audioUnlocked = true;
         }
-        // Simple speak (compat)
         speak(text, opts = {}) {
           const { done } = this.speakEx(text, opts);
           return done;
         }
-        // Extended: returns utterance + done promise so callers can hook boundary events
         speakEx(text, opts = {}) {
           if (!("speechSynthesis" in window))
             return { u: null, done: Promise.resolve(false) };
@@ -1411,7 +1388,7 @@
       }
       const audio = new AudioEngine();
 
-      // ---------- Robot Controller ----------
+      // Controller
       class RobotController {
         constructor() {
           this.mode = "debug";
@@ -1425,10 +1402,6 @@
           if (btn)
             btn.style.display =
               m === "story" && !audio.audioUnlocked ? "block" : "none";
-          // re-center after layout change to avoid the "blank in story mode" issue
-          requestAnimationFrame(() => {
-            centerRobot();
-          });
           if (this.onModeChange) this.onModeChange(m);
         }
         setScale(n) {
@@ -1495,7 +1468,6 @@
           stopFloat();
           drawArms();
         }
-        // Lip-sync aware say(); lipSync modes: 'simple' | 'boundary' | 'off'
         async say(text, voiceOpts = {}) {
           await audio.init();
           const mode =
@@ -1505,7 +1477,6 @@
             const ok = await audio.speak(text, voiceOpts);
             return ok;
           }
-          // Use speakEx to access utterance + boundary events
           const { u, done } = audio.speakEx(text, voiceOpts);
           if (!u) return false;
           let lastBoundary = 0,
@@ -1513,20 +1484,17 @@
           const open = () => this.speak(true);
           const close = () => this.speak(false);
           const loop = () => {
-            // Close mouth when there has been a gap for 120ms (roughly a pause)
             if (performance.now() - lastBoundary > 120) close();
             else open();
             raf = requestAnimationFrame(loop);
           };
-          // boundary fires during speech; use it to mark recent activity
-          u.onboundary = (e) => {
+          u.onboundary = () => {
             lastBoundary = performance.now();
           };
           u.onpause = () => close();
           u.onresume = () => {
             lastBoundary = performance.now();
           };
-          // start loop
           lastBoundary = performance.now();
           raf = requestAnimationFrame(loop);
           const ok = await done;
@@ -1534,7 +1502,6 @@
           close();
           return ok;
         }
-        // ----- Macros -----
         async macroGreet() {
           this.wave("left", true);
           this.glance(-4, 0);
@@ -1584,50 +1551,30 @@
           await wait(900);
           this.wave("both", false);
         }
-        // Utilities for parallel actions
         async doAll(promises) {
           return Promise.all(promises);
         }
       }
       window.robotAPI = new RobotController();
 
-      // ---------- Storytelling Macros (legacy bindings kept) ----------
-      async function storyGreet() {
-        await window.robotAPI.macroGreet();
-      }
-      async function storyShy() {
-        await window.robotAPI.macroShy();
-      }
-      async function storyPresent() {
-        await window.robotAPI.macroPresent();
-      }
-      async function storyThink() {
-        await window.robotAPI.macroThink();
-      }
-      async function storyCelebrate() {
-        await window.robotAPI.macroCelebrate();
-      }
-
-      // Top bar Story buttons
-      document.getElementById("storyGreet").addEventListener("click", () => {
-        storyGreet().catch(console.error);
-      });
-      document.getElementById("storyShy").addEventListener("click", () => {
-        storyShy().catch(console.error);
-      });
-      document.getElementById("storyPresent").addEventListener("click", () => {
-        storyPresent().catch(console.error);
-      });
-      document.getElementById("storyThink").addEventListener("click", () => {
-        storyThink().catch(console.error);
-      });
+      // Story macro bindings
+      document
+        .getElementById("storyGreet")
+        .addEventListener("click", () => window.robotAPI.macroGreet());
+      document
+        .getElementById("storyShy")
+        .addEventListener("click", () => window.robotAPI.macroShy());
+      document
+        .getElementById("storyPresent")
+        .addEventListener("click", () => window.robotAPI.macroPresent());
+      document
+        .getElementById("storyThink")
+        .addEventListener("click", () => window.robotAPI.macroThink());
       document
         .getElementById("storyCelebrate")
-        .addEventListener("click", () => {
-          storyCelebrate().catch(console.error);
-        });
+        .addEventListener("click", () => window.robotAPI.macroCelebrate());
 
-      /* ---------------- Mode Manager & Panels ---------------- */
+      // Mode Manager
       const appEl = document.getElementById("app");
       const btnDebug = document.getElementById("modeDebug");
       const btnStory = document.getElementById("modeStory");
@@ -1645,19 +1592,19 @@
         localStorage.setItem("robotMode", m);
         location.hash = m;
       }
+
       [btnDebug, btnStory, btnFeedback].forEach((b) => {
         b.addEventListener("click", () =>
           window.robotAPI.setMode(b.id.replace("mode", "").toLowerCase())
         );
       });
-
       const bootMode =
         location.hash?.replace("#", "") ||
         localStorage.getItem("robotMode") ||
         "debug";
       window.robotAPI.setMode(bootMode);
 
-      // Robot Scale
+      // Scale
       const scaleRange = document.getElementById("scaleRange");
       const scaleVal = document.getElementById("scaleVal");
       function applyScale(v) {
@@ -1667,7 +1614,7 @@
       scaleRange.addEventListener("input", (e) => applyScale(e.target.value));
       applyScale(scaleRange.value);
 
-      // Debug panel bindings through controller for consistency
+      // Debug panel -> controller
       const mapClick = (id, fn) =>
         document.getElementById(id)?.addEventListener("click", fn);
       mapClick("dbgSpeak", () =>
@@ -1705,24 +1652,14 @@
       });
       mapClick("dbgArmsReset", () => window.robotAPI.armsReset());
 
-      // Story macros from the Debug panel
-      mapClick("dbgStoryGreet", () => {
-        storyGreet().catch(console.error);
-      });
-      mapClick("dbgStoryShy", () => {
-        storyShy().catch(console.error);
-      });
-      mapClick("dbgStoryPresent", () => {
-        storyPresent().catch(console.error);
-      });
-      mapClick("dbgStoryThink", () => {
-        storyThink().catch(console.error);
-      });
-      mapClick("dbgStoryCelebrate", () => {
-        storyCelebrate().catch(console.error);
-      });
+      // Debug panel story triggers
+      mapClick("dbgStoryGreet", () => window.robotAPI.macroGreet());
+      mapClick("dbgStoryShy", () => window.robotAPI.macroShy());
+      mapClick("dbgStoryPresent", () => window.robotAPI.macroPresent());
+      mapClick("dbgStoryThink", () => window.robotAPI.macroThink());
+      mapClick("dbgStoryCelebrate", () => window.robotAPI.macroCelebrate());
 
-      // Enable Audio button (autoplay policy gate)
+      // Enable Audio button
       document
         .getElementById("enableAudio")
         ?.addEventListener("click", async () => {
@@ -1730,10 +1667,9 @@
           document.getElementById("enableAudio").style.display = "none";
         });
 
-      // Sample line that uses TTS + gestures
+      // Sample
       async function playSample() {
         await audio.init();
-        // Parallel theme change + arm flare while first line plays
         await window.robotAPI.doAll([
           window.robotAPI.say("Hello! I'm ready to tell a story.", {
             rate: 1.05,
@@ -1759,7 +1695,7 @@
         .getElementById("playSample")
         .addEventListener("click", () => playSample().catch(console.error));
 
-      // -------- Feedback JSON (per-element fields) --------
+      // Feedback export
       const fbTitle = document.getElementById("fbTitle");
       const fbHead = document.getElementById("fbHead");
       const fbArms = document.getElementById("fbArms");
@@ -1834,7 +1770,6 @@
         fbStatus.textContent = "Copied JSON to clipboard.";
         setTimeout(() => (fbStatus.textContent = ""), 1600);
       });
-
       fbClear?.addEventListener("click", () => {
         [
           fbTitle,
@@ -1855,7 +1790,6 @@
         setTimeout(() => (fbStatus.textContent = ""), 1000);
       });
 
-      // Initialize progress bar visually
       document.getElementById("progressBar").style.width = "33%";
     </script>
   </body>
