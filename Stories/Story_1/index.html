@@ -1363,8 +1363,15 @@
           }
           this.audioUnlocked = true;
         }
+        // Simple speak (compat)
         speak(text, opts = {}) {
-          if (!("speechSynthesis" in window)) return Promise.resolve(false);
+          const { done } = this.speakEx(text, opts);
+          return done;
+        }
+        // Extended: returns utterance + done promise so callers can hook boundary events
+        speakEx(text, opts = {}) {
+          if (!("speechSynthesis" in window))
+            return { u: null, done: Promise.resolve(false) };
           const {
             voiceName,
             lang = "en-US",
@@ -1381,10 +1388,11 @@
             const v = this.voices.find((v) => v.name === voiceName);
             if (v) u.voice = v;
           }
-          return new Promise((res) => {
+          const done = new Promise((res) => {
             u.onend = () => res(true);
-            speechSynthesis.speak(u);
           });
+          speechSynthesis.speak(u);
+          return { u, done };
         }
         blip(freq = 880, durMs = 120) {
           if (!this.ctx) return;
@@ -1408,14 +1416,19 @@
         constructor() {
           this.mode = "debug";
           this.onModeChange = null;
+          this.lipSync = "boundary";
         }
         setMode(m) {
-          setMode(m); // delegate to existing grid state handler
+          setMode(m);
           this.mode = m;
           const btn = document.getElementById("enableAudio");
           if (btn)
             btn.style.display =
               m === "story" && !audio.audioUnlocked ? "block" : "none";
+          // re-center after layout change to avoid the "blank in story mode" issue
+          requestAnimationFrame(() => {
+            centerRobot();
+          });
           if (this.onModeChange) this.onModeChange(m);
         }
         setScale(n) {
@@ -1482,14 +1495,47 @@
           stopFloat();
           drawArms();
         }
+        // Lip-sync aware say(); lipSync modes: 'simple' | 'boundary' | 'off'
         async say(text, voiceOpts = {}) {
-          this.speak(true);
-          const ok = await audio.speak(text, voiceOpts);
-          this.speak(false);
+          await audio.init();
+          const mode =
+            "lipSync" in voiceOpts ? voiceOpts.lipSync : this.lipSync;
+          if (mode === "off") {
+            this.speak(false);
+            const ok = await audio.speak(text, voiceOpts);
+            return ok;
+          }
+          // Use speakEx to access utterance + boundary events
+          const { u, done } = audio.speakEx(text, voiceOpts);
+          if (!u) return false;
+          let lastBoundary = 0,
+            raf = null;
+          const open = () => this.speak(true);
+          const close = () => this.speak(false);
+          const loop = () => {
+            // Close mouth when there has been a gap for 120ms (roughly a pause)
+            if (performance.now() - lastBoundary > 120) close();
+            else open();
+            raf = requestAnimationFrame(loop);
+          };
+          // boundary fires during speech; use it to mark recent activity
+          u.onboundary = (e) => {
+            lastBoundary = performance.now();
+          };
+          u.onpause = () => close();
+          u.onresume = () => {
+            lastBoundary = performance.now();
+          };
+          // start loop
+          lastBoundary = performance.now();
+          raf = requestAnimationFrame(loop);
+          const ok = await done;
+          cancelAnimationFrame(raf);
+          close();
           return ok;
         }
+        // ----- Macros -----
         async macroGreet() {
-          this.speak(true);
           this.wave("left", true);
           this.glance(-4, 0);
           audio.blip(880, 90);
@@ -1497,7 +1543,6 @@
           this.glance(4, 0);
           await wait(900);
           this.wave("left", false);
-          this.speak(false);
           this.blink();
         }
         async macroShy() {
@@ -1538,6 +1583,10 @@
           this.blink();
           await wait(900);
           this.wave("both", false);
+        }
+        // Utilities for parallel actions
+        async doAll(promises) {
+          return Promise.all(promises);
         }
       }
       window.robotAPI = new RobotController();
@@ -1684,12 +1733,27 @@
       // Sample line that uses TTS + gestures
       async function playSample() {
         await audio.init();
-        await window.robotAPI.say("Hello! I'm ready to tell a story.", {
-          rate: 1.05,
-        });
+        // Parallel theme change + arm flare while first line plays
+        await window.robotAPI.doAll([
+          window.robotAPI.say("Hello! I'm ready to tell a story.", {
+            rate: 1.05,
+            lipSync: "boundary",
+          }),
+          (async () => {
+            window.robotAPI.setTheme();
+            window.robotAPI.flare();
+          })(),
+        ]);
         await window.robotAPI.macroGreet();
-        await window.robotAPI.say("Let's begin our journey.");
-        await window.robotAPI.macroCelebrate();
+        await window.robotAPI.say("Let's begin our journey.", {
+          lipSync: "boundary",
+        });
+        await window.robotAPI.doAll([
+          window.robotAPI.macroCelebrate(),
+          (async () => {
+            document.getElementById("progressBar").style.width = "50%";
+          })(),
+        ]);
       }
       document
         .getElementById("playSample")
