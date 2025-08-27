@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robot Head v12 — Random Blink + Eye Search</title>
+  <style>
+    :root{
+      /* Base metrics */
+      --size: 238px; --outline: 2.5px; --shell: #f0f4f8; --line: #4f5b76; --face: #142238;
+      --eye: 35px; --eye-gap: 38px; --eye-color: #66e5c4; --glow: .6;
+      --mouth: #28d9c9; --mouth-w: 48px; --mouth-h: 20px; --mouth-r: 40px; --ear-offset: 22px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7fafc;font-family:Inter,system-ui,sans-serif;gap:16px;padding:24px}
+
+    .stage{display:grid;place-items:center;filter:drop-shadow(0 10px 20px rgba(79,91,118,.15))}
+    .rig{position:relative;padding-bottom:42px}
+
+    .head{width:var(--size);height:calc(var(--size)*.8);border-radius:52%/40%;background:var(--shell);border:var(--outline) solid var(--line);position:relative;display:flex;justify-content:center;align-items:center}
+    .ear{position:absolute;top:36%;width:20px;height:40px;border-radius:10px;background:var(--shell);border:var(--outline) solid var(--line)}
+    .ear.left{left:calc(var(--ear-offset)*-1)}
+    .ear.right{right:calc(var(--ear-offset)*-1)}
+
+    /* Antenna */
+    .antenna{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:12px;height:28px;background:var(--line);border-radius:6px}
+    .antenna::after{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--eye-color);box-shadow:0 0 8px var(--eye-color);transition:background .3s ease, box-shadow .3s ease}
+    .antenna.pulse::after{animation:pulse 1.4s ease-in-out infinite}
+    @keyframes pulse{0%,100%{transform:translateX(-50%) scale(1); box-shadow:0 0 8px var(--eye-color)}50%{transform:translateX(-50%) scale(1.15); box-shadow:0 0 16px var(--eye-color)}}
+
+    /* Face */
+    .face{width:87%;height:86%;background:var(--face);border-radius:42%/36%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:calc(var(--outline)*.9) solid #5c6986;overflow:hidden;transition:background .5s ease}
+
+    /* Eyes */
+    .eyes{display:flex;gap:var(--eye-gap);align-items:center;justify-content:center;margin-bottom:14px}
+    .eye{position:relative;width:var(--eye);height:var(--eye);border-radius:50%;background:var(--eye-color);box-shadow:0 0 calc(12px*var(--glow)) var(--eye-color);overflow:hidden;transform-origin:center;transition:background .4s ease, box-shadow .4s ease}
+    .eye::after{content:"";position:absolute;width:24%;height:24%;border-radius:50%;background:#fff;top:22%;left:22%;opacity:.9}
+
+    .pupil{position:absolute;left:50%;top:50%;width:46%;height:46%;transform:translate(-50%,-50%);border-radius:50%;background:#0e1a2a;box-shadow:inset 0 0 4px rgba(255,255,255,.12);transition:transform .25s ease}
+
+    /* One-shot blink (triggered by JS) */
+    @keyframes blinkOnce{0%{transform:scaleY(1)}45%{transform:scaleY(.12)}100%{transform:scaleY(1)}}
+    .blink-now{animation:blinkOnce 180ms ease-in-out}
+
+    /* Mouth */
+    .mouth{--w:var(--mouth-w);--h:var(--mouth-h);--r:var(--mouth-r); width:var(--w); height:var(--h);border-radius:0 0 var(--r) var(--r); background:var(--mouth);box-shadow:inset 0 -4px 6px rgba(0,0,0,.3), 0 0 calc(8px*var(--glow)) var(--eye-color);transition:width .18s,height .18s,border-radius .18s, background .4s ease}
+    .shape-rest{ --w:var(--mouth-w); --h:var(--mouth-h); --r:var(--mouth-r); border-radius:0 0 var(--r) var(--r) }
+    .shape-smile{ --w:calc(var(--mouth-w) + 8px); --h:calc(var(--mouth-h) + 2px); --r:calc(var(--mouth-r) + 2px); border-radius:0 0 var(--r) var(--r) }
+    .shape-open{ --w:calc(var(--mouth-w) - 20px); --h:calc(var(--mouth-h) + 14px); --r:20px; border-radius:20px }
+    .shape-wide{ --w:calc(var(--mouth-w) + 12px); --h:calc(var(--mouth-h) - 2px); --r:18px; border-radius:18px }
+    .shape-O{ --w:40px; --h:40px; --r:50%; border-radius:50% }
+    .shape-FV{ --w:70px; --h:14px; --r:10px; border-radius:10px }
+    .shape-closed{ --w:58px; --h:12px; --r:10px; border-radius:10px }
+
+    /* Neck */
+    .neck{position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);width:48%;height:18px;background:var(--shell);border:var(--outline) solid var(--line);border-top:none;border-radius:0 0 14px 14px;z-index:-1}
+    .neck::after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);width:70%;height:8px;background:rgba(79,91,118,.16);filter:blur(4px);border-radius:50%}
+
+    /* Controls */
+    .panel{margin-top:10px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.08);padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .panel label{font-weight:600;color:#4f5b76}
+    select,button{font:inherit}
+    button{padding:8px 12px;border-radius:10px;border:1px solid #d1d5db;background:#f8fafc;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="rig">
+      <div class="head" id="head">
+        <div class="antenna" id="antenna"></div>
+        <div class="ear left"></div>
+        <div class="ear right"></div>
+        <div class="face" id="face">
+          <div class="eyes">
+            <div class="eye" id="eyeL"><span class="pupil" id="pupilL"></span></div>
+            <div class="eye" id="eyeR"><span class="pupil" id="pupilR"></span></div>
+          </div>
+          <div class="mouth shape-rest" id="mouth"></div>
+        </div>
+        <div class="neck"></div>
+      </div>
+    </div>
+
+    <!-- Dropdown controls (eye follow & proximity removed) -->
+    <div class="panel">
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="idle">Idle</option>
+        <option value="pulse">Antenna Pulse</option>
+        <option value="talk">Talk</option>
+        <option value="colors">Color Cycle</option>
+        <option value="combo">Combo</option>
+        <option value="loop" selected>Demo Loop</option>
+      </select>
+      <label for="palette">Palette</label>
+      <select id="palette">
+        <option value="0" selected>Teal (default)</option>
+        <option value="1">Sky</option>
+        <option value="2">Amber</option>
+        <option value="3">Pink</option>
+      </select>
+      <button id="play">Play</button>
+      <button id="stop">Stop</button>
+    </div>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const head = document.getElementById('head');
+    const face = document.getElementById('face');
+    const antenna = document.getElementById('antenna');
+    const eyeL = document.getElementById('eyeL');
+    const eyeR = document.getElementById('eyeR');
+    const pupilL = document.getElementById('pupilL');
+    const pupilR = document.getElementById('pupilR');
+    const mouth = document.getElementById('mouth');
+
+    const modeSel = document.getElementById('mode');
+    const paletteSel = document.getElementById('palette');
+    const playBtn = document.getElementById('play');
+    const stopBtn = document.getElementById('stop');
+
+    // Color palettes
+    const palette = [
+      { eye:'#66e5c4', mouth:'#28d9c9', face:'#142238' },
+      { eye:'#7ad1ff', mouth:'#49b5ff', face:'#0f2036' },
+      { eye:'#ffd761', mouth:'#ffb84d', face:'#1d1a33' },
+      { eye:'#ff86c8', mouth:'#ff61a6', face:'#1a1b2e' }
+    ];
+
+    function applyColors(idx){
+      const {eye, mouth:cm, face:cf} = palette[idx];
+      root.style.setProperty('--eye-color', eye);
+      [eyeL, eyeR].forEach(e=>{ e.style.background=eye; e.style.boxShadow=`0 0 calc(12px*var(--glow)) ${eye}`; });
+      antenna.style.setProperty('--eye-color', eye);
+      root.style.setProperty('--mouth', cm);
+      mouth.style.background = cm;
+      face.style.background = cf;
+    }
+    applyColors(+paletteSel.value);
+
+    // ========= Random blink (1–3s) =========
+    function rand(min,max){return Math.random()*(max-min)+min}
+    let blinkTimeout;
+    function scheduleBlink(){
+      clearTimeout(blinkTimeout);
+      blinkTimeout = setTimeout(()=>{
+        [eyeL, eyeR].forEach(e=>{ e.classList.remove('blink-now'); void e.offsetWidth; e.classList.add('blink-now'); });
+        scheduleBlink();
+      }, rand(1000,3000));
+    }
+    scheduleBlink();
+
+    // ========= Eye search (every 4–6s look around) =========
+    const LOOKS = [
+      {x:0,y:-12},   // up
+      {x:12,y:0},    // right
+      {x:0,y:12},    // down
+      {x:-12,y:0},   // left
+      {x:6,y:-8},    // up-right
+      {x:-6,y:-8}    // up-left
+    ];
+    let searchTimeout;
+    function centerPupils(){
+      pupilL.style.transform = 'translate(-50%, -50%)';
+      pupilR.style.transform = 'translate(-50%, -50%)';
+    }
+    function scheduleSearch(){
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(async ()=>{
+        // choose two or three positions this round
+        const hops = Math.floor(rand(2,4));
+        for(let i=0;i<hops;i++){
+          const p = LOOKS[Math.floor(rand(0,LOOKS.length))];
+          // base center is -50%,-50% — add pixel offsets
+          pupilL.style.transform = `translate(${p.x-50}%, ${p.y-50}%)`;
+          pupilR.style.transform = `translate(${p.x-50}%, ${p.y-50}%)`;
+          await new Promise(r=>setTimeout(r, rand(220,420)));
+        }
+        centerPupils();
+        scheduleSearch();
+      }, rand(4000,6000));
+    }
+    scheduleSearch();
+
+    // ========= Talking (for modes) =========
+    const map = (ch)=>{
+      ch = ch.toLowerCase();
+      if(/[mbp]/.test(ch)) return 'shape-closed';
+      if(/[fv]/.test(ch)) return 'shape-FV';
+      if(/[oquw]/.test(ch)) return 'shape-O';
+      if(/[aei]/.test(ch)) return 'shape-wide';
+      if(/[lrtdnszjhcgkxy]/.test(ch)) return 'shape-open';
+      if(/[!?,. ]/.test(ch)) return 'shape-rest';
+      return 'shape-open';
+    };
+    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+    async function talk(text, speed=100){
+      for(let i=0;i<text.length;i++){
+        mouth.className = 'mouth ' + map(text[i]);
+        await sleep(speed + (/[aeiou]/i.test(text[i])? 60: 0));
+      }
+      mouth.className = 'mouth shape-rest';
+    }
+
+    // ========= Modes =========
+    let loop=false, stopped=false;
+    async function runOnce(mode){
+      if(mode==='idle'){ await sleep(2200); return }
+      if(mode==='pulse'){ antenna.classList.add('pulse'); await sleep(3000); antenna.classList.remove('pulse'); return; }
+      if(mode==='talk'){ await talk('hello! showcasing talking mode.'); return }
+      if(mode==='colors'){ for(const scheme of palette){ if(stopped) return; applyColors(palette.indexOf(scheme)); await sleep(1800); } return; }
+      if(mode==='combo'){ antenna.classList.add('pulse'); await talk('combination mode active.'); antenna.classList.remove('pulse'); return; }
+    }
+    async function runLoop(){
+      stopped=false; loop=true;
+      while(loop && !stopped){
+        await runOnce('idle'); if(stopped) break;
+        await runOnce('pulse'); if(stopped) break;
+        await runOnce('talk');  if(stopped) break;
+        await runOnce('colors'); if(stopped) break;
+        await runOnce('combo'); if(stopped) break;
+      }
+    }
+
+    // UI wiring
+    paletteSel.addEventListener('change',()=> applyColors(+paletteSel.value));
+    modeSel.addEventListener('change', async ()=>{
+      stopPlayback();
+      const mode = modeSel.value;
+      if(mode==='loop'){ runLoop(); }
+      else { await runOnce(mode); }
+    });
+
+    function stopPlayback(){ stopped=true; loop=false; antenna.classList.remove('pulse'); mouth.className='mouth shape-rest'; }
+    playBtn.addEventListener('click',()=>{ stopped=false; const m = modeSel.value; if(m==='loop') runLoop(); else runOnce(m); });
+    stopBtn.addEventListener('click',stopPlayback);
+  </script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Storyteller Robot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --robot-body: #F0F4F8;
+            --robot-outline: #4F5B76;
+            --robot-face-bg: #0D1A2E;
+            --robot-eyes: #7AFDD6;
+            --robot-streak: #40E0D0;
+            --shadow-color: rgba(79, 91, 118, 0.2);
+            --progress: 50%;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #F7FAFC;
+            overflow: hidden;
+            padding-bottom: 5rem;
+        }
+
+        .robot-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            animation: hover 3s ease-in-out infinite;
+        }
+
+        @keyframes hover {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .robot-shadow {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            width: 70%;
+            height: 15px;
+            background: var(--shadow-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            filter: blur(8px);
+            animation: shadow-scale 3s ease-in-out infinite;
+        }
+
+        @keyframes shadow-scale {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) scale(0.9);
+                opacity: 0.8;
+            }
+        }
+
+        /* Head Component */
+        .robot-head-main {
+            position: absolute;
+            width: 130px;
+            height: 100px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            border-radius: 50% / 30%;
+            bottom: 165px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        .head-antenna {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 20px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            z-index: 3;
+        }
+
+        .ear {
+            position: absolute;
+            width: 15px;
+            height: 30px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            border-radius: 10px;
+            top: 25px;
+        }
+
+        .ear.left {
+            left: -15px;
+        }
+        .ear.right {
+            right: -15px;
+        }
+
+        /* Face Component */
+        .robot-face {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110px;
+            height: 80px;
+            background: var(--robot-face-bg);
+            border-radius: 50% / 30%;
+            overflow: hidden;
+            border: 2px solid #5C6986;
+        }
+
+        .eye-container {
+            position: absolute;
+            width: 100%;
+            top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            animation: blink 4s infinite;
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% {
+                transform: scaleY(1);
+            }
+            95% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        .eye {
+            width: 20px;
+            height: 20px;
+            background-color: var(--robot-eyes);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--robot-eyes);
+            position: relative;
+        }
+        
+        .eye::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 5px;
+            height: 5px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 5px white;
+        }
+        
+        .mouth {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 8px;
+            border-bottom: 2px solid var(--robot-eyes);
+            border-radius: 0 0 10px 10px;
+            transition: height 0.2s ease-in-out;
+        }
+
+        /* Neck and Body Components */
+        .robot-neck {
+            position: absolute;
+            width: 50px;
+            height: 10px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            bottom: 155px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .robot-body-main {
+            position: absolute;
+            width: 150px;
+            height: 120px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            /* Custom border-radius to create the tapered shape with rounded edges */
+            border-radius: 40px 40px 60px 60px / 40px 40px 20px 20px;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+        .body-line-progress {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: var(--progress);
+            height: 3px;
+            background-color: var(--robot-streak);
+            border-radius: 1.5px;
+            transition: width 0.3s ease-in-out;
+            box-shadow: 0 0 8px var(--robot-streak);
+        }
+
+        .body-line-track {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 3px;
+            background: rgba(209, 217, 228, 0.5);
+            border-radius: 1.5px;
+        }
+        
+        /* Arm Components */
+        .arm {
+            position: absolute;
+            width: 30px;
+            height: 70px;
+            background: var(--robot-body);
+            border: 3px solid var(--robot-outline);
+            border-radius: 15px;
+            top: 155px;
+            z-index: -1;
+        }
+
+        .arm.left {
+            left: 55px;
+            transform-origin: top center;
+            animation: wave-left 5s ease-in-out infinite;
+        }
+        
+        .arm.right {
+            right: 55px;
+            transform-origin: top center;
+            animation: wave-right 5s ease-in-out infinite;
+        }
+
+        @keyframes wave-left {
+            0%, 100% { transform: rotate(15deg); }
+            50% { transform: rotate(5deg); }
+        }
+        @keyframes wave-right {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(-5deg); }
+        }
+
+        /* -- Controls -- */
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .controls label {
+            font-weight: 600;
+            color: var(--robot-outline);
+        }
+
+        .controls input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 200px;
+            height: 8px;
+            background: #D1D9E4;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--robot-streak);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px var(--robot-streak);
+        }
+
+        .controls input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--robot-streak);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px var(--robot-streak);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="robot-container">
+        <!-- The head component -->
+        <div class="robot-head-main">
+            <div class="head-antenna"></div>
+            <div class="ear left"></div>
+            <div class="ear right"></div>
+            
+            <!-- Face with eyes and mouth -->
+            <div class="robot-face">
+                <div class="eye-container">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+                <div class="mouth" id="mouth"></div>
+            </div>
+        </div>
+        
+        <!-- The neck piece -->
+        <div class="robot-neck"></div>
+
+        <!-- The main body of the robot -->
+        <div class="robot-body-main">
+            <div class="body-line-track"></div>
+            <div class="body-line-progress" id="progress-bar"></div>
+        </div>
+
+        <!-- Arms -->
+        <div class="arm left"></div>
+        <div class="arm right"></div>
+
+        <!-- Shadow effect -->
+        <div class="robot-shadow"></div>
+    </div>
+
+    <!-- UI Controls -->
+    <div class="controls">
+        <label for="storyProgress">Story Progress</label>
+        <input type="range" id="storyProgress" min="0" max="100" value="50">
+    </div>
+
+    <script>
+        // JavaScript to control the progress bar on the robot's chest
+        const progressBar = document.getElementById('progress-bar');
+        const progressSlider = document.getElementById('storyProgress');
+        const mouth = document.getElementById('mouth');
+
+        progressSlider.addEventListener('input', (event) => {
+            const value = event.target.value;
+            // Update the CSS custom property for the progress bar
+            document.documentElement.style.setProperty('--progress', `${value}%`);
+
+            // Animate the mouth based on the slider value
+            const mouthSize = 8 + (Math.abs(value - 50) / 100 * 8); // Varies from 8 to 16
+            mouth.style.height = `${mouthSize}px`;
+        });
+    </script>
+
+</body>
+</html>
