@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>
-      Robot v2.0 — Stage A (Modes + Panels + Scaling, Port/Starboard Arms)
+      Robot v2.1 — Stage A Complete + Fixes (Modes, Panels, Scaling, Left/Right)
     </title>
     <!-- Inter font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,16 +31,13 @@
         --neck-radius: 80px;
         --robot-scale: 1;
       }
-
       * {
         box-sizing: border-box;
       }
-
       html,
       body {
         height: 100%;
       }
-
       body {
         margin: 0;
         background: #0b1220;
@@ -49,7 +46,7 @@
         overflow: hidden;
       }
 
-      /* -------------- APP GRID (Stage A) -------------- */
+      /* -------------- APP GRID -------------- */
       .app {
         display: grid;
         grid-template-columns: 320px 1fr 0px;
@@ -57,17 +54,14 @@
         width: 100vw;
         height: 100vh;
       }
-
       .app.debug {
         grid-template-columns: 320px 1fr 0px;
       }
-
       .app.story {
         grid-template-columns: 0px 1fr 0px;
       }
-
       .app.feedback {
-        grid-template-columns: 0px 1fr 360px;
+        grid-template-columns: 0px 1fr 420px;
       }
 
       /* Mode switcher */
@@ -79,7 +73,6 @@
         display: flex;
         gap: 6px;
       }
-
       .btn {
         appearance: none;
         border: 1px solid var(--line);
@@ -89,56 +82,47 @@
         border-radius: 10px;
         cursor: pointer;
       }
-
       .btn:active {
         transform: translateY(1px);
       }
-
       .mode-switch .btn {
         background: #0f1b2a;
         border-color: #2c3b60;
       }
-
       .mode-switch .btn.active {
         outline: 2px solid var(--eye);
       }
 
-      /* Left & Right Panels */
+      /* Panels */
       .panel {
         height: 100vh;
         overflow: auto;
         background: #0e1628;
         border-right: 1px solid #2a3651;
       }
-
       .panel h3 {
         margin: 12px 12px 6px;
         font-size: 14px;
         color: #99a7c2;
       }
-
       .section {
         padding: 8px 12px;
         border-top: 1px dashed #22314c;
       }
-
       .section label {
         display: block;
         font-size: 13px;
         margin: 6px 0 2px;
         color: #c9d6ee;
       }
-
       .section .row {
         display: flex;
         gap: 8px;
         align-items: center;
       }
-
       .section input[type="range"] {
         width: 100%;
       }
-
       .panel-right {
         height: 100vh;
         overflow: auto;
@@ -146,7 +130,29 @@
         border-left: 1px solid #2a3651;
       }
 
-      /* Center Stage (your original scene lives here) */
+      /* Stage progress */
+      .progress {
+        height: 10px;
+        background: #111a30;
+        border: 1px solid #2b3b5f;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress > span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--eye), var(--accent));
+        width: 0%;
+      }
+      .checklist {
+        margin: 6px 0 0 0;
+        padding-left: 18px;
+      }
+      .checklist li {
+        margin: 4px 0;
+      }
+
+      /* Center Stage */
       .stage {
         position: relative;
         width: 100%;
@@ -154,7 +160,6 @@
         overflow: hidden;
         user-select: none;
       }
-
       .bg {
         position: absolute;
         inset: 0;
@@ -165,7 +170,6 @@
           #0b1220 100%
         );
       }
-
       .stars {
         position: absolute;
         inset: 0;
@@ -185,7 +189,6 @@
         touch-action: none;
         cursor: grab;
       }
-
       .robot-wrap.dragging {
         cursor: grabbing;
       }
@@ -198,18 +201,16 @@
         position: relative;
       }
 
-      /* Base hover of whole robot */
+      /* Hover */
       @keyframes hover {
         0%,
         100% {
           transform: translateY(0);
         }
-
         50% {
           transform: translateY(-6px);
         }
       }
-
       .robot:not(.nohover) {
         animation: hover 5s ease-in-out infinite;
       }
@@ -232,17 +233,14 @@
       .nod .head {
         animation: nod 2.2s ease-in-out infinite;
       }
-
       @keyframes nod {
         0%,
         100% {
           transform: rotate(0deg);
         }
-
         40% {
           transform: rotate(3deg);
         }
-
         60% {
           transform: rotate(-2deg);
         }
@@ -252,20 +250,16 @@
         0% {
           transform: rotate(0);
         }
-
         30% {
           transform: rotate(-6deg);
         }
-
         60% {
           transform: rotate(5deg);
         }
-
         100% {
           transform: rotate(0);
         }
       }
-
       .tilt .head {
         animation: tiltShort 600ms ease-in-out;
       }
@@ -281,11 +275,9 @@
         transform-origin: 50% 10%;
         z-index: 2;
       }
-
       .ear.left {
         left: -22px;
       }
-
       .ear.right {
         right: -22px;
       }
@@ -294,28 +286,23 @@
       .wiggle .ear.left {
         animation: earL 1.6s ease-in-out infinite;
       }
-
       .wiggle .ear.right {
         animation: earR 1.6s ease-in-out infinite;
       }
-
       @keyframes earL {
         0%,
         100% {
           transform: rotate(0);
         }
-
         50% {
           transform: rotate(-8deg);
         }
       }
-
       @keyframes earR {
         0%,
         100% {
           transform: rotate(0);
         }
-
         50% {
           transform: rotate(8deg);
         }
@@ -333,7 +320,6 @@
         overflow: visible;
         z-index: 2;
       }
-
       .antenna::after {
         content: "";
         position: absolute;
@@ -346,19 +332,16 @@
         background: var(--eye);
         box-shadow: 0 0 10px var(--eye);
       }
-
       @keyframes ping {
         0% {
           transform: translateX(-50%) scale(1);
           opacity: 1;
         }
-
         100% {
           transform: translateX(-50%) scale(1.6);
           opacity: 0;
         }
       }
-
       .antenna::before {
         content: "";
         position: absolute;
@@ -393,7 +376,6 @@
         justify-content: center;
         margin-bottom: 12px;
       }
-
       .eye {
         width: 35px;
         height: 35px;
@@ -404,30 +386,23 @@
         overflow: hidden;
         transform-origin: center;
       }
-
-      /* Blink */
       @keyframes blinkOnce {
         0% {
           transform: scaleY(1);
         }
-
         45% {
           transform: scaleY(0.15);
         }
-
         55% {
           transform: scaleY(0.15);
         }
-
         100% {
           transform: scaleY(1);
         }
       }
-
       .blink {
         animation: blinkOnce 160ms linear;
       }
-
       .pupil {
         position: absolute;
         left: 50%;
@@ -438,7 +413,6 @@
         border-radius: 50%;
         transform: translate(-50%, -50%);
       }
-
       .eye .highlight {
         content: "";
         position: absolute;
@@ -460,45 +434,38 @@
         box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.25),
           0 0 calc(8px * var(--glow)) var(--eye);
       }
-
       @keyframes speak {
         0% {
           height: 18px;
           border-bottom-left-radius: 40px;
           border-bottom-right-radius: 40px;
         }
-
         20% {
           height: 26px;
           border-bottom-left-radius: 28px;
           border-bottom-right-radius: 28px;
         }
-
         40% {
           height: 14px;
           border-bottom-left-radius: 36px;
           border-bottom-right-radius: 36px;
         }
-
         60% {
           height: 24px;
           border-bottom-left-radius: 20px;
           border-bottom-right-radius: 20px;
         }
-
         80% {
           height: 16px;
           border-bottom-left-radius: 34px;
           border-bottom-right-radius: 34px;
         }
-
         100% {
           height: 18px;
           border-bottom-left-radius: 40px;
           border-bottom-right-radius: 40px;
         }
       }
-
       .speaking .mouth {
         animation: speak 700ms ease-in-out infinite;
       }
@@ -522,13 +489,11 @@
         margin-top: var(--gap-neck-torso);
         z-index: 1;
       }
-
       svg {
         display: block;
         width: 100%;
         height: 100%;
       }
-
       .torso-wrap,
       .torso-wrap svg {
         overflow: visible;
@@ -545,21 +510,19 @@
       #batteryFill {
         stroke-linecap: round;
       }
-
       .charge #batteryFill {
         stroke-dasharray: 240;
         stroke-dashoffset: 240;
         animation: charge 2.2s ease-in-out forwards;
         filter: drop-shadow(0 0 6px var(--eye));
       }
-
       @keyframes charge {
         to {
           stroke-dashoffset: 0;
         }
       }
 
-      /* Legacy controls bar (visible only in debug) */
+      /* Controls bar (visible only in debug) */
       .controls {
         position: absolute;
         left: 50%;
@@ -570,7 +533,6 @@
         flex-wrap: wrap;
         justify-content: center;
       }
-
       .app.story .controls,
       .app.story .panel,
       .app.story .panel-right {
@@ -587,33 +549,32 @@
         border-radius: 8px;
         padding: 8px;
       }
-
       .feedback-form textarea {
-        min-height: 120px;
+        min-height: 100px;
         resize: vertical;
       }
-
       .feedback-tags {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
       }
-
       .feedback-tags .tag {
         padding: 4px 8px;
         border: 1px solid #2b3b5f;
         border-radius: 999px;
         cursor: pointer;
       }
-
       .feedback-actions {
         display: flex;
         gap: 8px;
         margin-top: 8px;
       }
+      .subtle {
+        color: #9fb3d7;
+        font-size: 12px;
+      }
     </style>
   </head>
-
   <body>
     <!-- Mode switcher -->
     <div class="mode-switch" aria-label="Mode switch">
@@ -622,7 +583,7 @@
       <button class="btn" id="modeFeedback">Feedback</button>
     </div>
 
-    <!-- APP GRID (Stage A) -->
+    <!-- APP GRID -->
     <div class="app debug" id="app">
       <!-- Left: Debug panel -->
       <aside class="panel" id="debugPanel" aria-label="Debug controls">
@@ -660,8 +621,8 @@
         <div class="section">
           <strong>Arms</strong>
           <div class="row">
-            <button class="btn" id="dbgWavePort">Wave Port</button
-            ><button class="btn" id="dbgWaveStar">Wave Starboard</button>
+            <button class="btn" id="dbgWaveLeft">Wave Left</button
+            ><button class="btn" id="dbgWaveRight">Wave Right</button>
           </div>
           <div class="row">
             <button class="btn" id="dbgWaveBoth">Wave Both</button
@@ -694,10 +655,29 @@
             <button class="btn" id="dbgStoryThink">Think</button>
             <button class="btn" id="dbgStoryCelebrate">Celebrate</button>
           </div>
+          <div class="subtle">
+            Hint: these are same as top Story buttons; they now call the macros
+            directly.
+          </div>
+        </div>
+
+        <div class="section">
+          <strong>Stages (inline)</strong>
+          <div class="subtle">
+            Quick reference; full details in Feedback panel.
+          </div>
+          <ul class="checklist">
+            <li>Stage A — <b>Complete</b> ✅</li>
+            <li>Stage B — Story templates & bubbles — <i>Planned</i></li>
+            <li>Stage C — Timeline editor UI — <i>Planned</i></li>
+            <li>Stage D — Assets & transitions — <i>Planned</i></li>
+            <li>Stage E — Feedback export/share — <i>Planned</i></li>
+            <li>Stage F — Perf & mobile polish — <i>Planned</i></li>
+          </ul>
         </div>
       </aside>
 
-      <!-- Center: Original Scene -->
+      <!-- Center: Scene -->
       <div class="stage" id="stage">
         <div class="bg"></div>
         <div class="stars"></div>
@@ -763,9 +743,7 @@
                     id="torsoPath"
                     d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z"
                   />
-                  <clipPath id="clipTorso">
-                    <use href="#torsoPath" />
-                  </clipPath>
+                  <clipPath id="clipTorso"><use href="#torsoPath" /></clipPath>
                 </defs>
 
                 <use
@@ -775,13 +753,9 @@
                   stroke-width="3"
                 />
 
-                <!-- Arms renamed to Port (robot-left) and Starboard (robot-right) -->
-                <g id="armPort">
-                  <path id="wingPort" class="wing" />
-                </g>
-                <g id="armStar">
-                  <path id="wingStar" class="wing" />
-                </g>
+                <!-- Arms renamed to Left (robot-left) and Right (robot-right) -->
+                <g id="armLeft"><path id="wingLeft" class="wing" /></g>
+                <g id="armRight"><path id="wingRight" class="wing" /></g>
 
                 <g clip-path="url(#clipTorso)">
                   <rect
@@ -844,8 +818,8 @@
           <button class="btn" id="charge">Charge Bar</button>
           <button class="btn" id="theme">Theme</button>
           <button class="btn" id="resetAll">Reset All</button>
-          <button class="btn" id="armWavePort">Wave Port</button>
-          <button class="btn" id="armWaveStar">Wave Star</button>
+          <button class="btn" id="armWaveLeft">Wave Left</button>
+          <button class="btn" id="armWaveRight">Wave Right</button>
           <button class="btn" id="armWaveBoth">Wave Both</button>
           <button class="btn" id="armFlare">Flare</button>
           <button class="btn" id="armFloat">Float</button>
@@ -858,35 +832,102 @@
         </div>
       </div>
 
-      <!-- Right: Feedback panel -->
+      <!-- Right: Feedback panel (upgraded) -->
       <aside class="panel-right" id="feedbackPanel" aria-label="Feedback panel">
         <div class="section">
-          <h3>Give Feedback</h3>
-          <div class="feedback-tags" id="fbTags">
-            <div class="tag" data-t="UI">UI</div>
-            <div class="tag" data-t="Art">Art</div>
-            <div class="tag" data-t="Timing">Timing</div>
-            <div class="tag" data-t="Copy">Copy</div>
-            <div class="tag" data-t="Audio">Audio</div>
-            <div class="tag" data-t="Perf">Perf</div>
+          <h3>Project Stages</h3>
+          <div class="progress" aria-label="Overall progress">
+            <span id="progressBar" style="width: 17%"></span>
           </div>
+          <div class="subtle">Stage A complete • B–F planned</div>
+          <ul class="checklist">
+            <li><b>A</b> Modes + Panels + Scaling — <b>Done</b> ✅</li>
+            <li><b>B</b> Story templates, bubbles, voice polish — Planned</li>
+            <li><b>C</b> Timeline editor UI — Planned</li>
+            <li><b>D</b> Assets & transitions — Planned</li>
+            <li><b>E</b> Export/Share feedback & stories — Planned</li>
+            <li><b>F</b> Performance & mobile polish — Planned</li>
+          </ul>
         </div>
+
+        <div class="section">
+          <h3>Stage Notes</h3>
+          <label>Stage A details</label>
+          <textarea
+            id="stageADetails"
+            placeholder="Notes on current scaffold (modes, panels, scaling)…"
+          ></textarea>
+          <label>Next stage focus (B)</label>
+          <textarea
+            id="stageBPlan"
+            placeholder="What should we prioritize for Story Mode templates & bubbles?"
+          ></textarea>
+        </div>
+
         <div class="section feedback-form">
+          <h3>Feedback (by element)</h3>
           <label for="fbTitle">Title</label>
           <input type="text" id="fbTitle" placeholder="Short summary…" />
-          <label for="fbNotes">Details</label>
+
+          <label>Head & Face</label>
           <textarea
-            id="fbNotes"
-            placeholder="What should change? Why? Where in the story?"
+            id="fbHead"
+            placeholder="Eyes, blink, mouth, antenna…"
           ></textarea>
+
+          <label>Arms</label>
+          <textarea id="fbArms" placeholder="Waves, float, flare…"></textarea>
+
+          <label>Torso & Battery</label>
+          <textarea
+            id="fbTorso"
+            placeholder="Panel, charge bar visuals…"
+          ></textarea>
+
+          <label>Motion</label>
+          <textarea
+            id="fbMotion"
+            placeholder="Hover, nod, tilt timing…"
+          ></textarea>
+
+          <label>Theme & Colors</label>
+          <textarea
+            id="fbThemeNotes"
+            placeholder="Palettes, gradients, contrast…"
+          ></textarea>
+
+          <label>Story & Script</label>
+          <textarea
+            id="fbStory"
+            placeholder="Macro beats, lines, pacing…"
+          ></textarea>
+
+          <label>UI & Bubbles</label>
+          <textarea
+            id="fbUI"
+            placeholder="Controls, captions, future bubbles…"
+          ></textarea>
+
+          <label>Audio & Voice</label>
+          <textarea
+            id="fbAudio"
+            placeholder="Voice settings, SFX, timing…"
+          ></textarea>
+
+          <label>Performance</label>
+          <textarea
+            id="fbPerf"
+            placeholder="Frame rate, CPU, animation budget…"
+          ></textarea>
+
+          <label>Other</label>
+          <textarea id="fbOther" placeholder="Anything else…"></textarea>
+
           <div class="feedback-actions">
             <button class="btn" id="fbCopy">Copy JSON</button>
             <button class="btn" id="fbClear">Clear</button>
           </div>
-          <p
-            id="fbStatus"
-            style="font-size: 12px; color: #9fb3d7; margin-top: 6px"
-          ></p>
+          <p id="fbStatus" class="subtle"></p>
         </div>
       </aside>
     </div>
@@ -1066,11 +1107,11 @@
         doBlink();
       });
 
-      // ---------- Arms (geometry) - Port/Starboard ----------
-      const armPort = document.getElementById("armPort"); // robot-left (viewer-right)
-      const armStar = document.getElementById("armStar"); // robot-right (viewer-left)
-      const wingPort = document.getElementById("wingPort");
-      const wingStar = document.getElementById("wingStar");
+      // ---------- Arms (geometry) - Left/Right ----------
+      const armLeft = document.getElementById("armLeft"); // robot-left (viewer-right)
+      const armRight = document.getElementById("armRight"); // robot-right (viewer-left)
+      const wingLeft = document.getElementById("wingLeft");
+      const wingRight = document.getElementById("wingRight");
 
       function wingAirfoilLeftPath(ax, ay, len, bulge, tip, innerCurve) {
         const topY = ay;
@@ -1105,28 +1146,28 @@
       function drawArms() {
         const { len, bulge, tip, innerCurve } = size;
         const { anchorY, inset } = align;
-        const axStar = 40 + inset; // starboard pivot (viewer-left)
-        const axPort = 220 - inset; // port pivot (viewer-right)
-        // Starboard (robot-right) is on viewer-left -> use LEFT airfoil shape
-        wingStar.setAttribute(
+        const axRight = 40 + inset; // robot-right pivot (viewer-left)
+        const axLeft = 220 - inset; // robot-left pivot (viewer-right)
+        // Right (robot-right) is on viewer-left -> use LEFT airfoil
+        wingRight.setAttribute(
           "d",
-          wingAirfoilLeftPath(axStar, anchorY, len, bulge, tip, innerCurve)
+          wingAirfoilLeftPath(axRight, anchorY, len, bulge, tip, innerCurve)
         );
-        // Port (robot-left) is on viewer-right -> use RIGHT airfoil shape
-        wingPort.setAttribute(
+        // Left (robot-left) is on viewer-right -> use RIGHT airfoil
+        wingLeft.setAttribute(
           "d",
-          wingAirfoilRightPath(axPort, anchorY, len, bulge, tip, innerCurve)
+          wingAirfoilRightPath(axLeft, anchorY, len, bulge, tip, innerCurve)
         );
-        armStar.setAttribute("transform", `rotate(0 ${axStar} ${anchorY})`);
-        armPort.setAttribute("transform", `rotate(0 ${axPort} ${anchorY})`);
+        armRight.setAttribute("transform", `rotate(0 ${axRight} ${anchorY})`);
+        armLeft.setAttribute("transform", `rotate(0 ${axLeft} ${anchorY})`);
       }
       drawArms();
 
       // ---------- Arm animations (single rAF loop) ----------
       let rafId = null;
       const waveState = {
-        port: false,
-        star: false,
+        left: false,
+        right: false,
         start: 0,
         amp: 6,
         period: 1200,
@@ -1153,8 +1194,8 @@
           Math.sin((tw / waveState.period) * 2 * Math.PI) * waveState.amp;
         const { inset } = align;
         let { anchorY } = align;
-        const axStar = 40 + inset,
-          axPort = 220 - inset;
+        const axRight = 40 + inset,
+          axLeft = 220 - inset;
         if (floatState.active) {
           if (!floatState.start) floatState.start = ts;
           const tf = (ts - floatState.start) % floatState.period;
@@ -1177,23 +1218,23 @@
         align.anchorY = anchorY;
         drawArms();
         align.anchorY = prevY;
-        if (waveState.port)
-          armPort.setAttribute(
+        if (waveState.left)
+          armLeft.setAttribute(
             "transform",
-            `rotate(${-ang} ${axPort} ${anchorY})`
+            `rotate(${-ang} ${axLeft} ${anchorY})`
           );
         else
-          armPort.setAttribute("transform", `rotate(0 ${axPort} ${anchorY})`);
-        if (waveState.star)
-          armStar.setAttribute(
+          armLeft.setAttribute("transform", `rotate(0 ${axLeft} ${anchorY})`);
+        if (waveState.right)
+          armRight.setAttribute(
             "transform",
-            `rotate(${ang} ${axStar} ${anchorY})`
+            `rotate(${ang} ${axRight} ${anchorY})`
           );
         else
-          armStar.setAttribute("transform", `rotate(0 ${axStar} ${anchorY})`);
+          armRight.setAttribute("transform", `rotate(0 ${axRight} ${anchorY})`);
         if (
-          waveState.port ||
-          waveState.star ||
+          waveState.left ||
+          waveState.right ||
           floatState.active ||
           flareState.active
         ) {
@@ -1204,16 +1245,16 @@
       }
 
       function startWave(which = "both") {
-        if (which === "port" || which === "both") waveState.port = true;
-        if (which === "star" || which === "both") waveState.star = true;
+        if (which === "left" || which === "both") waveState.left = true;
+        if (which === "right" || which === "both") waveState.right = true;
         if (!rafId) rafId = requestAnimationFrame(animLoop);
       }
       function stopWave(which = "both") {
-        if (which === "port" || which === "both") waveState.port = false;
-        if (which === "star" || which === "both") waveState.star = false;
+        if (which === "left" || which === "both") waveState.left = false;
+        if (which === "right" || which === "both") waveState.right = false;
         if (
-          !waveState.port &&
-          !waveState.star &&
+          !waveState.left &&
+          !waveState.right &&
           !floatState.active &&
           !flareState.active
         ) {
@@ -1239,22 +1280,24 @@
       }
       function stopFloat() {
         floatState.active = false;
-        if (!waveState.port && !waveState.star && !flareState.active) {
+        if (!waveState.left && !waveState.right && !flareState.active) {
           cancelAnimationFrame(rafId);
           rafId = null;
           drawArms();
         }
       }
 
-      // Buttons -> arm anims (Port/Star)
-      document.getElementById("armWavePort").addEventListener("click", () => {
-        waveState.port ? stopWave("port") : startWave("port");
+      // Buttons -> arm anims (Left/Right)
+      document.getElementById("armWaveLeft").addEventListener("click", () => {
+        waveState.left ? stopWave("left") : startWave("left");
       });
-      document.getElementById("armWaveStar").addEventListener("click", () => {
-        waveState.star ? stopWave("star") : startWave("star");
+      document.getElementById("armWaveRight").addEventListener("click", () => {
+        waveState.right ? stopWave("right") : startWave("right");
       });
       document.getElementById("armWaveBoth").addEventListener("click", () => {
-        waveState.port || waveState.star ? stopWave("both") : startWave("both");
+        waveState.left || waveState.right
+          ? stopWave("both")
+          : startWave("both");
       });
       document.getElementById("armFlare").addEventListener("click", flareArms);
       document.getElementById("armFloat").addEventListener("click", () => {
@@ -1266,34 +1309,34 @@
         drawArms();
       });
 
-      // ---------- Storytelling Macros updated to port/star ----------
+      // ---------- Storytelling Macros (fixed bindings) ----------
       async function storyGreet() {
         robot.classList.add("speaking");
-        startWave("port");
+        startWave("left");
         glance(-4, 0);
         await wait(900);
         glance(4, 0);
         await wait(900);
         doBlink();
-        stopWave("port");
+        stopWave("left");
         robot.classList.remove("speaking");
       }
       async function storyShy() {
         robot.classList.add("tilt");
-        startWave("star");
+        startWave("right");
         glance(-3, 2);
         await wait(600);
         doBlink();
         await wait(600);
-        stopWave("star");
+        stopWave("right");
         robot.classList.remove("tilt");
       }
       async function storyPresent() {
         const { anchorY, inset } = align;
-        const axStar = 40 + inset,
-          axPort = 220 - inset;
-        armPort.setAttribute("transform", `rotate(-8 ${axPort} ${anchorY})`);
-        armStar.setAttribute("transform", `rotate(8 ${axStar} ${anchorY})`);
+        const axRight = 40 + inset,
+          axLeft = 220 - inset;
+        armLeft.setAttribute("transform", `rotate(-8 ${axLeft} ${anchorY})`);
+        armRight.setAttribute("transform", `rotate(8 ${axRight} ${anchorY})`);
         flareArms();
         glance(0, -2);
         await wait(1200);
@@ -1319,21 +1362,26 @@
         stopWave("both");
       }
 
-      document
-        .getElementById("storyGreet")
-        .addEventListener("click", storyGreet);
-      document.getElementById("storyShy").addEventListener("click", storyShy);
-      document
-        .getElementById("storyPresent")
-        .addEventListener("click", storyPresent);
-      document
-        .getElementById("storyThink")
-        .addEventListener("click", storyThink);
+      // Top bar Story buttons
+      document.getElementById("storyGreet").addEventListener("click", () => {
+        storyGreet().catch(console.error);
+      });
+      document.getElementById("storyShy").addEventListener("click", () => {
+        storyShy().catch(console.error);
+      });
+      document.getElementById("storyPresent").addEventListener("click", () => {
+        storyPresent().catch(console.error);
+      });
+      document.getElementById("storyThink").addEventListener("click", () => {
+        storyThink().catch(console.error);
+      });
       document
         .getElementById("storyCelebrate")
-        .addEventListener("click", storyCelebrate);
+        .addEventListener("click", () => {
+          storyCelebrate().catch(console.error);
+        });
 
-      /* ---------------- Stage A: Mode Manager & Panels ---------------- */
+      /* ---------------- Mode Manager & Panels ---------------- */
       const appEl = document.getElementById("app");
       const btnDebug = document.getElementById("modeDebug");
       const btnStory = document.getElementById("modeStory");
@@ -1372,7 +1420,7 @@
       scaleRange.addEventListener("input", (e) => applyScale(e.target.value));
       applyScale(scaleRange.value);
 
-      // Debug panel bindings (map to existing functions)
+      // Debug panel bindings (now call macros directly)
       const mapClick = (id, fn) =>
         document.getElementById(id)?.addEventListener("click", fn);
       mapClick("dbgSpeak", () => robot.classList.toggle("speaking"));
@@ -1404,14 +1452,16 @@
         glance(0, 0);
         doBlink();
       });
-      mapClick("dbgWavePort", () => {
-        waveState.port ? stopWave("port") : startWave("port");
+      mapClick("dbgWaveLeft", () => {
+        waveState.left ? stopWave("left") : startWave("left");
       });
-      mapClick("dbgWaveStar", () => {
-        waveState.star ? stopWave("star") : startWave("star");
+      mapClick("dbgWaveRight", () => {
+        waveState.right ? stopWave("right") : startWave("right");
       });
       mapClick("dbgWaveBoth", () => {
-        waveState.port || waveState.star ? stopWave("both") : startWave("both");
+        waveState.left || waveState.right
+          ? stopWave("both")
+          : startWave("both");
       });
       mapClick("dbgFlare", () => flareArms());
       mapClick("dbgFloat", () => {
@@ -1422,6 +1472,118 @@
         stopFloat();
         drawArms();
       });
+
+      // Story macros from the Debug panel (fix #1)
+      mapClick("dbgStoryGreet", () => {
+        storyGreet().catch(console.error);
+      });
+      mapClick("dbgStoryShy", () => {
+        storyShy().catch(console.error);
+      });
+      mapClick("dbgStoryPresent", () => {
+        storyPresent().catch(console.error);
+      });
+      mapClick("dbgStoryThink", () => {
+        storyThink().catch(console.error);
+      });
+      mapClick("dbgStoryCelebrate", () => {
+        storyCelebrate().catch(console.error);
+      });
+
+      // -------- Feedback JSON (per-element fields) --------
+      const fbTitle = document.getElementById("fbTitle");
+      const fbHead = document.getElementById("fbHead");
+      const fbArms = document.getElementById("fbArms");
+      const fbTorso = document.getElementById("fbTorso");
+      const fbMotion = document.getElementById("fbMotion");
+      const fbThemeNotes = document.getElementById("fbThemeNotes");
+      const fbStory = document.getElementById("fbStory");
+      const fbUI = document.getElementById("fbUI");
+      const fbAudio = document.getElementById("fbAudio");
+      const fbPerf = document.getElementById("fbPerf");
+      const fbOther = document.getElementById("fbOther");
+
+      const stageADetails = document.getElementById("stageADetails");
+      const stageBPlan = document.getElementById("stageBPlan");
+
+      const fbCopy = document.getElementById("fbCopy");
+      const fbClear = document.getElementById("fbClear");
+      const fbStatus = document.getElementById("fbStatus");
+
+      function makeFeedbackJSON() {
+        const progress = {
+          totalStages: 6,
+          completed: 1,
+          percent: Math.round((1 / 6) * 100),
+        };
+        return {
+          when: new Date().toISOString(),
+          mode:
+            ["debug", "story", "feedback"].find((m) =>
+              appEl.classList.contains(m)
+            ) || "debug",
+          progress,
+          stages: {
+            A: { status: "done", notes: stageADetails.value.trim() },
+            B: { status: "planned", plan: stageBPlan.value.trim() },
+            C: { status: "planned" },
+            D: { status: "planned" },
+            E: { status: "planned" },
+            F: { status: "planned" },
+          },
+          title: fbTitle.value.trim(),
+          elements: {
+            head: fbHead.value.trim(),
+            arms: fbArms.value.trim(),
+            torso: fbTorso.value.trim(),
+            motion: fbMotion.value.trim(),
+            theme: fbThemeNotes.value.trim(),
+            story: fbStory.value.trim(),
+            ui: fbUI.value.trim(),
+            audio: fbAudio.value.trim(),
+            performance: fbPerf.value.trim(),
+            other: fbOther.value.trim(),
+          },
+          robot: {
+            scale:
+              parseFloat(
+                getComputedStyle(document.documentElement).getPropertyValue(
+                  "--robot-scale"
+                )
+              ) || 1,
+          },
+        };
+      }
+
+      fbCopy?.addEventListener("click", () => {
+        const payload = JSON.stringify(makeFeedbackJSON(), null, 2);
+        navigator.clipboard?.writeText(payload);
+        fbStatus.textContent = "Copied JSON to clipboard.";
+        setTimeout(() => (fbStatus.textContent = ""), 1600);
+      });
+
+      fbClear?.addEventListener("click", () => {
+        [
+          fbTitle,
+          fbHead,
+          fbArms,
+          fbTorso,
+          fbMotion,
+          fbThemeNotes,
+          fbStory,
+          fbUI,
+          fbAudio,
+          fbPerf,
+          fbOther,
+          stageADetails,
+          stageBPlan,
+        ].forEach((el) => (el.value = ""));
+        fbStatus.textContent = "Cleared.";
+        setTimeout(() => (fbStatus.textContent = ""), 1000);
+      });
+
+      // Initialize progress bar visually
+      document.getElementById("progressBar").style.width = "17%";
     </script>
   </body>
 </html>
