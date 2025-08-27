@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robot v11 — Neck aligned with torso</title>
+  <style>
+    :root{
+      --shell:#f0f4f8; --line:#4f5b76; --face:#142238; --eye:#66e5c4; --accent:#28d9c9; --glow:.6;
+      --head-w:240px; --torso-w:260px; --torso-h:270px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7fafc;font-family:Inter,system-ui,sans-serif}
+    .robot{display:flex;flex-direction:column;align-items:center;gap:0;filter:drop-shadow(0 10px 20px rgba(79,91,118,.15))}
+
+    /* Head */
+    .head{width:var(--head-w);height:calc(var(--head-w)*0.79);border-radius:52%/40%;background:var(--shell);border:2.5px solid var(--line);position:relative;display:flex;justify-content:center;align-items:center;z-index:2}
+    .ear{position:absolute;top:36%;width:20px;height:40px;border-radius:10px;background:var(--shell);border:2.5px solid var(--line)}
+    .ear.left{left:-22px}.ear.right{right:-22px}
+    .antenna{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:12px;height:28px;background:var(--line);border-radius:6px}
+    .antenna::after{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:var(--eye);box-shadow:0 0 8px var(--eye)}
+    .face{width:87%;height:86%;background:var(--face);border-radius:42%/36%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #5c6986;overflow:hidden}
+    .eyes{display:flex;gap:38px;align-items:center;justify-content:center;margin-bottom:14px}
+    .eye{width:35px;height:35px;border-radius:50%;background:var(--eye);box-shadow:0 0 calc(12px*var(--glow)) var(--eye);position:relative;overflow:hidden}
+    .eye::after{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:#fff;top:22%;left:22%;opacity:.9}
+    @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.15)}}
+    .eye{animation:blink 5s infinite;transform-origin:center}
+    .mouth{width:48px;height:20px;border-radius:0 0 40px 40px;background:var(--accent);box-shadow:inset 0 -4px 6px rgba(0,0,0,.3),0 0 calc(8px*var(--glow)) var(--eye)}
+
+    /* Neck aligned snug with torso */
+    .neck{
+      width:140px;
+      height:36px;
+      background:var(--shell);
+      border:2.5px solid var(--line);
+      border-top:none;
+      border-radius:0 0 28px 28px;
+      z-index:2;
+      margin-top:-12px;
+    }
+
+    .torso-wrap{position:relative;width:var(--torso-w);height:var(--torso-h);margin-top:-6px;z-index:1}
+
+    .panel{margin-top:14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.08);padding:8px 12px;display:flex;gap:10px;align-items:center}
+    .panel label{font-weight:600;color:#4f5b76}
+    input[type="range"]{width:220px}
+  </style>
+</head>
+<body>
+  <div class="robot">
+    <div class="head">
+      <div class="antenna"></div>
+      <div class="ear left"></div>
+      <div class="ear right"></div>
+      <div class="face">
+        <div class="eyes">
+          <div class="eye"></div>
+          <div class="eye"></div>
+        </div>
+        <div class="mouth"></div>
+      </div>
+    </div>
+    <div class="neck"></div>
+
+    <div class="torso-wrap">
+      <svg id="torsoSVG" width="100%" height="100%" viewBox="0 0 260 270" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity=".45"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity=".06"/>
+          </linearGradient>
+          <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#0ad9c9"/>
+            <stop offset="100%" stop-color="#66e5c4"/>
+          </linearGradient>
+          <!-- torso with a shallow neck notch that matches neck width -->
+          <path id="torsoPath" d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z" />
+          <clipPath id="clipTorso"><use href="#torsoPath"/></clipPath>
+        </defs>
+
+        <use href="#torsoPath" fill="var(--shell)" stroke="var(--line)" stroke-width="3"/>
+
+        <g clip-path="url(#clipTorso)">
+          <rect x="0" y="0" width="260" height="270" fill="url(#panelGrad)" opacity=".6"/>
+          <path d="M60 130 Q130 116 200 130" stroke="#c9d3e2" stroke-width="8" opacity=".55"/>
+          <path d="M66 164 Q130 158 194 164" stroke="#d7dee9" stroke-width="6" opacity=".65"/>
+          <path d="M74 198 Q130 216 186 198" stroke="#d7dee9" stroke-width="10" opacity=".75"/>
+        </g>
+
+        <!-- Contoured battery line at 20% torso height -->
+        <path id="batteryTrack" d="M60 110 Q130 100 200 110" fill="none" stroke="rgba(100,110,140,.28)" stroke-width="12" stroke-linecap="round"/>
+        <path id="batteryFill" d="M60 110 Q130 100 200 110" fill="none" stroke="url(#batteryGrad)" stroke-width="12" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="panel">
+      <label for="battery">Battery</label>
+      <input id="battery" type="range" min="0" max="100" value="62">
+    </div>
+  </div>
+
+  <script>
+    const slider=document.getElementById('battery');
+    const fill=document.getElementById('batteryFill');
+    const track=document.getElementById('batteryTrack');
+    function setBattery(p){
+      const L=track.getTotalLength();
+      fill.setAttribute('stroke-dasharray',L);
+      fill.setAttribute('stroke-dashoffset',L*(1-p/100));
+    }
+    setBattery(+slider.value);
+    slider.addEventListener('input',e=>setBattery(+e.target.value));
+  </script>
+</body>
+</html>
