@@ -3,9 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>
-      Robot v2.1 — Stage A Complete + Fixes (Modes, Panels, Scaling, Left/Right)
-    </title>
+    <title>Robot v2.2 — Controller + Audio + Stage Panels (JavaScript)</title>
     <!-- Inter font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -581,6 +579,7 @@
       <button class="btn" id="modeDebug">Debug</button>
       <button class="btn" id="modeStory">Story</button>
       <button class="btn" id="modeFeedback">Feedback</button>
+      <button class="btn" id="playSample">Play Sample</button>
     </div>
 
     <!-- APP GRID -->
@@ -656,8 +655,7 @@
             <button class="btn" id="dbgStoryCelebrate">Celebrate</button>
           </div>
           <div class="subtle">
-            Hint: these are same as top Story buttons; they now call the macros
-            directly.
+            These directly trigger the macros via RobotController.
           </div>
         </div>
 
@@ -668,7 +666,7 @@
           </div>
           <ul class="checklist">
             <li>Stage A — <b>Complete</b> ✅</li>
-            <li>Stage B — Story templates & bubbles — <i>Planned</i></li>
+            <li>Stage B — Story templates & bubbles — <i>In Progress</i></li>
             <li>Stage C — Timeline editor UI — <i>Planned</i></li>
             <li>Stage D — Assets & transitions — <i>Planned</i></li>
             <li>Stage E — Feedback export/share — <i>Planned</i></li>
@@ -681,6 +679,27 @@
       <div class="stage" id="stage">
         <div class="bg"></div>
         <div class="stars"></div>
+
+        <!-- Story-mode audio gate -->
+        <button
+          id="enableAudio"
+          style="
+            position: absolute;
+            left: 50%;
+            top: 14%;
+            transform: translateX(-50%);
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid #2b3b5f;
+            background: #0f1b2a;
+            color: #e5e7eb;
+            cursor: pointer;
+            display: none;
+            z-index: 5;
+          "
+        >
+          Enable Audio
+        </button>
 
         <div class="robot-wrap" id="robotWrap" aria-label="Draggable robot">
           <div class="robot" id="robot">
@@ -753,7 +772,7 @@
                   stroke-width="3"
                 />
 
-                <!-- Arms renamed to Left (robot-left) and Right (robot-right) -->
+                <!-- Arms Left/Right -->
                 <g id="armLeft"><path id="wingLeft" class="wing" /></g>
                 <g id="armRight"><path id="wingRight" class="wing" /></g>
 
@@ -837,12 +856,14 @@
         <div class="section">
           <h3>Project Stages</h3>
           <div class="progress" aria-label="Overall progress">
-            <span id="progressBar" style="width: 17%"></span>
+            <span id="progressBar" style="width: 33%"></span>
           </div>
-          <div class="subtle">Stage A complete • B–F planned</div>
+          <div class="subtle">
+            Stage A complete • Stage B (Controller + Audio) In Progress
+          </div>
           <ul class="checklist">
             <li><b>A</b> Modes + Panels + Scaling — <b>Done</b> ✅</li>
-            <li><b>B</b> Story templates, bubbles, voice polish — Planned</li>
+            <li><b>B</b> Controller + Audio + Bubbles — <b>In Progress</b></li>
             <li><b>C</b> Timeline editor UI — Planned</li>
             <li><b>D</b> Assets & transitions — Planned</li>
             <li><b>E</b> Export/Share feedback & stories — Planned</li>
@@ -855,12 +876,12 @@
           <label>Stage A details</label>
           <textarea
             id="stageADetails"
-            placeholder="Notes on current scaffold (modes, panels, scaling)…"
+            placeholder="Notes on scaffold (modes, panels, scaling)…"
           ></textarea>
-          <label>Next stage focus (B)</label>
+          <label>Stage B plan</label>
           <textarea
             id="stageBPlan"
-            placeholder="What should we prioritize for Story Mode templates & bubbles?"
+            placeholder="RobotController, AudioEngine, story JSON runner…"
           ></textarea>
         </div>
 
@@ -1077,6 +1098,7 @@
         batteryGradStop2.setAttribute("stop-color", t.accentLight);
       }
       applyTheme(themes[themeIdx]);
+
       document.getElementById("theme").addEventListener("click", () => {
         themeIdx = (themeIdx + 1) % themes.length;
         applyTheme(themes[themeIdx]);
@@ -1309,57 +1331,232 @@
         drawArms();
       });
 
-      // ---------- Storytelling Macros (fixed bindings) ----------
+      // ---------- Audio Engine ----------
+      class AudioEngine {
+        constructor() {
+          this.audioUnlocked = false;
+          this.ctx = null;
+          this.voices = [];
+        }
+        async init() {
+          if (this.audioUnlocked) return;
+          this.ctx =
+            this.ctx ||
+            new (window.AudioContext || window.webkitAudioContext)();
+          if (this.ctx.state === "suspended") await this.ctx.resume();
+          if ("speechSynthesis" in window) {
+            this.voices = window.speechSynthesis.getVoices();
+            if (!this.voices.length) {
+              await new Promise((r) => {
+                const onv = () => {
+                  this.voices = window.speechSynthesis.getVoices();
+                  r();
+                  window.speechSynthesis.removeEventListener(
+                    "voiceschanged",
+                    onv
+                  );
+                };
+                window.speechSynthesis.addEventListener("voiceschanged", onv);
+                window.speechSynthesis.getVoices();
+              });
+            }
+          }
+          this.audioUnlocked = true;
+        }
+        speak(text, opts = {}) {
+          if (!("speechSynthesis" in window)) return Promise.resolve(false);
+          const {
+            voiceName,
+            lang = "en-US",
+            rate = 1,
+            pitch = 1,
+            volume = 1,
+          } = opts;
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = lang;
+          u.rate = rate;
+          u.pitch = pitch;
+          u.volume = volume;
+          if (voiceName) {
+            const v = this.voices.find((v) => v.name === voiceName);
+            if (v) u.voice = v;
+          }
+          return new Promise((res) => {
+            u.onend = () => res(true);
+            speechSynthesis.speak(u);
+          });
+        }
+        blip(freq = 880, durMs = 120) {
+          if (!this.ctx) return;
+          const o = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          o.frequency.value = freq;
+          o.type = "sine";
+          g.gain.value = 0.0001;
+          o.connect(g).connect(this.ctx.destination);
+          const now = this.ctx.currentTime;
+          g.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + durMs / 1000);
+          o.start(now);
+          o.stop(now + durMs / 1000);
+        }
+      }
+      const audio = new AudioEngine();
+
+      // ---------- Robot Controller ----------
+      class RobotController {
+        constructor() {
+          this.mode = "debug";
+          this.onModeChange = null;
+        }
+        setMode(m) {
+          setMode(m); // delegate to existing grid state handler
+          this.mode = m;
+          const btn = document.getElementById("enableAudio");
+          if (btn)
+            btn.style.display =
+              m === "story" && !audio.audioUnlocked ? "block" : "none";
+          if (this.onModeChange) this.onModeChange(m);
+        }
+        setScale(n) {
+          document.documentElement.style.setProperty("--robot-scale", n);
+        }
+        speak(on = true) {
+          robot.classList.toggle("speaking", !!on);
+        }
+        nod(on = true) {
+          robot.classList.toggle("nod", !!on);
+        }
+        wiggleEars(on = true) {
+          robot.classList.toggle("wiggle", !!on);
+        }
+        tilt() {
+          robot.classList.add("tilt");
+          setTimeout(() => robot.classList.remove("tilt"), 620);
+        }
+        hover(on) {
+          robot.classList.toggle("nohover", !on);
+        }
+        charge() {
+          torso.classList.remove("charge");
+          void torso.offsetWidth;
+          torso.classList.add("charge");
+        }
+        setTheme(i) {
+          themeIdx =
+            typeof i === "number"
+              ? (i + themes.length) % themes.length
+              : (themeIdx + 1) % themes.length;
+          applyTheme(themes[themeIdx]);
+        }
+        glance(dx, dy) {
+          glance(dx, dy);
+        }
+        blink() {
+          doBlink();
+        }
+        resetAll() {
+          ["speaking", "wiggle", "nod", "tilt", "nohover"].forEach((c) =>
+            robot.classList.remove(c)
+          );
+          torso.classList.remove("charge");
+          stopWave("both");
+          stopFloat();
+          drawArms();
+          glance(0, 0);
+          doBlink();
+        }
+        wave(which = "both", on = true) {
+          if (on) startWave(which);
+          else stopWave(which);
+        }
+        float(on = true) {
+          if (on) floatArms();
+          else stopFloat();
+        }
+        flare() {
+          flareArms();
+        }
+        armsReset() {
+          stopWave("both");
+          stopFloat();
+          drawArms();
+        }
+        async say(text, voiceOpts = {}) {
+          this.speak(true);
+          const ok = await audio.speak(text, voiceOpts);
+          this.speak(false);
+          return ok;
+        }
+        async macroGreet() {
+          this.speak(true);
+          this.wave("left", true);
+          this.glance(-4, 0);
+          audio.blip(880, 90);
+          await wait(900);
+          this.glance(4, 0);
+          await wait(900);
+          this.wave("left", false);
+          this.speak(false);
+          this.blink();
+        }
+        async macroShy() {
+          this.tilt();
+          this.wave("right", true);
+          this.glance(-3, 2);
+          await wait(600);
+          this.blink();
+          await wait(600);
+          this.wave("right", false);
+        }
+        async macroPresent() {
+          const { anchorY, inset } = align;
+          const axRight = 40 + inset,
+            axLeft = 220 - inset;
+          armLeft.setAttribute("transform", `rotate(-8 ${axLeft} ${anchorY})`);
+          armRight.setAttribute("transform", `rotate(8 ${axRight} ${anchorY})`);
+          this.flare();
+          this.glance(0, -2);
+          await wait(1200);
+          drawArms();
+        }
+        async macroThink() {
+          this.nod(true);
+          this.float(true);
+          this.glance(0, 4);
+          await wait(1800);
+          this.blink();
+          this.nod(false);
+          this.float(false);
+          drawArms();
+        }
+        async macroCelebrate() {
+          this.wave("both", true);
+          this.charge();
+          this.glance(0, -4);
+          await wait(1200);
+          this.blink();
+          await wait(900);
+          this.wave("both", false);
+        }
+      }
+      window.robotAPI = new RobotController();
+
+      // ---------- Storytelling Macros (legacy bindings kept) ----------
       async function storyGreet() {
-        robot.classList.add("speaking");
-        startWave("left");
-        glance(-4, 0);
-        await wait(900);
-        glance(4, 0);
-        await wait(900);
-        doBlink();
-        stopWave("left");
-        robot.classList.remove("speaking");
+        await window.robotAPI.macroGreet();
       }
       async function storyShy() {
-        robot.classList.add("tilt");
-        startWave("right");
-        glance(-3, 2);
-        await wait(600);
-        doBlink();
-        await wait(600);
-        stopWave("right");
-        robot.classList.remove("tilt");
+        await window.robotAPI.macroShy();
       }
       async function storyPresent() {
-        const { anchorY, inset } = align;
-        const axRight = 40 + inset,
-          axLeft = 220 - inset;
-        armLeft.setAttribute("transform", `rotate(-8 ${axLeft} ${anchorY})`);
-        armRight.setAttribute("transform", `rotate(8 ${axRight} ${anchorY})`);
-        flareArms();
-        glance(0, -2);
-        await wait(1200);
-        drawArms();
+        await window.robotAPI.macroPresent();
       }
       async function storyThink() {
-        robot.classList.add("nod");
-        floatArms();
-        glance(0, 4);
-        await wait(1800);
-        doBlink();
-        robot.classList.remove("nod");
-        stopFloat();
-        drawArms();
+        await window.robotAPI.macroThink();
       }
       async function storyCelebrate() {
-        startWave("both");
-        torso.classList.add("charge");
-        glance(0, -4);
-        await wait(1200);
-        doBlink();
-        await wait(900);
-        stopWave("both");
+        await window.robotAPI.macroCelebrate();
       }
 
       // Top bar Story buttons
@@ -1401,14 +1598,15 @@
       }
       [btnDebug, btnStory, btnFeedback].forEach((b) => {
         b.addEventListener("click", () =>
-          setMode(b.id.replace("mode", "").toLowerCase())
+          window.robotAPI.setMode(b.id.replace("mode", "").toLowerCase())
         );
       });
+
       const bootMode =
         location.hash?.replace("#", "") ||
         localStorage.getItem("robotMode") ||
         "debug";
-      setMode(bootMode);
+      window.robotAPI.setMode(bootMode);
 
       // Robot Scale
       const scaleRange = document.getElementById("scaleRange");
@@ -1420,60 +1618,45 @@
       scaleRange.addEventListener("input", (e) => applyScale(e.target.value));
       applyScale(scaleRange.value);
 
-      // Debug panel bindings (now call macros directly)
+      // Debug panel bindings through controller for consistency
       const mapClick = (id, fn) =>
         document.getElementById(id)?.addEventListener("click", fn);
-      mapClick("dbgSpeak", () => robot.classList.toggle("speaking"));
-      mapClick("dbgBlink", () => doBlink());
-      mapClick("dbgNod", () => robot.classList.toggle("nod"));
-      mapClick("dbgTilt", () => {
-        robot.classList.add("tilt");
-        setTimeout(() => robot.classList.remove("tilt"), 620);
-      });
-      mapClick("dbgEars", () => robot.classList.toggle("wiggle"));
-      mapClick("dbgCharge", () => {
-        torso.classList.remove("charge");
-        void torso.offsetWidth;
-        torso.classList.add("charge");
-      });
-      mapClick("dbgTheme", () => {
-        themeIdx = (themeIdx + 1) % themes.length;
-        applyTheme(themes[themeIdx]);
-      });
-      mapClick("dbgHover", () => robot.classList.toggle("nohover"));
-      mapClick("dbgResetAll", () => {
-        ["speaking", "wiggle", "nod", "tilt", "nohover"].forEach((c) =>
-          robot.classList.remove(c)
-        );
-        torso.classList.remove("charge");
-        stopWave("both");
-        stopFloat();
-        drawArms();
-        glance(0, 0);
-        doBlink();
-      });
+      mapClick("dbgSpeak", () =>
+        window.robotAPI.speak(!robot.classList.contains("speaking"))
+      );
+      mapClick("dbgBlink", () => window.robotAPI.blink());
+      mapClick("dbgNod", () =>
+        window.robotAPI.nod(!robot.classList.contains("nod"))
+      );
+      mapClick("dbgTilt", () => window.robotAPI.tilt());
+      mapClick("dbgEars", () =>
+        window.robotAPI.wiggleEars(!robot.classList.contains("wiggle"))
+      );
+      mapClick("dbgCharge", () => window.robotAPI.charge());
+      mapClick("dbgTheme", () => window.robotAPI.setTheme());
+      mapClick("dbgHover", () =>
+        window.robotAPI.hover(robot.classList.contains("nohover"))
+      );
+      mapClick("dbgResetAll", () => window.robotAPI.resetAll());
       mapClick("dbgWaveLeft", () => {
-        waveState.left ? stopWave("left") : startWave("left");
+        const on = !waveState.left;
+        window.robotAPI.wave("left", on);
       });
       mapClick("dbgWaveRight", () => {
-        waveState.right ? stopWave("right") : startWave("right");
+        const on = !waveState.right;
+        window.robotAPI.wave("right", on);
       });
       mapClick("dbgWaveBoth", () => {
-        waveState.left || waveState.right
-          ? stopWave("both")
-          : startWave("both");
+        const any = waveState.left || waveState.right;
+        window.robotAPI.wave("both", !any);
       });
-      mapClick("dbgFlare", () => flareArms());
+      mapClick("dbgFlare", () => window.robotAPI.flare());
       mapClick("dbgFloat", () => {
-        floatState.active ? stopFloat() : floatArms();
+        window.robotAPI.float(!floatState.active);
       });
-      mapClick("dbgArmsReset", () => {
-        stopWave("both");
-        stopFloat();
-        drawArms();
-      });
+      mapClick("dbgArmsReset", () => window.robotAPI.armsReset());
 
-      // Story macros from the Debug panel (fix #1)
+      // Story macros from the Debug panel
       mapClick("dbgStoryGreet", () => {
         storyGreet().catch(console.error);
       });
@@ -1489,6 +1672,28 @@
       mapClick("dbgStoryCelebrate", () => {
         storyCelebrate().catch(console.error);
       });
+
+      // Enable Audio button (autoplay policy gate)
+      document
+        .getElementById("enableAudio")
+        ?.addEventListener("click", async () => {
+          await audio.init();
+          document.getElementById("enableAudio").style.display = "none";
+        });
+
+      // Sample line that uses TTS + gestures
+      async function playSample() {
+        await audio.init();
+        await window.robotAPI.say("Hello! I'm ready to tell a story.", {
+          rate: 1.05,
+        });
+        await window.robotAPI.macroGreet();
+        await window.robotAPI.say("Let's begin our journey.");
+        await window.robotAPI.macroCelebrate();
+      }
+      document
+        .getElementById("playSample")
+        .addEventListener("click", () => playSample().catch(console.error));
 
       // -------- Feedback JSON (per-element fields) --------
       const fbTitle = document.getElementById("fbTitle");
@@ -1513,8 +1718,8 @@
       function makeFeedbackJSON() {
         const progress = {
           totalStages: 6,
-          completed: 1,
-          percent: Math.round((1 / 6) * 100),
+          completed: 2,
+          percent: Math.round((2 / 6) * 100),
         };
         return {
           when: new Date().toISOString(),
@@ -1525,7 +1730,11 @@
           progress,
           stages: {
             A: { status: "done", notes: stageADetails.value.trim() },
-            B: { status: "planned", plan: stageBPlan.value.trim() },
+            B: {
+              status: "in-progress",
+              plan: stageBPlan.value.trim(),
+              features: ["RobotController", "AudioEngine", "Sample playback"],
+            },
             C: { status: "planned" },
             D: { status: "planned" },
             E: { status: "planned" },
@@ -1583,7 +1792,7 @@
       });
 
       // Initialize progress bar visually
-      document.getElementById("progressBar").style.width = "17%";
+      document.getElementById("progressBar").style.width = "33%";
     </script>
   </body>
 </html>
