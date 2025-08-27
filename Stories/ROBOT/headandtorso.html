@@ -3,77 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Robot v20 — Animations + Color-Aligned</title>
+  <title>Robot v23 — Torso Behind Neck</title>
   <style>
     :root{
-      /* Unified palette for head & torso */
-      --shell:#edf3f9;           /* lighter, same on both */
-      --line:#4f5b76;            /* outline */
-      --face:#0f1b2e;            /* screen */
-      --eye:#72f1d5;             /* eyes + accents */
-      --accent:#28d9c9;          /* mouth fill */
-      --glow:.6;
-      /* Geometry (from your fixed values) */
+      --shell:#edf3f9; --line:#4f5b76; --face:#0f1b2e; --eye:#72f1d5; --accent:#28d9c9; --glow:.6;
       --head-w:240px; --torso-w:260px; --torso-h:270px;
       --neck-width:74px; --neck-overlap:-5px; --gap-neck-torso:-71px; --neck-height:20px; --neck-radius:80px;
     }
     *{box-sizing:border-box}
     body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7fafc;font-family:Inter,system-ui,sans-serif}
 
-    /* ---------- Robot Layout ---------- */
-    .robot{display:flex;flex-direction:column;align-items:center;gap:0}
+    .robot{display:flex;flex-direction:column;align-items:center;gap:0;position:relative}
 
-    /* Subtle overall hover */
     @keyframes hover {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    .robot{animation:hover 5s ease-in-out infinite}
+    .robot:not(.nohover){animation:hover 5s ease-in-out infinite}
 
-    /* ---------- Head ---------- */
-    .head{width:var(--head-w);height:calc(var(--head-w)*0.79);border-radius:52%/40%;background:var(--shell);border:2.5px solid var(--line);position:relative;display:flex;justify-content:center;align-items:center}
-    .ear{position:absolute;top:36%;width:20px;height:40px;border-radius:10px;background:var(--shell);border:2.5px solid var(--line)}
+    .head{width:var(--head-w);height:calc(var(--head-w)*0.79);border-radius:52%/40%;background:var(--shell);border:2.5px solid var(--line);position:relative;display:flex;justify-content:center;align-items:center;transform-origin:50% 100%;z-index:3}
+
+    .nod .head{animation:nod 2.2s ease-in-out infinite}
+    @keyframes nod{0%,100%{transform:rotate(0deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}}
+
+    @keyframes tiltShort{0%{transform:rotate(0)}30%{transform:rotate(-6deg)}60%{transform:rotate(5deg)}100%{transform:rotate(0)}}
+    .tilt .head{animation:tiltShort 600ms ease-in-out}
+
+    .ear{position:absolute;top:36%;width:20px;height:40px;border-radius:10px;background:var(--shell);border:2.5px solid var(--line);transform-origin:50% 10%;z-index:2}
     .ear.left{left:-22px}.ear.right{right:-22px}
-    .antenna{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:12px;height:28px;background:var(--line);border-radius:6px;overflow:visible}
+
+    .wiggle .ear.left{animation:earL 1.6s ease-in-out infinite}
+    .wiggle .ear.right{animation:earR 1.6s ease-in-out infinite}
+    @keyframes earL{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
+    @keyframes earR{0%,100%{transform:rotate(0)}50%{transform:rotate(8deg)}}
+
+    .antenna{position:absolute;top:-28px;left:50%;transform:translateX(-50%);width:12px;height:28px;background:var(--line);border-radius:6px;overflow:visible;z-index:2}
     .antenna::after{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--eye);box-shadow:0 0 10px var(--eye)}
     @keyframes ping{0%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) scale(1.6);opacity:0}}
     .antenna::before{content:"";position:absolute;top:-14px;left:50%;width:18px;height:18px;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 0 rgba(114,241,213,.7);animation:ping 1.8s ease-out infinite}
 
-    .face{width:87%;height:86%;background:var(--face);border-radius:42%/36%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #5c6986;overflow:hidden}
+    .face{width:87%;height:86%;background:var(--face);border-radius:42%/36%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #5c6986;overflow:hidden;z-index:2}
 
-    /* Eyes with pupils */
     .eyes{display:flex;gap:38px;align-items:center;justify-content:center;margin-bottom:12px}
-    .eye{width:35px;height:35px;border-radius:50%;background:var(--eye);box-shadow:0 0 calc(12px*var(--glow)) var(--eye);position:relative;overflow:hidden}
+    .eye{width:35px;height:35px;border-radius:50%;background:var(--eye);box-shadow:0 0 calc(12px*var(--glow)) var(--eye);position:relative;overflow:hidden;transform-origin:center}
     .pupil{position:absolute;left:50%;top:50%;width:14px;height:14px;background:#0b1626;border-radius:50%;transform:translate(-50%,-50%)}
     .eye .highlight{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;left:28%;top:28%;opacity:.9}
 
-    /* Blink (randomly via JS) */
     @keyframes blinkOnce{0%{transform:scaleY(1)}45%{transform:scaleY(.15)}55%{transform:scaleY(.15)}100%{transform:scaleY(1)}}
     .blink{animation:blinkOnce 160ms linear}
 
-    /* Eye search/look animation (JS moves pupils) */
+    @keyframes eyeSmile{0%{transform:scaleY(1)}30%{transform:scaleY(.7)}70%{transform:scaleY(.7)}100%{transform:scaleY(1)}}
+    .smile .eye{animation:eyeSmile 360ms ease-in-out}
 
-    /* Mouth — soft D-smile + speech shapes */
     .mouth{width:48px;height:18px;border-radius:0 0 40px 40px;background:var(--accent);box-shadow:inset 0 -4px 6px rgba(0,0,0,.25),0 0 calc(8px*var(--glow)) var(--eye);position:relative}
-    @keyframes speak{
-      0%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}
-      20%{height:26px;border-bottom-left-radius:28px;border-bottom-right-radius:28px}
-      40%{height:14px;border-bottom-left-radius:36px;border-bottom-right-radius:36px}
-      60%{height:24px;border-bottom-left-radius:20px;border-bottom-right-radius:20px}
-      80%{height:16px;border-bottom-left-radius:34px;border-bottom-right-radius:34px}
-      100%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}
-    }
+    @keyframes speak{0%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}20%{height:26px;border-bottom-left-radius:28px;border-bottom-right-radius:28px}40%{height:14px;border-bottom-left-radius:36px;border-bottom-right-radius:36px}60%{height:24px;border-bottom-left-radius:20px;border-bottom-right-radius:20px}80%{height:16px;border-bottom-left-radius:34px;border-bottom-right-radius:34px}100%{height:18px;border-bottom-left-radius:40px;border-bottom-right-radius:40px}}
     .speaking .mouth{animation:speak 700ms ease-in-out infinite}
 
-    /* ---------- Neck ---------- */
-    .neck{width:var(--neck-width);height:var(--neck-height);background:var(--shell);border:2.5px solid var(--line);border-top:none;border-radius:0 0 var(--neck-radius) var(--neck-radius);margin-top:var(--neck-overlap)}
+    .neck{width:var(--neck-width);height:var(--neck-height);background:var(--shell);border:2.5px solid var(--line);border-top:none;border-radius:0 0 var(--neck-radius) var(--neck-radius);margin-top:var(--neck-overlap);z-index:2;position:relative}
 
-    /* ---------- Torso (SVG) ---------- */
-    .torso-wrap{position:relative;width:var(--torso-w);height:var(--torso-h);margin-top:var(--gap-neck-torso)}
+    .torso-wrap{position:relative;width:var(--torso-w);height:var(--torso-h);margin-top:var(--gap-neck-torso);z-index:1}
     svg{display:block;width:100%;height:100%}
 
-    /* Battery path fill animation */
-    .charge path#batteryFill{stroke-dasharray:400;stroke-dashoffset:400;animation:charge 2.5s ease-in-out forwards}
+    .charge path#batteryFill{stroke-dasharray:400;stroke-dashoffset:400;animation:charge 2.2s ease-in-out forwards}
     @keyframes charge{to{stroke-dashoffset:0}}
 
-    /* Control bar */
     .controls{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:#273147;padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:active{transform:translateY(1px)}
@@ -81,7 +71,6 @@
 </head>
 <body>
   <div class="robot" id="robot">
-    <!-- HEAD -->
     <div class="head" id="head">
       <div class="antenna"></div>
       <div class="ear left"></div>
@@ -95,10 +84,8 @@
       </div>
     </div>
 
-    <!-- NECK -->
     <div class="neck"></div>
 
-    <!-- TORSO -->
     <div class="torso-wrap">
       <svg id="torsoSVG" viewBox="0 0 260 270" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -118,58 +105,64 @@
 
         <g clip-path="url(#clipTorso)">
           <rect x="0" y="0" width="260" height="270" fill="url(#panelGrad)" opacity=".55"/>
-          <!-- subtle panel lines -->
           <path d="M60 130 Q130 116 200 130" stroke="#c9d3e2" stroke-width="8" opacity=".45"/>
           <path d="M66 164 Q130 158 194 164" stroke="#d7dee9" stroke-width="6" opacity=".5"/>
           <path d="M74 198 Q130 216 186 198" stroke="#d7dee9" stroke-width="10" opacity=".6"/>
         </g>
 
-        <!-- Contoured battery line (~20% height) -->
         <path id="batteryTrack" d="M60 110 Q130 100 200 110" fill="none" stroke="rgba(100,110,140,.28)" stroke-width="12" stroke-linecap="round"/>
         <path id="batteryFill" d="M60 110 Q130 100 200 110" fill="none" stroke="url(#batteryGrad)" stroke-width="12" stroke-linecap="round"/>
       </svg>
     </div>
 
-    <!-- Controls -->
     <div class="controls">
       <button class="btn" id="demo">Play Demo</button>
       <button class="btn" id="speak">Toggle Speak</button>
+      <button class="btn" id="nod">Toggle Nod</button>
+      <button class="btn" id="ears">Toggle Ear Wiggle</button>
+      <button class="btn" id="smileEyes">Eye Smile</button>
+      <button class="btn" id="tilt">Head Tilt</button>
+      <button class="btn" id="hover">Toggle Hover</button>
       <button class="btn" id="charge">Charge Bar</button>
+      <button class="btn" id="theme">Cycle Theme</button>
     </div>
   </div>
 
   <script>
-    // ---------- Blink at random 1–3s ----------
     const eyes=[document.getElementById('eyeL'), document.getElementById('eyeR')];
     function doBlink(){ eyes.forEach(e=>{ e.classList.add('blink'); setTimeout(()=>e.classList.remove('blink'), 180); }); }
     (function blinkLoop(){ const t=1000+Math.random()*2000; setTimeout(()=>{ doBlink(); blinkLoop(); }, t); })();
 
-    // ---------- Search look every ~4–6s by moving pupils ----------
-    const lookTargets=[[0,-6],[0,6],[6,0],[-6,0],[4,-4],[-4,4]];
-    function lookAround(){ const [dx,dy]=lookTargets[Math.floor(Math.random()*lookTargets.length)];
-      document.querySelectorAll('.pupil').forEach(p=>{ p.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; });
-      setTimeout(()=>{ document.querySelectorAll('.pupil').forEach(p=>{ p.style.transform='translate(-50%,-50%)'; }); }, 600);
-    }
-    (function searchLoop(){ const t=4000+Math.random()*2000; setTimeout(()=>{ lookAround(); searchLoop(); }, t); })();
+    function glance(dx,dy){ document.querySelectorAll('.pupil').forEach(p=>{ p.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }); }
+    (function searchLoop(){ const t=4000+Math.random()*2000; setTimeout(()=>{ const dirs=[[0,-6],[0,6],[6,0],[-6,0],[4,-4],[-4,4]]; const [dx,dy]=dirs[Math.floor(Math.random()*dirs.length)]; glance(dx,dy); setTimeout(()=>glance(0,0), 600); searchLoop(); }, t); })();
 
-    // ---------- Mouth speaking toggle ----------
     const robot=document.getElementById('robot');
-    document.getElementById('speak').addEventListener('click',()=>{ robot.classList.toggle('speaking'); });
+    document.getElementById('speak').addEventListener('click',()=>robot.classList.toggle('speaking'));
+    document.getElementById('nod').addEventListener('click',()=>robot.classList.toggle('nod'));
+    document.getElementById('ears').addEventListener('click',()=>robot.classList.toggle('wiggle'));
+    document.getElementById('smileEyes').addEventListener('click',()=>{ robot.classList.add('smile'); setTimeout(()=>robot.classList.remove('smile'), 420); });
+    document.getElementById('tilt').addEventListener('click',()=>{ robot.classList.add('tilt'); setTimeout(()=>robot.classList.remove('tilt'), 620); });
+    document.getElementById('hover').addEventListener('click',()=>robot.classList.toggle('nohover'));
 
-    // ---------- Battery charge one-shot ----------
     const torso=document.querySelector('.torso-wrap');
-    document.getElementById('charge').addEventListener('click',()=>{
-      torso.classList.remove('charge'); void torso.offsetWidth; torso.classList.add('charge');
-    });
+    document.getElementById('charge').addEventListener('click',()=>{ torso.classList.remove('charge'); void torso.offsetWidth; torso.classList.add('charge'); });
 
-    // ---------- Demo: sequence all animations ----------
+    const themes=[
+      {shell:'#edf3f9', line:'#4f5b76', face:'#0f1b2e', eye:'#72f1d5', accent:'#28d9c9'},
+      {shell:'#fff3ea', line:'#7a4b3d', face:'#2a1a20', eye:'#ffd166', accent:'#ef476f'},
+      {shell:'#ecfff6', line:'#437c6b', face:'#0e2220', eye:'#8cf8c7', accent:'#22c55e'},
+      {shell:'#f4f6f8', line:'#2f3747', face:'#0e1116', eye:'#a5b4fc', accent:'#60a5fa'}
+    ];
+    let themeIdx=0;
+    function applyTheme(t){const r=document.documentElement.style; r.setProperty('--shell', t.shell); r.setProperty('--line', t.line); r.setProperty('--face', t.face); r.setProperty('--eye', t.eye); r.setProperty('--accent', t.accent);}
+    document.getElementById('theme').addEventListener('click',()=>{ themeIdx=(themeIdx+1)%themes.length; applyTheme(themes[themeIdx]); });
+
     document.getElementById('demo').addEventListener('click', async ()=>{
-      doBlink();
-      lookAround();
-      robot.classList.add('speaking');
+      doBlink(); glance(6,0); setTimeout(()=>glance(0,0), 500);
+      robot.classList.add('speaking','wiggle','nod');
       torso.classList.add('charge');
       await new Promise(r=>setTimeout(r,2600));
-      robot.classList.remove('speaking');
+      robot.classList.remove('speaking','wiggle');
     });
   </script>
 </body>
