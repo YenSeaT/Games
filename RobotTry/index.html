@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robot v3.0 — Modernized Interface</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    
+    <script>
+      // Configuration for Tailwind CSS
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* Custom properties for the robot's theme. 
+        These are manipulated by JavaScript to change themes.
+      */
+      :root {
+        --shell: #edf3f9;
+        --line: #4f5b76;
+        --face: #0f1b2e;
+        --eye: #72f1d5;
+        --accent: #28d9c9;
+        --glow: 0.6;
+        --robot-scale: 1;
+      }
+
+      /* Base body styles */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Custom scrollbar for a more integrated look.
+        This is applied to the side panels.
+      */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Collapsible details/summary section styling for panels */
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      details > summary .icon {
+        transition: transform 0.2s ease-in-out;
+      }
+      details[open] > summary .icon {
+        transform: rotate(90deg);
+      }
+
+      /* Robot container is draggable & scalable */
+      .robot-wrap {
+        touch-action: none;
+        cursor: grab;
+      }
+      .robot-wrap.dragging {
+        cursor: grabbing;
+      }
+
+      /* Core Robot Animations (Keyframes)
+        These are controlled by adding/removing classes via JavaScript.
+      */
+      @keyframes hover {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      .robot.is-hovering {
+        animation: hover 5s ease-in-out infinite;
+      }
+
+      @keyframes nod {
+        0%, 100% { transform: rotate(0deg); }
+        40% { transform: rotate(3deg); }
+        60% { transform: rotate(-2deg); }
+      }
+      .robot.is-nodding .head {
+        animation: nod 2.2s ease-in-out infinite;
+      }
+
+      @keyframes tiltShort {
+        0% { transform: rotate(0); }
+        30% { transform: rotate(-6deg); }
+        60% { transform: rotate(5deg); }
+        100% { transform: rotate(0); }
+      }
+      .robot.is-tilting .head {
+        animation: tiltShort 600ms ease-in-out;
+      }
+
+      @keyframes earL {
+        0%, 100% { transform: rotate(0); }
+        50% { transform: rotate(-8deg); }
+      }
+      @keyframes earR {
+        0%, 100% { transform: rotate(0); }
+        50% { transform: rotate(8deg); }
+      }
+      .robot.is-wiggling .ear.left {
+        animation: earL 1.6s ease-in-out infinite;
+      }
+      .robot.is-wiggling .ear.right {
+        animation: earR 1.6s ease-in-out infinite;
+      }
+
+      @keyframes ping {
+        0% { transform: translateX(-50%) scale(1); opacity: 1; }
+        100% { transform: translateX(-50%) scale(1.6); opacity: 0; }
+      }
+      .antenna::before {
+        content: "";
+        position: absolute;
+        top: -14px; left: 50%;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 0 0 0 rgba(114, 241, 213, 0.7);
+        animation: ping 1.8s ease-out infinite;
+      }
+
+      @keyframes blinkOnce {
+        0%, 100% { transform: scaleY(1); }
+        50% { transform: scaleY(0.1); }
+      }
+      .eye.is-blinking {
+        animation: blinkOnce 160ms linear;
+      }
+
+      @keyframes speak {
+        0%, 100% { height: 18px; border-radius: 0 0 40px 40px; }
+        20% { height: 26px; border-radius: 0 0 28px 28px; }
+        40% { height: 14px; border-radius: 0 0 36px 36px; }
+        60% { height: 24px; border-radius: 0 0 20px 20px; }
+        80% { height: 16px; border-radius: 0 0 34px 34px; }
+      }
+      .robot.is-speaking .mouth {
+        animation: speak 700ms ease-in-out infinite;
+      }
+
+      @keyframes charge {
+        to { stroke-dashoffset: 0; }
+      }
+      .torso-wrap.is-charging #batteryFill {
+        stroke-dasharray: 240;
+        stroke-dashoffset: 240;
+        animation: charge 2.2s ease-in-out forwards;
+        filter: drop-shadow(0 0 6px var(--eye));
+      }
+
+      /* Accessibility: Reduced Motion
+        Disables animations if the user has this preference set in their OS.
+      */
+      @media (prefers-reduced-motion: reduce) {
+        .robot.is-hovering,
+        .robot.is-nodding .head,
+        .robot.is-tilting .head,
+        .robot.is-wiggling .ear.left,
+        .robot.is-wiggling .ear.right,
+        .robot.is-speaking .mouth,
+        .torso-wrap.is-charging #batteryFill {
+          animation: none !important;
+        }
+      }
+      
+      /* Robot structural styles that are not easily done with Tailwind */
+      .head {
+        width: 240px; height: 189.6px; /* calc(240px * 0.79) */
+        border-radius: 52%/40%;
+        background: var(--shell); border: 2.5px solid var(--line);
+        transform-origin: 50% 100%;
+      }
+      .ear {
+        width: 20px; height: 40px;
+        border-radius: 10px;
+        background: var(--shell); border: 2.5px solid var(--line);
+        transform-origin: 50% 10%;
+      }
+      .ear.left { left: -22px; }
+      .ear.right { right: -22px; }
+      .antenna {
+        width: 12px; height: 28px;
+        background: var(--line); border-radius: 6px;
+      }
+      .antenna::after {
+        content: "";
+        position: absolute; top: -12px; left: 50%;
+        transform: translateX(-50%);
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: var(--eye); box-shadow: 0 0 10px var(--eye);
+      }
+      .face {
+        width: 87%; height: 86%;
+        background: var(--face); border-radius: 42%/36%;
+        border: 2px solid #5c6986;
+      }
+      .eye {
+        width: 35px; height: 35px;
+        background: var(--eye); box-shadow: 0 0 calc(12px * var(--glow)) var(--eye);
+      }
+      .pupil {
+        width: 14px; height: 14px;
+        background: #0b1626;
+      }
+      .highlight {
+        width: 7px; height: 7px;
+        background: #fff;
+      }
+      .mouth {
+        width: 48px; height: 18px;
+        border-radius: 0 0 40px 40px;
+        background: var(--accent);
+        box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.25), 0 0 calc(8px * var(--glow)) var(--eye);
+      }
+      .neck {
+        width: 74px; height: 20px;
+        background: var(--shell); border: 2.5px solid var(--line);
+        border-top: none; border-radius: 0 0 80px 80px;
+        margin-top: -5px;
+      }
+      .torso-wrap {
+        width: 260px; height: 270px;
+        margin-top: -71px;
+      }
+      .wing {
+        fill: var(--shell); stroke: var(--line);
+        stroke-width: 3; stroke-linejoin: round;
+      }
+    </style>
+  </head>
+
+  <body class="bg-slate-900 text-slate-200 font-sans overflow-hidden">
+    <div id="app" class="h-screen w-screen grid transition-all duration-300 ease-in-out">
+      
+      <!-- Left Panel: Debug Controls -->
+      <aside id="debugPanel" class="bg-slate-950/70 backdrop-blur-sm border-r border-slate-800 h-full overflow-y-auto custom-scrollbar p-4 space-y-4 transition-all duration-300 ease-in-out">
+        <h2 class="text-lg font-bold text-cyan-300">Robot Debug</h2>
+        
+        <!-- Collapsible sections for better organization -->
+        <details class="space-y-3" open>
+          <summary class="font-semibold text-slate-300 flex items-center justify-between py-2">
+            <span>Display</span>
+            <span class="icon">&#9654;</span>
+          </summary>
+          <div>
+            <label for="scaleRange" class="text-sm font-medium text-slate-400 block mb-1">Scale</label>
+            <div class="flex items-center gap-2">
+              <input type="range" id="scaleRange" min="0.4" max="2" step="0.05" value="1" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" />
+              <span id="scaleVal" class="text-sm text-slate-400 font-mono w-16 text-center">1.00x</span>
+            </div>
+          </div>
+          <button data-action="theme" class="w-full text-sm bg-slate-700 hover:bg-slate-600 rounded-md py-2 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            Next Theme
+          </button>
+        </details>
+
+        <details class="space-y-2" open>
+            <summary class="font-semibold text-slate-300 flex items-center justify-between py-2"><span>Actions</span><span class="icon">&#9654;</span></summary>
+            <div class="grid grid-cols-2 gap-2">
+                <button data-action="speak" class="btn">Speak</button>
+                <button data-action="blink" class="btn">Blink</button>
+                <button data-action="nod" class="btn">Nod</button>
+                <button data-action="tilt" class="btn">Tilt</button>
+                <button data-action="ears" class="btn">Wiggle Ears</button>
+                <button data-action="charge" class="btn">Charge</button>
+                <button data-action="hover" class="btn">Hover</button>
+                <button data-action="resetAll" class="btn bg-rose-800 hover:bg-rose-700">Reset All</button>
+            </div>
+        </details>
+
+        <details class="space-y-2" open>
+            <summary class="font-semibold text-slate-300 flex items-center justify-between py-2"><span>Arms</span><span class="icon">&#9654;</span></summary>
+            <div class="grid grid-cols-2 gap-2">
+                <button data-action="waveLeft" class="btn">Wave Left</button>
+                <button data-action="waveRight" class="btn">Wave Right</button>
+                <button data-action="waveBoth" class="btn">Wave Both</button>
+                <button data-action="flare" class="btn">Flare</button>
+                <button data-action="float" class="btn">Float</button>
+                <button data-action="armReset" class="btn">Reset Arms</button>
+            </div>
+        </details>
+
+        <details class="space-y-2">
+            <summary class="font-semibold text-slate-300 flex items-center justify-between py-2"><span>Story Macros</span><span class="icon">&#9654;</span></summary>
+            <div class="grid grid-cols-2 gap-2">
+                <button data-action="storyGreet" class="btn">Greet</button>
+                <button data-action="storyShy" class="btn">Shy</button>
+                <button data-action="storyPresent" class="btn">Present</button>
+                <button data-action="storyThink" class="btn">Think</button>
+                <button data-action="storyCelebrate" class="btn">Celebrate</button>
+            </div>
+        </details>
+      </aside>
+
+      <!-- Center Stage -->
+      <main id="stage" class="relative w-full h-full overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-radial from-slate-800 via-slate-900 to-slate-950"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px] opacity-30"></div>
+
+        <!-- Mode Switcher -->
+        <div class="absolute top-4 right-4 z-20 flex items-center gap-2 bg-slate-950/50 backdrop-blur-sm p-1 rounded-lg border border-slate-700">
+            <button data-mode="debug" class="mode-btn">Debug</button>
+            <button data-mode="story" class="mode-btn">Story</button>
+            <button data-mode="feedback" class="mode-btn">Feedback</button>
+        </div>
+
+        <div id="robotWrap" class="robot-wrap absolute left-1/2 top-1/2" style="transform: translate(-50%, -50%) scale(var(--robot-scale));">
+          <div id="robot" class="robot relative flex flex-col items-center is-hovering">
+            <!-- Robot structure is preserved from the original HTML -->
+            <div id="head" class="head relative flex justify-center items-center z-10">
+              <div class="antenna absolute top-[-28px] left-1/2 transform -translate-x-1/2 z-0"></div>
+              <div class="ear left absolute top-[36%] z-[-1]"></div>
+              <div class="ear right absolute top-[36%] z-[-1]"></div>
+              <div class="face relative flex flex-col items-center justify-center overflow-hidden">
+                <div class="eyes flex gap-[38px] items-center justify-center mb-3">
+                  <div id="eyeL" class="eye relative rounded-full overflow-hidden">
+                    <div class="pupil absolute left-1/2 top-1/2 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div class="highlight absolute left-[28%] top-[28%] rounded-full opacity-90"></div>
+                  </div>
+                  <div id="eyeR" class="eye relative rounded-full overflow-hidden">
+                    <div class="pupil absolute left-1/2 top-1/2 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div class="highlight absolute left-[28%] top-[28%] rounded-full opacity-90"></div>
+                  </div>
+                </div>
+                <div class="mouth"></div>
+              </div>
+            </div>
+            <div class="neck relative z-0"></div>
+            <div class="torso-wrap relative z-[-1]">
+              <svg id="torsoSVG" viewBox="0 0 260 270" class="overflow-visible">
+                <defs>
+                  <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity=".45" />
+                    <stop offset="100%" stop-color="#000000" stop-opacity=".06" />
+                  </linearGradient>
+                  <linearGradient id="batteryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop id="batteryGradStop1" offset="0%" stop-color="#0ad9c9" />
+                    <stop id="batteryGradStop2" offset="100%" stop-color="#66e5c4" />
+                  </linearGradient>
+                  <path id="torsoPath" d="M40 72 Q130 40 220 72 Q225 140 208 210 Q130 260 52 210 Q35 140 40 72 Z" />
+                  <clipPath id="clipTorso"><use href="#torsoPath" /></clipPath>
+                </defs>
+                <use href="#torsoPath" fill="var(--shell)" stroke="var(--line)" stroke-width="3" />
+                <g id="armLeft"><path id="wingLeft" class="wing" /></g>
+                <g id="armRight"><path id="wingRight" class="wing" /></g>
+                <g clip-path="url(#clipTorso)">
+                  <rect x="0" y="0" width="260" height="270" fill="url(#panelGrad)" opacity=".55" />
+                  <path d="M60 130 Q130 116 200 130" stroke="#c9d3e2" stroke-width="8" opacity=".45" />
+                  <path d="M66 164 Q130 158 194 164" stroke="#d7dee9" stroke-width="6" opacity=".5" />
+                  <path d="M74 198 Q130 216 186 198" stroke="#d7dee9" stroke-width="10" opacity=".6" />
+                </g>
+                <path d="M60 110 Q130 100 200 110" fill="none" stroke="rgba(100,110,140,.28)" stroke-width="12" stroke-linecap="round" />
+                <path id="batteryFill" d="M60 110 Q130 100 200 110" fill="none" stroke="url(#batteryGrad)" stroke-width="12" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story Mode Controls -->
+        <div id="storyControls" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-slate-950/50 backdrop-blur-sm p-2 rounded-lg border border-slate-700 transition-opacity duration-300 opacity-0 pointer-events-none">
+            <button data-action="storyGreet" class="story-btn">Greet</button>
+            <button data-action="storyShy" class="story-btn">Shy</button>
+            <button data-action="storyPresent" class="story-btn">Present</button>
+            <button data-action="storyThink" class="story-btn">Think</button>
+            <button data-action="storyCelebrate" class="story-btn">Celebrate</button>
+        </div>
+      </main>
+
+      <!-- Right Panel: Feedback -->
+      <aside id="feedbackPanel" class="bg-slate-950/70 backdrop-blur-sm border-l border-slate-800 h-full overflow-y-auto custom-scrollbar p-4 space-y-4 transition-all duration-300 ease-in-out">
+        <h2 class="text-lg font-bold text-cyan-300">Feedback & Notes</h2>
+        <details class="space-y-3" open>
+            <summary class="font-semibold text-slate-300 flex items-center justify-between py-2"><span>Project Progress</span><span class="icon">&#9654;</span></summary>
+            <div class="w-full bg-slate-700 rounded-full h-2.5">
+                <div class="bg-cyan-400 h-2.5 rounded-full" style="width: 17%"></div>
+            </div>
+            <ul class="text-sm text-slate-400 list-disc list-inside space-y-1">
+                <li><b>A:</b> Modern UI & Fixes - <span class="text-green-400">Done</span></li>
+                <li><b>B:</b> Story Templates - Planned</li>
+                <li><b>C:</b> Timeline Editor - Planned</li>
+            </ul>
+        </details>
+        <details class="space-y-2" open>
+            <summary class="font-semibold text-slate-300 flex items-center justify-between py-2"><span>Feedback Form</span><span class="icon">&#9654;</span></summary>
+            <div class="space-y-3">
+                <input type="text" id="fbTitle" placeholder="Feedback Title..." class="fb-input">
+                <textarea id="fbGeneral" placeholder="General feedback..." class="fb-input" rows="3"></textarea>
+                <div class="flex gap-2">
+                    <button id="fbCopy" class="flex-1 text-sm bg-slate-700 hover:bg-slate-600 rounded-md py-2 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">Copy JSON</button>
+                    <button id="fbClear" class="flex-1 text-sm bg-slate-700 hover:bg-slate-600 rounded-md py-2 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">Clear</button>
+                </div>
+                <p id="fbStatus" class="text-xs text-slate-500 h-4"></p>
+            </div>
+        </details>
+      </aside>
+    </div>
+
+    <script>
+    // --- UTILITY ---
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // --- MAIN APP CONTROLLER ---
+    class RobotController {
+        constructor() {
+            this.state = {
+                isBusy: false,
+                isDragging: false,
+                dragStart: { x: 0, y: 0 },
+                robotBase: { x: 0, y: 0 },
+                currentTheme: 0,
+                wave: { left: false, right: false, start: 0, amp: 6, period: 1200 },
+                flare: { active: false, base: 0, peak: 0, start: 0, dur: 600 },
+                float: { active: false, base: 75, amp: 4, period: 1800, start: 0 },
+                rafId: null
+            };
+
+            this.themes = [
+                { shell: "#edf3f9", line: "#4f5b76", face: "#0f1b2e", eye: "#72f1d5", accent: "#28d9c9", accentLight: "#66e5c4" },
+                { shell: "#fff3ea", line: "#7a4b3d", face: "#2a1a20", eye: "#ffd166", accent: "#ef476f", accentLight: "#f2829c" },
+                { shell: "#ecfff6", line: "#437c6b", face: "#0e2220", eye: "#8cf8c7", accent: "#22c55e", accentLight: "#74f686" },
+                { shell: "#f4f6f8", line: "#2f3747", face: "#0e1116", eye: "#a5b4fc", accent: "#60a5fa", accentLight: "#8eacf7" },
+            ];
+
+            // --- ROBOT GEOMETRY CONSTANTS ---
+            this.geometry = {
+                size: { len: 134, bulge: 53, tip: 22, innerCurve: 6 },
+                align: { anchorY: 75, inset: -9 }
+            };
+
+            this.cacheDOMElements();
+            this.bindEvents();
+            this.init();
+        }
+
+        cacheDOMElements() {
+            this.els = {
+                app: document.getElementById('app'),
+                stage: document.getElementById('stage'),
+                robotWrap: document.getElementById('robotWrap'),
+                robot: document.getElementById('robot'),
+                eyes: [document.getElementById('eyeL'), document.getElementById('eyeR')],
+                pupils: document.querySelectorAll('.pupil'),
+                torsoWrap: document.querySelector('.torso-wrap'),
+                batteryGrad: {
+                    stop1: document.getElementById('batteryGradStop1'),
+                    stop2: document.getElementById('batteryGradStop2')
+                },
+                scale: {
+                    range: document.getElementById('scaleRange'),
+                    val: document.getElementById('scaleVal')
+                },
+                storyControls: document.getElementById('storyControls'),
+                modeButtons: document.querySelectorAll('[data-mode]'),
+                actionButtons: document.querySelectorAll('[data-action]'),
+                feedback: {
+                    title: document.getElementById('fbTitle'),
+                    general: document.getElementById('fbGeneral'),
+                    copy: document.getElementById('fbCopy'),
+                    clear: document.getElementById('fbClear'),
+                    status: document.getElementById('fbStatus')
+                },
+                svg: {
+                    armLeft: document.getElementById('armLeft'),
+                    armRight: document.getElementById('armRight'),
+                    wingLeft: document.getElementById('wingLeft'),
+                    wingRight: document.getElementById('wingRight')
+                }
+            };
+        }
+
+        init() {
+            this.centerRobot();
+            this.applyTheme(this.themes[this.state.currentTheme]);
+            this.drawArms();
+            this.startBlinkLoop();
+            
+            const bootMode = location.hash?.replace("#", "") || localStorage.getItem("robotMode") || "debug";
+            this.setMode(bootMode);
+
+            // Apply Tailwind classes for UI elements not in HTML
+            document.querySelectorAll('.btn').forEach(el => {
+                el.className = 'w-full text-sm bg-slate-700 hover:bg-slate-600 rounded-md py-2 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900';
+            });
+            document.querySelectorAll('.story-btn').forEach(el => {
+                el.className = 'px-4 py-2 text-sm bg-slate-700/70 hover:bg-slate-600/70 rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900';
+            });
+            document.querySelectorAll('.mode-btn').forEach(el => {
+                el.className = 'mode-btn px-3 py-1 text-sm rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
+            });
+             document.querySelectorAll('.fb-input').forEach(el => {
+                el.className = 'w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-sm placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none';
+            });
+        }
+
+        bindEvents() {
+            window.addEventListener('resize', () => this.centerRobot());
+            this.els.robotWrap.addEventListener('pointerdown', e => this.startDrag(e));
+            this.els.robotWrap.addEventListener('pointermove', e => this.onDrag(e));
+            this.els.robotWrap.addEventListener('pointerup', e => this.stopDrag(e));
+            this.els.robotWrap.addEventListener('pointercancel', e => this.stopDrag(e));
+
+            this.els.scale.range.addEventListener('input', e => this.applyScale(e.target.value));
+            
+            this.els.modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => this.setMode(btn.dataset.mode));
+            });
+
+            this.els.actionButtons.forEach(btn => {
+                btn.addEventListener('click', () => this.handleAction(btn.dataset.action));
+            });
+
+            this.els.feedback.copy.addEventListener('click', () => this.copyFeedback());
+            this.els.feedback.clear.addEventListener('click', () => this.clearFeedback());
+        }
+        
+        // --- MODE & UI ---
+        setMode(mode) {
+            this.els.app.className = 'h-screen w-screen grid transition-all duration-300 ease-in-out'; // Reset
+            let gridLayout;
+            switch(mode) {
+                case 'story':
+                    gridLayout = 'grid-cols-[0px_1fr_0px]';
+                    this.els.storyControls.classList.remove('opacity-0', 'pointer-events-none');
+                    break;
+                case 'feedback':
+                    gridLayout = 'grid-cols-[0px_1fr_320px] lg:grid-cols-[0px_1fr_384px]';
+                    this.els.storyControls.classList.add('opacity-0', 'pointer-events-none');
+                    break;
+                default: // debug
+                    gridLayout = 'grid-cols-[320px_1fr_0px] lg:grid-cols-[320px_1fr_0px]';
+                    this.els.storyControls.classList.add('opacity-0', 'pointer-events-none');
+            }
+            this.els.app.classList.add(gridLayout);
+
+            this.els.modeButtons.forEach(btn => {
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('bg-cyan-400', 'text-slate-900');
+                    btn.classList.remove('hover:bg-slate-700');
+                } else {
+                    btn.classList.remove('bg-cyan-400', 'text-slate-900');
+                    btn.classList.add('hover:bg-slate-700');
+                }
+            });
+            localStorage.setItem("robotMode", mode);
+            location.hash = mode;
+        }
+
+        applyScale(v) {
+            document.documentElement.style.setProperty('--robot-scale', v);
+            this.els.scale.val.textContent = `${Number(v).toFixed(2)}x`;
+        }
+
+        applyTheme(t) {
+            const r = document.documentElement.style;
+            r.setProperty('--shell', t.shell);
+            r.setProperty('--line', t.line);
+            r.setProperty('--face', t.face);
+            r.setProperty('--eye', t.eye);
+            r.setProperty('--accent', t.accent);
+            this.els.batteryGrad.stop1.setAttribute('stop-color', t.accent);
+            this.els.batteryGrad.stop2.setAttribute('stop-color', t.accentLight);
+        }
+
+        // --- DRAGGING ---
+        centerRobot() {
+            const x = this.els.stage.clientWidth / 2;
+            const y = this.els.stage.clientHeight / 2;
+            this.els.robotWrap.style.left = `${x}px`;
+            this.els.robotWrap.style.top = `${y}px`;
+        }
+        startDrag(e) {
+            this.state.isDragging = true;
+            this.els.robotWrap.classList.add('dragging');
+            this.els.robotWrap.setPointerCapture(e.pointerId);
+            const rect = this.els.robotWrap.getBoundingClientRect();
+            this.state.dragStart = { x: e.clientX, y: e.clientY };
+            this.state.robotBase = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+        onDrag(e) {
+            if (!this.state.isDragging) return;
+            const dx = e.clientX - this.state.dragStart.x;
+            const dy = e.clientY - this.state.dragStart.y;
+            this.els.robotWrap.style.left = `${this.state.robotBase.x + dx}px`;
+            this.els.robotWrap.style.top = `${this.state.robotBase.y + dy}px`;
+        }
+        stopDrag() {
+            this.state.isDragging = false;
+            this.els.robotWrap.classList.remove('dragging');
+        }
+
+        // --- ROBOT ACTIONS ---
+        handleAction(action) {
+            const macroActions = ['storyGreet', 'storyShy', 'storyPresent', 'storyThink', 'storyCelebrate'];
+            if (macroActions.includes(action)) {
+                if (this.state.isBusy) return;
+                this.state.isBusy = true;
+                this[action]().finally(() => this.state.isBusy = false);
+            } else {
+                this[action]();
+            }
+        }
+        
+        // Simple Actions
+        speak() { this.els.robot.classList.toggle('is-speaking'); }
+        nod() { this.els.robot.classList.toggle('is-nodding'); }
+        ears() { this.els.robot.classList.toggle('is-wiggling'); }
+        hover() { this.els.robot.classList.toggle('is-hovering'); }
+        theme() {
+            this.state.currentTheme = (this.state.currentTheme + 1) % this.themes.length;
+            this.applyTheme(this.themes[this.state.currentTheme]);
+        }
+        blink() {
+            this.els.eyes.forEach(e => {
+                e.classList.add('is-blinking');
+                setTimeout(() => e.classList.remove('is-blinking'), 180);
+            });
+        }
+        startBlinkLoop() {
+            const loop = () => {
+                const t = 1200 + Math.random() * 1800;
+                setTimeout(() => {
+                    if (!this.state.isBusy) this.blink();
+                    loop();
+                }, t);
+            };
+            loop();
+        }
+        tilt() {
+            this.els.robot.classList.add('is-tilting');
+            setTimeout(() => this.els.robot.classList.remove('is-tilting'), 620);
+        }
+        charge() {
+            this.els.torsoWrap.classList.remove('is-charging');
+            void this.els.torsoWrap.offsetWidth; // Force reflow
+            this.els.torsoWrap.classList.add('is-charging');
+        }
+        glance(dx, dy) {
+            this.els.pupils.forEach(p => {
+                p.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            });
+        }
+        resetAll() {
+            ['is-speaking', 'is-nodding', 'is-wiggling', 'is-tilting'].forEach(c => this.els.robot.classList.remove(c));
+            this.els.robot.classList.add('is-hovering');
+            this.els.torsoWrap.classList.remove('is-charging');
+            this.armReset();
+            this.glance(0, 0);
+            this.blink();
+        }
+
+        // Arm Actions
+        waveLeft() { this.state.wave.left ? this.stopWave('left') : this.startWave('left'); }
+        waveRight() { this.state.wave.right ? this.stopWave('right') : this.startWave('right'); }
+        waveBoth() { this.state.wave.left || this.state.wave.right ? this.stopWave('both') : this.startWave('both'); }
+        flare() { this.flareArms(); }
+        float() { this.state.float.active ? this.stopFloat() : this.floatArms(); }
+        armReset() {
+            this.stopWave('both');
+            this.stopFloat();
+            this.drawArms();
+        }
+
+        // Story Macros
+        async storyGreet() {
+            this.els.robot.classList.add('is-speaking');
+            this.startWave('left');
+            this.glance(-4, 0);
+            await wait(900);
+            this.glance(4, 0);
+            await wait(900);
+            this.blink();
+            this.stopWave('left');
+            this.els.robot.classList.remove('is-speaking');
+            this.glance(0, 0);
+        }
+        async storyShy() {
+            this.tilt();
+            this.startWave('right');
+            this.glance(-3, 2);
+            await wait(600);
+            this.blink();
+            await wait(600);
+            this.stopWave('right');
+            this.glance(0, 0);
+        }
+        async storyPresent() {
+            const { anchorY, inset } = this.geometry.align;
+            this.els.svg.armLeft.setAttribute('transform', `rotate(-8 ${220 - inset} ${anchorY})`);
+            this.els.svg.armRight.setAttribute('transform', `rotate(8 ${40 + inset} ${anchorY})`);
+            this.flareArms();
+            this.glance(0, -2);
+            await wait(1200);
+            this.drawArms();
+            this.glance(0, 0);
+        }
+        async storyThink() {
+            this.els.robot.classList.add('is-nodding');
+            this.floatArms();
+            this.glance(0, 4);
+            await wait(1800);
+            this.blink();
+            this.els.robot.classList.remove('is-nodding');
+            this.stopFloat();
+            this.glance(0, 0);
+        }
+        async storyCelebrate() {
+            this.startWave('both');
+            this.charge();
+            this.glance(0, -4);
+            await wait(1200);
+            this.blink();
+            await wait(900);
+            this.stopWave('both');
+            this.glance(0, 0);
+        }
+        
+        // --- ARM ANIMATION & DRAWING ---
+        // Performance-optimized: only updates transforms in the loop.
+        animLoop(ts) {
+            if (!this.state.wave.start) this.state.wave.start = ts;
+            const tw = (ts - this.state.wave.start) % this.state.wave.period;
+            const ang = Math.sin((tw / this.state.wave.period) * 2 * Math.PI) * this.state.wave.amp;
+            
+            let { anchorY, inset } = this.geometry.align;
+            const axRight = 40 + inset, axLeft = 220 - inset;
+
+            let needsRedraw = false;
+            
+            if (this.state.float.active) {
+                if (!this.state.float.start) this.state.float.start = ts;
+                const tf = (ts - this.state.float.start) % this.state.float.period;
+                anchorY = this.state.float.base + Math.sin((tf / this.state.float.period) * 2 * Math.PI) * this.state.float.amp;
+                // Since anchorY changes, we need to redraw the arms at the new position
+                needsRedraw = true;
+            }
+
+            if (this.state.flare.active) {
+                if (!this.state.flare.start) this.state.flare.start = ts;
+                const p = Math.min(1, (ts - this.state.flare.start) / this.state.flare.dur);
+                const eased = Math.sin(p * Math.PI);
+                this.geometry.size.bulge = this.state.flare.base + eased * (this.state.flare.peak - this.state.flare.base);
+                needsRedraw = true;
+                if (p >= 1) {
+                    this.geometry.size.bulge = this.state.flare.base;
+                    this.state.flare.active = false;
+                }
+            }
+
+            if (needsRedraw) {
+                const prevY = this.geometry.align.anchorY;
+                this.geometry.align.anchorY = anchorY;
+                this.drawArms();
+                this.geometry.align.anchorY = prevY;
+            }
+
+            this.els.svg.armLeft.setAttribute('transform', `rotate(${this.state.wave.left ? -ang : 0} ${axLeft} ${anchorY})`);
+            this.els.svg.armRight.setAttribute('transform', `rotate(${this.state.wave.right ? ang : 0} ${axRight} ${anchorY})`);
+
+            if (this.state.wave.left || this.state.wave.right || this.state.float.active || this.state.flare.active) {
+                this.state.rafId = requestAnimationFrame(t => this.animLoop(t));
+            } else {
+                this.state.rafId = null;
+                this.drawArms(); // Final reset to base position
+            }
+        }
+
+        startWave(which = 'both') {
+            if (which === 'left' || which === 'both') this.state.wave.left = true;
+            if (which === 'right' || which === 'both') this.state.wave.right = true;
+            if (!this.state.rafId) this.state.rafId = requestAnimationFrame(t => this.animLoop(t));
+        }
+
+        stopWave(which = 'both') {
+            if (which === 'left' || which === 'both') this.state.wave.left = false;
+            if (which === 'right' || which === 'both') this.state.wave.right = false;
+        }
+
+        flareArms() {
+            if (this.state.flare.active) return;
+            this.state.flare.active = true;
+            this.state.flare.base = this.geometry.size.bulge;
+            this.state.flare.peak = this.geometry.size.bulge + 10;
+            this.state.flare.start = 0;
+            if (!this.state.rafId) this.state.rafId = requestAnimationFrame(t => this.animLoop(t));
+        }
+
+        floatArms() {
+            if (this.state.float.active) return;
+            this.state.float.active = true;
+            this.state.float.base = this.geometry.align.anchorY;
+            this.state.float.start = 0;
+            if (!this.state.rafId) this.state.rafId = requestAnimationFrame(t => this.animLoop(t));
+        }
+
+        stopFloat() {
+            this.state.float.active = false;
+        }
+
+        drawArms() {
+            const { len, bulge, tip, innerCurve } = this.geometry.size;
+            const { anchorY, inset } = this.geometry.align;
+            const axRight = 40 + inset, axLeft = 220 - inset;
+            
+            this.els.svg.wingRight.setAttribute('d', this.wingAirfoilPath(axRight, anchorY, len, bulge, tip, innerCurve, 'right'));
+            this.els.svg.wingLeft.setAttribute('d', this.wingAirfoilPath(axLeft, anchorY, len, bulge, tip, innerCurve, 'left'));
+            
+            this.els.svg.armRight.setAttribute('transform', `rotate(0 ${axRight} ${anchorY})`);
+            this.els.svg.armLeft.setAttribute('transform', `rotate(0 ${axLeft} ${anchorY})`);
+        }
+
+        wingAirfoilPath(ax, ay, len, bulge, tip, innerCurve, side) {
+            const topY = ay, botY = ay + len, midY = (topY + botY) / 2, r = tip / 2;
+            const innerCtrl = side === 'right' ? ax + innerCurve : ax - innerCurve;
+            const tipCtrl = side === 'right' ? ax + bulge / 2 : ax - bulge / 2;
+            const outerCtrl = side === 'right' ? ax + bulge : ax - bulge;
+            return `M ${ax} ${topY} Q ${innerCtrl} ${midY}, ${ax} ${botY} Q ${tipCtrl} ${botY + r}, ${ax} ${botY + tip} Q ${outerCtrl} ${midY}, ${ax} ${topY} Z`;
+        }
+
+        // --- FEEDBACK ---
+        copyFeedback() {
+            const payload = {
+                title: this.els.feedback.title.value.trim(),
+                general: this.els.feedback.general.value.trim(),
+                timestamp: new Date().toISOString(),
+                robotState: {
+                    scale: this.els.scale.range.value,
+                    theme: this.state.currentTheme
+                }
+            };
+            navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+            this.els.feedback.status.textContent = 'Copied to clipboard!';
+            setTimeout(() => this.els.feedback.status.textContent = '', 2000);
+        }
+
+        clearFeedback() {
+            this.els.feedback.title.value = '';
+            this.els.feedback.general.value = '';
+            this.els.feedback.status.textContent = 'Form cleared.';
+            setTimeout(() => this.els.feedback.status.textContent = '', 2000);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new RobotController();
+    });
+    </script>
+  </body>
+</html>
+
