@@ -102,12 +102,16 @@
                     <input type="range" id="viscosity" min="0" max="0.4" step="0.01" value="0.05" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
                 </div>
                 <div>
-                     <label class="block text-sm font-medium text-gray-300 mb-2">Tools</label>
-                     <div class="grid grid-cols-4 gap-2">
+                     <label class="block text-sm font-medium text-gray-300 mb-2">Brush</label>
+                     <div class="grid grid-cols-2 gap-2">
                         <button data-tool="splash" class="tool-btn bg-teal-500 text-white p-1.5 text-sm rounded-md shadow">Splash</button>
                         <button data-tool="obstacle" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Wall</button>
-                        <button data-tool="repulsor" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Push</button>
-                        <button data-tool="attractor" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Pull</button>
+                     </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Effects</label>
+                     <div class="grid grid-cols-1">
+                        <button id="rainBtn" class="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Toggle Rain</button>
                      </div>
                 </div>
             </div>
@@ -135,6 +139,7 @@
             modeBtns: document.querySelectorAll('.mode-btn'),
             shapeBtns: document.querySelectorAll('.shape-btn'),
             toolBtns: document.querySelectorAll('.tool-btn'),
+            rainBtn: document.getElementById('rainBtn'),
             ledSize: document.getElementById('ledSize'),
             ledSizeVal: document.getElementById('ledSizeVal'),
             colorMode: document.getElementById('colorMode'),
@@ -154,9 +159,10 @@
 
         // --- Global State ---
         let LED_SIZE = 10, LED_SHAPE = 'square', cols, rows;
-        let current, previous, obstacles, forces;
+        let current, previous, obstacles;
         let damping = 0.985, viscosity = 0.05;
         let isMouseDown = false, hue = 0;
+        let isRaining = false, rainInterval;
         let currentMode = 'fluid', activeTool = 'splash';
 
         let activeColor = { r: 0, g: 255, b: 153 };
@@ -179,7 +185,6 @@
             current = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
             previous = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
             obstacles = Array(rows).fill(0).map(() => Array(cols).fill(false));
-            forces = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
 
             if (currentMode === 'game') resetGame();
         }
@@ -201,17 +206,10 @@
                 for (let j = 1; j < cols - 1; j++) {
                     if (obstacles[i][j]) continue;
 
-                    // CORRECTED PHYSICS MODEL
                     const neighbors_sum = previous[i-1][j] + previous[i+1][j] + previous[i][j-1] + previous[i][j+1];
-                    
-                    // 1. Core wave equation - this creates the ripple
                     let wave_val = (neighbors_sum / 2) - current[i][j];
-
-                    // 2. Apply viscosity - this resists change, making the fluid "thicker"
                     wave_val = wave_val * (1 - viscosity) + previous[i][j] * viscosity;
-
-                    // 3. Apply forces and damping
-                    current[i][j] = (wave_val + forces[i][j]) * damping;
+                    current[i][j] = wave_val * damping;
                 }
             }
             let temp = previous; previous = current; current = temp;
@@ -251,8 +249,6 @@
                     let hasContent = true;
 
                     if (obstacles[i][j]) { [r,g,b] = [74, 85, 104]; }
-                    else if (forces[i][j] > 0) { [r,g,b] = [200, 255, 255]; }
-                    else if (forces[i][j] < 0) { [r,g,b] = [50, 0, 50]; }
                     else {
                         const val = current[i][j];
                         const intensity = Math.max(0, Math.min(1, Math.abs(val)));
@@ -315,8 +311,6 @@
                     switch(activeTool) {
                         case 'splash': if (!obstacles[row][col]) previous[row][col] = 10; break;
                         case 'obstacle': obstacles[row][col] = !obstacles[row][col]; break;
-                        case 'repulsor': forces[row][col] = forces[row][col] > 0 ? 0 : 0.2; break;
-                        case 'attractor': forces[row][col] = forces[row][col] < 0 ? 0 : -0.2; break;
                     }
                 }
             }
@@ -346,6 +340,25 @@
             controls.damping.addEventListener('input', e => { damping = parseFloat(e.target.value); controls.dampingVal.textContent = damping.toFixed(3); });
             controls.viscosity.addEventListener('input', e => { viscosity = parseFloat(e.target.value); controls.viscosityVal.textContent = viscosity.toFixed(2); });
             controls.resetGameBtn.addEventListener('click', resetGame);
+
+            controls.rainBtn.addEventListener('click', () => {
+                isRaining = !isRaining;
+                controls.rainBtn.classList.toggle('bg-teal-500');
+                controls.rainBtn.classList.toggle('bg-gray-600');
+                if (isRaining) {
+                    rainInterval = setInterval(() => {
+                        if (currentMode === 'fluid') { // Only rain in fluid mode
+                            const x = Math.floor(Math.random() * (cols - 2)) + 1;
+                            const y = Math.floor(Math.random() * (rows - 2)) + 1;
+                            if (!obstacles[y][x]) {
+                                previous[y][x] = 5; // A gentle splash
+                            }
+                        }
+                    }, 100); 
+                } else {
+                    clearInterval(rainInterval);
+                }
+            });
         }
         
         // --- Initialization ---
