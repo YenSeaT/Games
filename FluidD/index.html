@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Interactive LED Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --led-size: 10px;
+            --led-shape-radius: 2px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+        #led-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        .led {
+            width: var(--led-size);
+            height: var(--led-size);
+            background-color: #000;
+            border-radius: var(--led-shape-radius);
+        }
+        #controls {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            transition: opacity 0.3s ease-in-out;
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+        }
+        /* Custom scrollbar for controls */
+        #controls::-webkit-scrollbar { width: 6px; }
+        #controls::-webkit-scrollbar-track { background: #4a5568; }
+        #controls::-webkit-scrollbar-thumb { background: #a0aec0; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-black">
+
+    <div id="led-grid" class="grid"></div>
+
+    <!-- Controls Panel -->
+    <div id="controls" class="w-full max-w-sm bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl p-4 border border-gray-700 text-white">
+        <div class="flex justify-between items-center mb-4">
+             <h1 class="text-xl font-bold">LED Simulator</h1>
+             <button id="toggleControlsBtn" class="p-1 rounded-full hover:bg-gray-700 transition-colors">
+                <svg id="control-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+             </button>
+        </div>
+       
+        <div id="control-content" class="space-y-4">
+            <!-- Mode Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Mode</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-mode="fluid" class="mode-btn bg-teal-500 text-white px-2 py-1.5 text-sm rounded-md shadow">Fluid</button>
+                    <button data-mode="game" class="mode-btn bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Puck Game</button>
+                    <button data-mode="clock" class="mode-btn bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Clock</button>
+                </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div id="visual-settings" class="space-y-4">
+                 <div>
+                    <label for="ledSize" class="block text-sm font-medium text-gray-300 mb-1">LED Size (<span id="ledSizeVal">10</span>px)</label>
+                    <input type="range" id="ledSize" min="5" max="10" step="1" value="10" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">LED Shape</label>
+                    <div class="grid grid-cols-2 gap-2">
+                         <button data-shape="square" class="shape-btn bg-teal-500 text-white px-2 py-1.5 text-sm rounded-md shadow">Square</button>
+                         <button data-shape="circle" class="shape-btn bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Circle</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="colorMode" class="block text-sm font-medium text-gray-300 mb-1">Color Mode</label>
+                    <select id="colorMode" class="w-full bg-gray-700 text-white border border-gray-600 rounded-md py-1.5 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <option value="single">Single Color</option>
+                        <option value="rainbow">Rainbow</option>
+                        <option value="intensity">Intensity Map</option>
+                    </select>
+                </div>
+                <div id="singleColorPicker">
+                    <label for="ledColor" class="block text-sm font-medium text-gray-300 mb-1">Ripple Color</label>
+                    <input type="color" id="ledColor" value="#00ff99" class="w-full h-9 p-1 bg-gray-700 border border-gray-600 rounded-md cursor-pointer">
+                </div>
+                <div>
+                    <label for="damping" class="block text-sm font-medium text-gray-300 mb-1">Damping (<span id="dampingVal">0.98</span>)</label>
+                    <input type="range" id="damping" min="0.95" max="0.999" step="0.001" value="0.98" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
+                </div>
+                <div>
+                     <label class="block text-sm font-medium text-gray-300 mb-2">Tools</label>
+                     <div class="grid grid-cols-2 gap-2">
+                        <button id="rainBtn" class="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Toggle Rain</button>
+                        <button id="obstacleBtn" class="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Draw Obstacles</button>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Game Settings -->
+            <div id="game-settings" class="hidden space-y-3">
+                 <p class="text-sm text-center text-gray-300">Push the puck (<span class="text-red-400 font-bold">Red</span>) into the target (<span class="text-purple-400 font-bold">Purple</span>)!</p>
+                 <div class="text-center bg-gray-900/50 p-2 rounded-lg">
+                     <span class="text-lg font-bold">Score: <span id="score">0</span></span>
+                 </div>
+                 <button id="resetGameBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition">New Game</button>
+            </div>
+            
+            <!-- Clock Settings -->
+             <div id="clock-settings" class="hidden space-y-3">
+                 <p class="text-sm text-center text-gray-300">An ambient fluid clock.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const ledGrid = document.getElementById('led-grid');
+        const controls = {
+            panel: document.getElementById('controls'),
+            content: document.getElementById('control-content'),
+            toggleBtn: document.getElementById('toggleControlsBtn'),
+            icon: document.getElementById('control-icon'),
+            modeBtns: document.querySelectorAll('.mode-btn'),
+            shapeBtns: document.querySelectorAll('.shape-btn'),
+            ledSize: document.getElementById('ledSize'),
+            ledSizeVal: document.getElementById('ledSizeVal'),
+            colorMode: document.getElementById('colorMode'),
+            ledColor: document.getElementById('ledColor'),
+            singleColorPicker: document.getElementById('singleColorPicker'),
+            damping: document.getElementById('damping'),
+            dampingVal: document.getElementById('dampingVal'),
+            rainBtn: document.getElementById('rainBtn'),
+            obstacleBtn: document.getElementById('obstacleBtn'),
+            visualSettings: document.getElementById('visual-settings'),
+            gameSettings: document.getElementById('game-settings'),
+            clockSettings: document.getElementById('clock-settings'),
+            score: document.getElementById('score'),
+            resetGameBtn: document.getElementById('resetGameBtn'),
+        };
+
+        // --- Global State ---
+        let LED_SIZE = 10;
+        let LED_SHAPE = 'square';
+        let cols, rows;
+        let current, previous, obstacles;
+        let damping = 0.98;
+        let isMouseDown = false;
+        let isDrawingObstacles = false;
+        let isRaining = false;
+        let rainInterval;
+        let hue = 0; // For rainbow mode
+        
+        let currentMode = 'fluid'; // 'fluid', 'game', 'clock'
+
+        // Color state
+        let activeColor = { r: 0, g: 255, b: 153 };
+        const intensityGradient = [
+            { r: 0, g: 0, b: 139 },    // Dark Blue
+            { r: 0, g: 255, b: 255 },  // Cyan
+            { r: 0, g: 255, b: 0 },    // Green
+            { r: 255, g: 255, b: 0 },  // Yellow
+            { r: 255, g: 255, b: 255 } // White
+        ];
+
+        // Game state
+        const game = {
+            puck: { x: 0, y: 0, vx: 0, vy: 0 },
+            target: { x: 0, y: 0 },
+            score: 0
+        };
+
+        // Clock state
+        const DIGIT_MAP = [
+            [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]], // 0
+            [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]], // 1
+            [[1,1,1],[0,0,1],[1,1,1],[1,0,0],[1,1,1]], // 2
+            [[1,1,1],[0,0,1],[0,1,1],[0,0,1],[1,1,1]], // 3
+            [[1,0,1],[1,0,1],[1,1,1],[0,0,1],[0,0,1]], // 4
+            [[1,1,1],[1,0,0],[1,1,1],[0,0,1],[1,1,1]], // 5
+            [[1,1,1],[1,0,0],[1,1,1],[1,0,1],[1,1,1]], // 6
+            [[1,1,1],[0,0,1],[0,1,0],[1,0,0],[1,0,0]], // 7
+            [[1,1,1],[1,0,1],[1,1,1],[1,0,1],[1,1,1]], // 8
+            [[1,1,1],[1,0,1],[1,1,1],[0,0,1],[1,1,1]], // 9
+            [[0],[1],[0],[1],[0]] // Colon
+        ];
+
+
+        // --- Core Functions ---
+        function setup() {
+            LED_SIZE = parseInt(controls.ledSize.value);
+            document.documentElement.style.setProperty('--led-size', `${LED_SIZE}px`);
+            document.documentElement.style.setProperty('--led-shape-radius', LED_SHAPE === 'square' ? '2px' : '50%');
+
+            cols = Math.floor(window.innerWidth / LED_SIZE);
+            rows = Math.floor(window.innerHeight / LED_SIZE);
+
+            ledGrid.innerHTML = '';
+            ledGrid.style.gridTemplateColumns = `repeat(${cols}, ${LED_SIZE}px)`;
+            ledGrid.style.gridTemplateRows = `repeat(${rows}, ${LED_SIZE}px)`;
+            
+            current = Array(rows).fill(0).map(() => Array(cols).fill(0));
+            previous = Array(rows).fill(0).map(() => Array(cols).fill(0));
+            obstacles = Array(rows).fill(0).map(() => Array(cols).fill(false));
+
+            for (let i = 0; i < rows * cols; i++) {
+                const led = document.createElement('div');
+                led.classList.add('led');
+                ledGrid.appendChild(led);
+            }
+            if (currentMode === 'game') resetGame();
+        }
+
+        function animate() {
+            switch (currentMode) {
+                case 'fluid':
+                    updateFluid();
+                    break;
+                case 'game':
+                    updateFluid();
+                    updateGame();
+                    break;
+                case 'clock':
+                    updateClockFluid();
+                    break;
+            }
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        // --- Update Functions ---
+        function updateFluid() {
+            for (let i = 1; i < rows - 1; i++) {
+                for (let j = 1; j < cols - 1; j++) {
+                    if (obstacles[i][j]) continue;
+
+                    current[i][j] = (
+                        previous[i - 1][j] + previous[i + 1][j] +
+                        previous[i][j - 1] + previous[i][j + 1]
+                    ) / 2 - current[i][j];
+                    current[i][j] *= damping;
+                }
+            }
+            let temp = previous;
+            previous = current;
+            current = temp;
+        }
+
+        function updateGame() {
+            // Fluid interaction with puck
+            const px = Math.floor(game.puck.x);
+            const py = Math.floor(game.puck.y);
+
+            if (px > 0 && px < cols - 1 && py > 0 && py < rows - 1) {
+                const forceX = current[py][px + 1] - current[py][px - 1];
+                const forceY = current[py + 1][px] - current[py - 1][px];
+                game.puck.vx += forceX * 0.1;
+                game.puck.vy += forceY * 0.1;
+            }
+
+            // Puck physics
+            game.puck.vx *= 0.98; // Friction
+            game.puck.vy *= 0.98;
+            game.puck.x += game.puck.vx;
+            game.puck.y += game.puck.vy;
+
+            // Boundary collision
+            if (game.puck.x < 0.5) { game.puck.x = 0.5; game.puck.vx *= -0.5; }
+            if (game.puck.x > cols - 1.5) { game.puck.x = cols - 1.5; game.puck.vx *= -0.5; }
+            if (game.puck.y < 0.5) { game.puck.y = 0.5; game.puck.vy *= -0.5; }
+            if (game.puck.y > rows - 1.5) { game.puck.y = rows - 1.5; game.puck.vy *= -0.5; }
+
+            // Target collision
+            if (Math.hypot(game.puck.x - game.target.x, game.puck.y - game.target.y) < 2) {
+                game.score++;
+                controls.score.textContent = game.score;
+                previous[game.target.y][game.target.x] = 10; // Splash!
+                spawnTarget();
+            }
+        }
+
+        function updateClockFluid() {
+            clearFluid();
+            drawTime();
+            updateFluid();
+        }
+
+
+        // --- Render Function ---
+        function render() {
+            const leds = ledGrid.children;
+            let ledIndex = 0;
+            hue = (hue + 0.5) % 360;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const led = leds[ledIndex++];
+                    if (!led) continue;
+
+                    if (obstacles[i][j]) {
+                        led.style.backgroundColor = '#4a5568';
+                        continue;
+                    }
+
+                    if (currentMode === 'game') {
+                        if (Math.floor(game.puck.y) === i && Math.floor(game.puck.x) === j) {
+                            led.style.backgroundColor = 'rgb(252, 165, 165)'; // Red puck
+                            continue;
+                        }
+                        if (game.target.y === i && game.target.x === j) {
+                            led.style.backgroundColor = 'rgb(192, 132, 252)'; // Purple target
+                            continue;
+                        }
+                    }
+
+                    const val = current[i][j];
+                    const intensity = Math.max(0, Math.min(1, Math.abs(val) * 2));
+                    if (intensity < 0.01) {
+                         led.style.backgroundColor = '#000';
+                         continue;
+                    }
+                    
+                    let r, g, b;
+                    const mode = controls.colorMode.value;
+
+                    if (mode === 'rainbow') {
+                        [r, g, b] = hslToRgb((hue + val * 20) % 360 / 360, 0.8, 0.5 + intensity * 0.5);
+                    } else if (mode === 'intensity') {
+                        [r, g, b] = getColorFromGradient(intensity);
+                    } else { // single
+                        r = activeColor.r;
+                        g = activeColor.g;
+                        b = activeColor.b;
+                    }
+
+                    led.style.backgroundColor = `rgb(${Math.floor(r * intensity)}, ${Math.floor(g * intensity)}, ${Math.floor(b * intensity)})`;
+                }
+            }
+        }
+        
+        // --- Game Logic ---
+        function resetGame() {
+            game.score = 0;
+            controls.score.textContent = '0';
+            clearFluid();
+            game.puck.x = Math.floor(cols / 4);
+            game.puck.y = Math.floor(rows / 2);
+            game.puck.vx = 0;
+            game.puck.vy = 0;
+            spawnTarget();
+        }
+
+        function spawnTarget() {
+            game.target.x = Math.floor(cols * 0.75 + Math.random() * (cols * 0.2));
+            game.target.y = Math.floor(rows * 0.2 + Math.random() * (rows * 0.6));
+        }
+
+        // --- Clock Logic ---
+        function drawTime() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
+                            now.getMinutes().toString().padStart(2, '0') + ":" + 
+                            now.getSeconds().toString().padStart(2, '0');
+            
+            const totalWidth = (6 * 3) + (2 * 1); // 6 digits * 3 width + 2 colons * 1 width
+            let startX = Math.floor((cols - totalWidth) / 2);
+            const startY = Math.floor((rows - 5) / 2);
+
+            for(const char of timeStr) {
+                const map = (char === ':') ? DIGIT_MAP[10] : DIGIT_MAP[parseInt(char)];
+                drawDigit(map, startX, startY);
+                startX += map[0].length + 1;
+            }
+        }
+        
+        function drawDigit(digitMap, x, y) {
+            for(let i = 0; i < 5; i++) {
+                for(let j = 0; j < digitMap[0].length; j++) {
+                    if (digitMap[i][j] === 1) {
+                         const gridX = x + j;
+                         const gridY = y + i;
+                         if (gridY < rows && gridX < cols) {
+                             previous[gridY][gridX] = 2;
+                         }
+                    }
+                }
+            }
+        }
+
+        // --- Helper & Utility Functions ---
+        function handleInteraction(e, isTouch = false) {
+            let clientX, clientY;
+            if (isTouch) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            const col = Math.floor(clientX / LED_SIZE);
+            const row = Math.floor(clientY / LED_SIZE);
+
+            if (row > 0 && row < rows - 1 && col > 0 && col < cols - 1) {
+                if (isDrawingObstacles) {
+                    obstacles[row][col] = !obstacles[row][col];
+                } else {
+                    if (!obstacles[row][col]) {
+                        previous[row][col] = 10;
+                    }
+                }
+            }
+        }
+
+        function clearFluid() {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    current[i][j] = 0;
+                    previous[i][j] = 0;
+                }
+            }
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        }
+        
+        function hslToRgb(h, s, l) {
+            let r, g, b;
+            if (s == 0) { r = g = b = l; } 
+            else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [r * 255, g * 255, b * 255];
+        }
+
+        function getColorFromGradient(intensity) {
+            const scaledIntensity = intensity * (intensityGradient.length - 1);
+            const index = Math.floor(scaledIntensity);
+            const frac = scaledIntensity - index;
+            if (index >= intensityGradient.length - 1) return [intensityGradient.at(-1).r, intensityGradient.at(-1).g, intensityGradient.at(-1).b];
+            
+            const c1 = intensityGradient[index];
+            const c2 = intensityGradient[index + 1];
+            
+            const r = c1.r + (c2.r - c1.r) * frac;
+            const g = c1.g + (c2.g - c1.g) * frac;
+            const b = c1.b + (c2.b - c1.b) * frac;
+            return [r, g, b];
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            window.addEventListener('resize', setup);
+            
+            // Mouse & Touch
+            ledGrid.addEventListener('mousedown', e => { isMouseDown = true; handleInteraction(e); });
+            ledGrid.addEventListener('mouseup', () => { isMouseDown = false; });
+            ledGrid.addEventListener('mousemove', e => { if (isMouseDown) handleInteraction(e); });
+            ledGrid.addEventListener('touchstart', e => { isMouseDown = true; handleInteraction(e, true); e.preventDefault(); }, { passive: false });
+            ledGrid.addEventListener('touchend', () => { isMouseDown = false; });
+            ledGrid.addEventListener('touchmove', e => { if (isMouseDown) { handleInteraction(e, true); e.preventDefault(); } }, { passive: false });
+
+            // Controls
+            controls.toggleBtn.addEventListener('click', () => {
+                const isHidden = controls.content.classList.toggle('hidden');
+                controls.icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+
+            controls.modeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentMode = btn.dataset.mode;
+                    controls.modeBtns.forEach(b => b.classList.replace('bg-teal-500', 'bg-gray-600'));
+                    btn.classList.replace('bg-gray-600', 'bg-teal-500');
+                    
+                    controls.visualSettings.style.display = currentMode !== 'game' ? 'block' : 'none';
+                    controls.gameSettings.style.display = currentMode === 'game' ? 'block' : 'none';
+                    controls.clockSettings.style.display = currentMode === 'clock' ? 'block' : 'none';
+
+                    if (currentMode === 'game') resetGame();
+                    else clearFluid();
+                });
+            });
+            
+            controls.shapeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    LED_SHAPE = btn.dataset.shape;
+                    controls.shapeBtns.forEach(b => b.classList.replace('bg-teal-500', 'bg-gray-600'));
+                    btn.classList.replace('bg-gray-600', 'bg-teal-500');
+                    document.documentElement.style.setProperty('--led-shape-radius', LED_SHAPE === 'square' ? '2px' : '50%');
+                });
+            });
+
+            controls.ledSize.addEventListener('input', e => {
+                controls.ledSizeVal.textContent = e.target.value;
+            });
+             controls.ledSize.addEventListener('change', setup); // Re-create grid on change
+
+            controls.colorMode.addEventListener('change', e => {
+                controls.singleColorPicker.style.display = e.target.value === 'single' ? 'block' : 'none';
+            });
+
+            controls.ledColor.addEventListener('input', e => { activeColor = hexToRgb(e.target.value); });
+            
+            controls.damping.addEventListener('input', e => {
+                damping = parseFloat(e.target.value);
+                controls.dampingVal.textContent = damping.toFixed(3);
+            });
+            
+            controls.rainBtn.addEventListener('click', () => {
+                isRaining = !isRaining;
+                controls.rainBtn.classList.toggle('bg-teal-500');
+                controls.rainBtn.classList.toggle('bg-gray-600');
+                if (isRaining) {
+                    rainInterval = setInterval(() => {
+                        const x = Math.floor(Math.random() * (cols - 2)) + 1;
+                        const y = Math.floor(Math.random() * (rows - 2)) + 1;
+                        if (!obstacles[y][x]) previous[y][x] = 5;
+                    }, 100);
+                } else {
+                    clearInterval(rainInterval);
+                }
+            });
+
+            controls.obstacleBtn.addEventListener('click', () => {
+                isDrawingObstacles = !isDrawingObstacles;
+                controls.obstacleBtn.classList.toggle('bg-teal-500');
+                controls.obstacleBtn.classList.toggle('bg-gray-600');
+            });
+            
+            controls.resetGameBtn.addEventListener('click', resetGame);
+        }
+        
+        // --- Initialization ---
+        activeColor = hexToRgb(controls.ledColor.value);
+        setupEventListeners();
+        setup();
+        animate();
+    </script>
+</body>
+</html>
+
+
