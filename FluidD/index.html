@@ -3,32 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Interactive LED Simulator</title>
+    <title>Interactive Canvas Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --led-size: 10px;
-            --led-shape-radius: 2px;
-        }
         body {
             font-family: 'Inter', sans-serif;
             overflow: hidden;
             overscroll-behavior: none;
+            background-color: #000;
         }
-        #led-grid {
+        #led-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             z-index: 1;
-        }
-        .led {
-            width: var(--led-size);
-            height: var(--led-size);
-            background-color: #000;
-            border-radius: var(--led-shape-radius);
         }
         #controls {
             position: fixed;
@@ -42,13 +33,13 @@
         }
         /* Custom scrollbar for controls */
         #controls::-webkit-scrollbar { width: 6px; }
-        #controls::-webkit-scrollbar-track { background: #4a5568; }
+        #controls::-webkit-scrollbar-track { background: #4a5568; border-radius: 3px; }
         #controls::-webkit-scrollbar-thumb { background: #a0aec0; border-radius: 3px; }
     </style>
 </head>
 <body class="bg-black">
 
-    <div id="led-grid" class="grid"></div>
+    <canvas id="led-canvas"></canvas>
 
     <!-- Controls Panel -->
     <div id="controls" class="w-full max-w-sm bg-gray-800/80 backdrop-blur-md rounded-xl shadow-2xl p-4 border border-gray-700 text-white">
@@ -63,10 +54,9 @@
             <!-- Mode Selection -->
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Mode</label>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     <button data-mode="fluid" class="mode-btn bg-teal-500 text-white px-2 py-1.5 text-sm rounded-md shadow">Fluid</button>
                     <button data-mode="game" class="mode-btn bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Puck Game</button>
-                    <button data-mode="clock" class="mode-btn bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Clock</button>
                 </div>
             </div>
 
@@ -74,7 +64,7 @@
             <div id="visual-settings" class="space-y-4">
                  <div>
                     <label for="ledSize" class="block text-sm font-medium text-gray-300 mb-1">LED Size (<span id="ledSizeVal">10</span>px)</label>
-                    <input type="range" id="ledSize" min="5" max="10" step="1" value="10" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
+                    <input type="range" id="ledSize" min="5" max="15" step="1" value="10" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
                 </div>
                  <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">LED Shape</label>
@@ -104,14 +94,20 @@
                     </select>
                 </div>
                 <div>
-                    <label for="damping" class="block text-sm font-medium text-gray-300 mb-1">Damping (<span id="dampingVal">0.98</span>)</label>
-                    <input type="range" id="damping" min="0.95" max="0.999" step="0.001" value="0.98" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
+                    <label for="damping" class="block text-sm font-medium text-gray-300 mb-1">Damping (<span id="dampingVal">0.985</span>)</label>
+                    <input type="range" id="damping" min="0.95" max="0.999" step="0.001" value="0.985" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
+                </div>
+                <div>
+                    <label for="viscosity" class="block text-sm font-medium text-gray-300 mb-1">Viscosity (<span id="viscosityVal">0.05</span>)</label>
+                    <input type="range" id="viscosity" min="0" max="0.4" step="0.01" value="0.05" class="w-full h-2 accent-teal-500 bg-gray-700 rounded-md cursor-pointer">
                 </div>
                 <div>
                      <label class="block text-sm font-medium text-gray-300 mb-2">Tools</label>
-                     <div class="grid grid-cols-2 gap-2">
-                        <button id="rainBtn" class="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Toggle Rain</button>
-                        <button id="obstacleBtn" class="bg-gray-600 hover:bg-gray-500 text-white px-2 py-1.5 text-sm rounded-md transition">Draw Obstacles</button>
+                     <div class="grid grid-cols-4 gap-2">
+                        <button data-tool="splash" class="tool-btn bg-teal-500 text-white p-1.5 text-sm rounded-md shadow">Splash</button>
+                        <button data-tool="obstacle" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Wall</button>
+                        <button data-tool="repulsor" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Push</button>
+                        <button data-tool="attractor" class="tool-btn bg-gray-600 hover:bg-gray-500 text-white p-1.5 text-sm rounded-md transition">Pull</button>
                      </div>
                 </div>
             </div>
@@ -124,17 +120,13 @@
                  </div>
                  <button id="resetGameBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition">New Game</button>
             </div>
-            
-            <!-- Clock Settings -->
-             <div id="clock-settings" class="hidden space-y-3">
-                 <p class="text-sm text-center text-gray-300">An ambient fluid clock.</p>
-            </div>
         </div>
     </div>
 
     <script>
         // --- DOM Elements ---
-        const ledGrid = document.getElementById('led-grid');
+        const canvas = document.getElementById('led-canvas');
+        const ctx = canvas.getContext('2d');
         const controls = {
             panel: document.getElementById('controls'),
             content: document.getElementById('control-content'),
@@ -142,6 +134,7 @@
             icon: document.getElementById('control-icon'),
             modeBtns: document.querySelectorAll('.mode-btn'),
             shapeBtns: document.querySelectorAll('.shape-btn'),
+            toolBtns: document.querySelectorAll('.tool-btn'),
             ledSize: document.getElementById('ledSize'),
             ledSizeVal: document.getElementById('ledSizeVal'),
             colorMode: document.getElementById('colorMode'),
@@ -151,129 +144,95 @@
             intensityPreset: document.getElementById('intensityPreset'),
             damping: document.getElementById('damping'),
             dampingVal: document.getElementById('dampingVal'),
-            rainBtn: document.getElementById('rainBtn'),
-            obstacleBtn: document.getElementById('obstacleBtn'),
+            viscosity: document.getElementById('viscosity'),
+            viscosityVal: document.getElementById('viscosityVal'),
             visualSettings: document.getElementById('visual-settings'),
             gameSettings: document.getElementById('game-settings'),
-            clockSettings: document.getElementById('clock-settings'),
             score: document.getElementById('score'),
             resetGameBtn: document.getElementById('resetGameBtn'),
         };
 
         // --- Global State ---
-        let LED_SIZE = 10;
-        let LED_SHAPE = 'square';
-        let cols, rows;
-        let current, previous, obstacles;
-        let damping = 0.98;
-        let isMouseDown = false;
-        let isDrawingObstacles = false;
-        let isRaining = false;
-        let rainInterval;
-        let hue = 0; // Phase for rainbow mode
-        
-        let currentMode = 'fluid'; // 'fluid', 'game', 'clock'
+        let LED_SIZE = 10, LED_SHAPE = 'square', cols, rows;
+        let current, previous, obstacles, forces;
+        let damping = 0.985, viscosity = 0.05;
+        let isMouseDown = false, hue = 0;
+        let currentMode = 'fluid', activeTool = 'splash';
 
-        // Color state
         let activeColor = { r: 0, g: 255, b: 153 };
         const intensityPresets = {
-            magma: [
-                { r: 20, g: 3, b: 0 }, { r: 139, g: 0, b: 0 }, { r: 255, g: 100, b: 0 },
-                { r: 255, g: 255, b: 0 }, { r: 255, g: 255, b: 200 }
-            ],
-            ocean: [
-                { r: 0, g: 0, b: 50 }, { r: 0, g: 50, b: 150 }, { r: 0, g: 150, b: 200 },
-                { r: 0, g: 255, b: 255 }, { r: 200, g: 255, b: 255 }
-            ],
-            forest: [
-                { r: 0, g: 50, b: 10 }, { r: 0, g: 100, b: 20 }, { r: 50, g: 180, b: 50 },
-                { r: 150, g: 220, b: 80 }, { r: 240, g: 255, b: 200 }
-            ]
+            magma: [{r:20,g:3,b:0},{r:139,g:0,b:0},{r:255,g:100,b:0},{r:255,g:255,b:0},{r:255,g:255,b:200}],
+            ocean: [{r:0,g:0,b:50},{r:0,g:50,b:150},{r:0,g:150,b:200},{r:0,g:255,b:255},{r:200,g:255,b:255}],
+            forest: [{r:0,g:50,b:10},{r:0,g:100,b:20},{r:50,g:180,b:50},{r:150,g:220,b:80},{r:240,g:255,b:200}]
         };
 
-        // Game state
         const game = { puck: { x: 0, y: 0, vx: 0, vy: 0 }, target: { x: 0, y: 0 }, score: 0 };
-
-        // Clock state
-        const DIGIT_MAP = [
-            [[1,1,1],[1,0,1],[1,0,1],[1,0,1],[1,1,1]], // 0
-            [[0,1,0],[1,1,0],[0,1,0],[0,1,0],[1,1,1]], // 1
-            [[1,1,1],[0,0,1],[1,1,1],[1,0,0],[1,1,1]], // 2
-            [[1,1,1],[0,0,1],[0,1,1],[0,0,1],[1,1,1]], // 3
-            [[1,0,1],[1,0,1],[1,1,1],[0,0,1],[0,0,1]], // 4
-            [[1,1,1],[1,0,0],[1,1,1],[0,0,1],[1,1,1]], // 5
-            [[1,1,1],[1,0,0],[1,1,1],[1,0,1],[1,1,1]], // 6
-            [[1,1,1],[0,0,1],[0,1,0],[1,0,0],[1,0,0]], // 7
-            [[1,1,1],[1,0,1],[1,1,1],[1,0,1],[1,1,1]], // 8
-            [[1,1,1],[1,0,1],[1,1,1],[0,0,1],[1,1,1]], // 9
-            [[0],[1],[0],[1],[0]] // Colon
-        ];
 
         // --- Core Functions ---
         function setup() {
             LED_SIZE = parseInt(controls.ledSize.value);
-            document.documentElement.style.setProperty('--led-size', `${LED_SIZE}px`);
-            document.documentElement.style.setProperty('--led-shape-radius', LED_SHAPE === 'square' ? '2px' : '50%');
-
             cols = Math.floor(window.innerWidth / LED_SIZE);
             rows = Math.floor(window.innerHeight / LED_SIZE);
-
-            ledGrid.innerHTML = '';
-            ledGrid.style.gridTemplateColumns = `repeat(${cols}, ${LED_SIZE}px)`;
-            ledGrid.style.gridTemplateRows = `repeat(${rows}, ${LED_SIZE}px)`;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
-            current = Array(rows).fill(0).map(() => Array(cols).fill(0));
-            previous = Array(rows).fill(0).map(() => Array(cols).fill(0));
+            current = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
+            previous = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
             obstacles = Array(rows).fill(0).map(() => Array(cols).fill(false));
+            forces = Array(rows).fill(0).map(() => new Float32Array(cols).fill(0));
 
-            for (let i = 0; i < rows * cols; i++) {
-                ledGrid.appendChild(document.createElement('div')).classList.add('led');
-            }
             if (currentMode === 'game') resetGame();
         }
 
         function animate() {
-            switch (currentMode) {
-                case 'fluid': updateFluid(); break;
-                case 'game': updateFluid(); updateGame(); break;
-                case 'clock': updateClockFluid(); break;
-            }
+            update();
             render();
             requestAnimationFrame(animate);
         }
 
-        // --- Update Functions ---
+        // --- Update & Physics ---
+        function update() {
+            if (currentMode === 'game') updateGame();
+            updateFluid();
+        }
+
         function updateFluid() {
             for (let i = 1; i < rows - 1; i++) {
                 for (let j = 1; j < cols - 1; j++) {
                     if (obstacles[i][j]) continue;
-                    current[i][j] = (previous[i-1][j] + previous[i+1][j] + previous[i][j-1] + previous[i][j+1]) / 2 - current[i][j];
-                    current[i][j] *= damping;
+
+                    // CORRECTED PHYSICS MODEL
+                    const neighbors_sum = previous[i-1][j] + previous[i+1][j] + previous[i][j-1] + previous[i][j+1];
+                    
+                    // 1. Core wave equation - this creates the ripple
+                    let wave_val = (neighbors_sum / 2) - current[i][j];
+
+                    // 2. Apply viscosity - this resists change, making the fluid "thicker"
+                    wave_val = wave_val * (1 - viscosity) + previous[i][j] * viscosity;
+
+                    // 3. Apply forces and damping
+                    current[i][j] = (wave_val + forces[i][j]) * damping;
                 }
             }
             let temp = previous; previous = current; current = temp;
         }
 
         function updateGame() {
-            const px = Math.floor(game.puck.x);
-            const py = Math.floor(game.puck.y);
-
-            if (px > 0 && px < cols - 1 && py > 0 && py < rows - 1) {
-                const forceX = current[py][px + 1] - current[py][px - 1];
-                const forceY = current[py + 1][px] - current[py - 1][px];
-                // CORRECTED PHYSICS: Apply force opposite to gradient
-                game.puck.vx -= forceX * 0.1;
-                game.puck.vy -= forceY * 0.1;
+            const px = Math.floor(game.puck.x), py = Math.floor(game.puck.y);
+            if (px > 0 && px < cols-1 && py > 0 && py < rows-1) {
+                const forceX = current[py][px+1] - current[py][px-1];
+                const forceY = current[py+1][px] - current[py-1][px];
+                game.puck.vx -= forceX * 0.1; game.puck.vy -= forceY * 0.1;
             }
 
             game.puck.vx *= 0.98; game.puck.vy *= 0.98;
             game.puck.x += game.puck.vx; game.puck.y += game.puck.vy;
-
+            
             if (game.puck.x < 0.5) { game.puck.x = 0.5; game.puck.vx *= -0.5; }
-            if (game.puck.x > cols - 1.5) { game.puck.x = cols - 1.5; game.puck.vx *= -0.5; }
+            if (game.puck.x > cols - 1.5) { game.puck.x = cols-1.5; game.puck.vx *= -0.5; }
             if (game.puck.y < 0.5) { game.puck.y = 0.5; game.puck.vy *= -0.5; }
-            if (game.puck.y > rows - 1.5) { game.puck.y = rows - 1.5; game.puck.vy *= -0.5; }
-
+            if (game.puck.y > rows - 1.5) { game.puck.y = rows-1.5; game.puck.vy *= -0.5; }
+            
             if (Math.hypot(game.puck.x - game.target.x, game.puck.y - game.target.y) < 2) {
                 game.score++; controls.score.textContent = game.score;
                 previous[game.target.y][game.target.x] = 10;
@@ -281,171 +240,111 @@
             }
         }
 
-        function updateClockFluid() {
-            clearFluid();
-            drawTime();
-            updateFluid();
-        }
-
-        // --- Render Function ---
+        // --- Render Function (Canvas) ---
         function render() {
-            const leds = ledGrid.children;
-            let ledIndex = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             hue = (hue + 0.03) % (Math.PI * 2);
 
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
-                    const led = leds[ledIndex++];
-                    if (!led) continue;
-
-                    if (obstacles[i][j]) { led.style.backgroundColor = '#4a5568'; continue; }
-
-                    if (currentMode === 'game') {
-                        if (Math.floor(game.puck.y) === i && Math.floor(game.puck.x) === j) {
-                            led.style.backgroundColor = 'rgb(252, 165, 165)'; continue; }
-                        if (game.target.y === i && game.target.x === j) {
-                            led.style.backgroundColor = 'rgb(192, 132, 252)'; continue; }
-                    }
-
-                    const val = current[i][j];
-                    const intensity = Math.max(0, Math.min(1, Math.abs(val) * 2));
-                    if (intensity < 0.01) { led.style.backgroundColor = '#000'; continue; }
-                    
                     let r, g, b;
-                    const mode = controls.colorMode.value;
+                    let hasContent = true;
 
-                    if (mode === 'rainbow') {
-                        [r, g, b] = sinebow(hue + val * 5, intensity);
-                    } else if (mode === 'intensity') {
-                        const preset = intensityPresets[controls.intensityPreset.value];
-                        [r, g, b] = getColorFromGradient(intensity, preset);
-                    } else { // single
-                        r = activeColor.r * intensity; g = activeColor.g * intensity; b = activeColor.b * intensity;
+                    if (obstacles[i][j]) { [r,g,b] = [74, 85, 104]; }
+                    else if (forces[i][j] > 0) { [r,g,b] = [200, 255, 255]; }
+                    else if (forces[i][j] < 0) { [r,g,b] = [50, 0, 50]; }
+                    else {
+                        const val = current[i][j];
+                        const intensity = Math.max(0, Math.min(1, Math.abs(val)));
+                        if (intensity < 0.01) { hasContent = false; }
+                        else {
+                            const mode = controls.colorMode.value;
+                            if (mode === 'rainbow') { [r,g,b] = sinebow(hue + val * 5, intensity); }
+                            else if (mode === 'intensity') {
+                                const preset = intensityPresets[controls.intensityPreset.value];
+                                [r,g,b] = getColorFromGradient(intensity, preset);
+                            } else {
+                                r = activeColor.r*intensity; g = activeColor.g*intensity; b = activeColor.b*intensity;
+                            }
+                        }
                     }
-                    led.style.backgroundColor = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+                    
+                    if (hasContent) {
+                        ctx.fillStyle = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+                        if (LED_SHAPE === 'circle') {
+                            ctx.beginPath();
+                            ctx.arc(j * LED_SIZE + LED_SIZE/2, i * LED_SIZE + LED_SIZE/2, LED_SIZE/2.2, 0, Math.PI*2);
+                            ctx.fill();
+                        } else {
+                            ctx.fillRect(j * LED_SIZE, i * LED_SIZE, LED_SIZE - 1, LED_SIZE - 1);
+                        }
+                    }
                 }
+            }
+
+            if (currentMode === 'game') {
+                ctx.fillStyle = 'rgb(252, 165, 165)';
+                ctx.beginPath();
+                ctx.arc(game.puck.x * LED_SIZE + LED_SIZE/2, game.puck.y * LED_SIZE + LED_SIZE/2, LED_SIZE/1.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgb(192, 132, 252)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(game.target.x * LED_SIZE + LED_SIZE/2, game.target.y * LED_SIZE + LED_SIZE/2, LED_SIZE, 0, Math.PI*2);
+                ctx.stroke();
             }
         }
         
-        // --- Game Logic ---
+        // --- Game Logic & Helpers ---
         function resetGame() {
             game.score = 0; controls.score.textContent = '0';
             clearFluid();
             game.puck.x = Math.floor(cols / 4); game.puck.y = Math.floor(rows / 2);
-            game.puck.vx = 0; game.puck.vy = 0;
-            spawnTarget();
+            game.puck.vx = 0; game.puck.vy = 0; spawnTarget();
         }
         function spawnTarget() {
             game.target.x = Math.floor(cols*0.75 + Math.random()*(cols*0.2));
             game.target.y = Math.floor(rows*0.2 + Math.random()*(rows*0.6));
         }
-
-        // --- Clock Logic ---
-        function drawTime() {
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-            const totalWidth = (6*3) + (2*1);
-            let startX = Math.floor((cols - totalWidth) / 2);
-            const startY = Math.floor((rows - 5) / 2);
-            for(const char of timeStr) {
-                const map = (char === ':') ? DIGIT_MAP[10] : DIGIT_MAP[parseInt(char)];
-                drawDigit(map, startX, startY);
-                startX += map[0].length + 1;
-            }
-        }
-        function drawDigit(digitMap, x, y) {
-            for(let i=0; i<5; i++) for(let j=0; j<digitMap[0].length; j++)
-                if (digitMap[i][j] === 1 && (y+i < rows) && (x+j < cols))
-                    previous[y+i][x+j] = 2;
-        }
-
-        // --- Helper & Utility Functions ---
         function handleInteraction(e, isTouch=false) {
-            const clientX = isTouch ? e.touches[0].clientX : e.clientX;
-            const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-            const col = Math.floor(clientX / LED_SIZE);
-            const row = Math.floor(clientY / LED_SIZE);
-            if (row>0 && row<rows-1 && col>0 && col<cols-1) {
-                if (isDrawingObstacles) obstacles[row][col] = !obstacles[row][col];
-                else if (!obstacles[row][col]) previous[row][col] = 10;
+            const touches = isTouch ? e.touches : [e];
+            for (let touch of touches) {
+                const col = Math.floor(touch.clientX / LED_SIZE);
+                const row = Math.floor(touch.clientY / LED_SIZE);
+                if (row>0 && row<rows-1 && col>0 && col<cols-1) {
+                    switch(activeTool) {
+                        case 'splash': if (!obstacles[row][col]) previous[row][col] = 10; break;
+                        case 'obstacle': obstacles[row][col] = !obstacles[row][col]; break;
+                        case 'repulsor': forces[row][col] = forces[row][col] > 0 ? 0 : 0.2; break;
+                        case 'attractor': forces[row][col] = forces[row][col] < 0 ? 0 : -0.2; break;
+                    }
+                }
             }
         }
-        function clearFluid() {
-            for (let i=0; i<rows; i++) for (let j=0; j<cols; j++) { current[i][j]=0; previous[i][j]=0; }
-        }
-        function hexToRgb(hex) {
-            const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return r ? {r:parseInt(r[1],16), g:parseInt(r[2],16), b:parseInt(r[3],16)} : null;
-        }
-        function sinebow(phase, intensity) {
-            const r = (Math.sin(phase) * 127 + 128) * intensity;
-            const g = (Math.sin(phase + Math.PI*2/3) * 127 + 128) * intensity;
-            const b = (Math.sin(phase + Math.PI*4/3) * 127 + 128) * intensity;
-            return [r, g, b];
-        }
-        function getColorFromGradient(intensity, gradient) {
-            const scaled = intensity * (gradient.length - 1);
-            const index = Math.floor(scaled);
-            const frac = scaled - index;
-            if (index >= gradient.length-1) return [gradient.at(-1).r, gradient.at(-1).g, gradient.at(-1).b];
-            const c1 = gradient[index], c2 = gradient[index+1];
-            const r = c1.r+(c2.r-c1.r)*frac, g = c1.g+(c2.g-c1.g)*frac, b = c1.b+(c2.b-c1.b)*frac;
-            return [r, g, b];
-        }
+        function clearFluid() { for (let i=0; i<rows; i++) { current[i].fill(0); previous[i].fill(0); } }
+        function hexToRgb(h) { const r= /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return r ? {r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)} : null; }
+        function sinebow(p, i) { const r=(Math.sin(p)*127+128)*i,g=(Math.sin(p+Math.PI*2/3)*127+128)*i,b=(Math.sin(p+Math.PI*4/3)*127+128)*i; return [r,g,b]; }
+        function getColorFromGradient(i, g) { const s=i*(g.length-1),x=Math.floor(s),f=s-x; if(x>=g.length-1)return[g.at(-1).r,g.at(-1).g,g.at(-1).b]; const c1=g[x],c2=g[x+1]; return [c1.r+(c2.r-c1.r)*f,c1.g+(c2.g-c1.g)*f,c1.b+(c2.b-c1.b)*f]; }
 
         // --- Event Listeners ---
         function setupEventListeners() {
             window.addEventListener('resize', setup);
-            ledGrid.addEventListener('mousedown', e => { isMouseDown=true; handleInteraction(e); });
-            ledGrid.addEventListener('mouseup', () => isMouseDown=false);
-            ledGrid.addEventListener('mousemove', e => isMouseDown && handleInteraction(e));
-            ledGrid.addEventListener('touchstart', e => { isMouseDown=true; handleInteraction(e,true); e.preventDefault(); }, {passive:false});
-            ledGrid.addEventListener('touchend', () => isMouseDown=false);
-            ledGrid.addEventListener('touchmove', e => isMouseDown && (handleInteraction(e,true), e.preventDefault()), {passive:false});
-            controls.toggleBtn.addEventListener('click', () => {
-                const hidden = controls.content.classList.toggle('hidden');
-                controls.icon.style.transform = hidden ? 'rotate(180deg)' : 'rotate(0deg)';
-            });
-            controls.modeBtns.forEach(btn => btn.addEventListener('click', () => {
-                currentMode = btn.dataset.mode;
-                controls.modeBtns.forEach(b => b.classList.replace('bg-teal-500','bg-gray-600'));
-                btn.classList.replace('bg-gray-600','bg-teal-500');
-                controls.visualSettings.style.display = currentMode !== 'game' ? 'block' : 'none';
-                controls.gameSettings.style.display = currentMode === 'game' ? 'block' : 'none';
-                controls.clockSettings.style.display = currentMode === 'clock' ? 'block' : 'none';
-                if (currentMode==='game') resetGame(); else clearFluid();
-            }));
-            controls.shapeBtns.forEach(btn => btn.addEventListener('click', () => {
-                LED_SHAPE = btn.dataset.shape;
-                controls.shapeBtns.forEach(b => b.classList.replace('bg-teal-500','bg-gray-600'));
-                btn.classList.replace('bg-gray-600','bg-teal-500');
-                document.documentElement.style.setProperty('--led-shape-radius', LED_SHAPE === 'square' ? '2px' : '50%');
-            }));
+            canvas.addEventListener('mousedown', e => { isMouseDown=true; handleInteraction(e); });
+            canvas.addEventListener('mouseup', () => isMouseDown=false);
+            canvas.addEventListener('mousemove', e => isMouseDown && handleInteraction(e));
+            canvas.addEventListener('touchstart', e => { isMouseDown=true; handleInteraction(e,true); e.preventDefault(); }, {passive:false});
+            canvas.addEventListener('touchend', () => isMouseDown=false);
+            canvas.addEventListener('touchmove', e => { if(isMouseDown){ handleInteraction(e,true); e.preventDefault(); } }, {passive:false});
+            controls.toggleBtn.addEventListener('click', () => { const h=controls.content.classList.toggle('hidden'); controls.icon.style.transform=h?'rotate(180deg)':'rotate(0deg)'; });
+            controls.modeBtns.forEach(b => b.addEventListener('click', () => { currentMode=b.dataset.mode; controls.modeBtns.forEach(btn => btn.classList.replace('bg-teal-500','bg-gray-600')); b.classList.replace('bg-gray-600','bg-teal-500'); controls.visualSettings.style.display='block'; controls.gameSettings.style.display=currentMode==='game'?'block':'none'; if(currentMode==='game')resetGame();else clearFluid(); }));
+            controls.shapeBtns.forEach(b => b.addEventListener('click', () => { LED_SHAPE=b.dataset.shape; controls.shapeBtns.forEach(btn => btn.classList.replace('bg-teal-500','bg-gray-600')); b.classList.replace('bg-gray-600','bg-teal-500'); }));
+            controls.toolBtns.forEach(b => b.addEventListener('click', () => { activeTool=b.dataset.tool; controls.toolBtns.forEach(btn => btn.classList.replace('bg-teal-500','bg-gray-600')); b.classList.replace('bg-gray-600','bg-teal-500'); }));
             controls.ledSize.addEventListener('input', e => controls.ledSizeVal.textContent = e.target.value);
             controls.ledSize.addEventListener('change', setup);
-            controls.colorMode.addEventListener('change', e => {
-                controls.singleColorPicker.style.display = e.target.value==='single' ? 'block' : 'none';
-                controls.intensityPresetPicker.style.display = e.target.value==='intensity' ? 'block' : 'none';
-            });
+            controls.colorMode.addEventListener('change', e => { controls.singleColorPicker.style.display=e.target.value==='single'?'block':'none'; controls.intensityPresetPicker.style.display=e.target.value==='intensity'?'block':'none'; });
             controls.ledColor.addEventListener('input', e => activeColor = hexToRgb(e.target.value));
-            controls.damping.addEventListener('input', e => {
-                damping = parseFloat(e.target.value); controls.dampingVal.textContent = damping.toFixed(3);
-            });
-            controls.rainBtn.addEventListener('click', () => {
-                isRaining = !isRaining;
-                controls.rainBtn.classList.toggle('bg-teal-500');
-                controls.rainBtn.classList.toggle('bg-gray-600');
-                if (isRaining) rainInterval = setInterval(() => {
-                    const x = Math.floor(Math.random()*(cols-2))+1, y = Math.floor(Math.random()*(rows-2))+1;
-                    if (!obstacles[y][x]) previous[y][x] = 5;
-                }, 100);
-                else clearInterval(rainInterval);
-            });
-            controls.obstacleBtn.addEventListener('click', () => {
-                isDrawingObstacles = !isDrawingObstacles;
-                controls.obstacleBtn.classList.toggle('bg-teal-500');
-                controls.obstacleBtn.classList.toggle('bg-gray-600');
-            });
+            controls.damping.addEventListener('input', e => { damping = parseFloat(e.target.value); controls.dampingVal.textContent = damping.toFixed(3); });
+            controls.viscosity.addEventListener('input', e => { viscosity = parseFloat(e.target.value); controls.viscosityVal.textContent = viscosity.toFixed(2); });
             controls.resetGameBtn.addEventListener('click', resetGame);
         }
         
