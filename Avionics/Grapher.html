@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Avionics Component Dependency Graph</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+            overflow: hidden; /* Hide scrollbars */
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            background: #1e1e1e; /* Dark theme for better contrast */
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 10;
+            max-width: 300px;
+        }
+        h2 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
+        p { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; font-size: 12px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <h2>Component Dependencies</h2>
+        <p><strong>Nodes:</strong> Component Versions</p>
+        <p><strong>Edges:</strong> "Requires" Interface</p>
+        <hr>
+        <div id="legend">
+            </div>
+        <p style="margin-top:10px; font-style:italic;">Click a node to log details to Console</p>
+    </div>
+
+    <div id="container"></div>
+
+    <script src="https://unpkg.com/graphology@0.25.4/dist/graphology.umd.js"></script>
+    <script src="https://unpkg.com/sigma@2.4.0/build/sigma.min.js"></script>
+    <script src="https://unpkg.com/graphology-layout-forceatlas2@0.10.1/build/graphology-layout-forceatlas2.js"></script>
+
+    <script>
+        // --- 1. DATA PREPARATION ---
+        // In a real app, you would fetch this from a local JSON file.
+        const components = [
+            { id: "FMS_v1.0", label: "Flight Mgmt Sys v1.0", type: "Navigation" },
+            { id: "FMS_v2.0", label: "Flight Mgmt Sys v2.0", type: "Navigation" },
+            { id: "GPS_v3.1", label: "GPS Sensor v3.1", type: "Sensor" },
+            { id: "GPS_v4.0", label: "GPS Sensor v4.0", type: "Sensor" },
+            { id: "RAD_v1.0", label: "Radio Alt v1.0", type: "Sensor" },
+            { id: "DISP_v5.0", label: "Cockpit Display v5.0", type: "UI" },
+            { id: "DISP_v5.1", label: "Cockpit Display v5.1", type: "UI" },
+            { id: "ENG_CTRL_v2", label: "Engine Control v2", type: "Engine" },
+        ];
+
+        const dependencies = [
+            // FMS v1 relies on older sensors
+            { source: "FMS_v1.0", target: "GPS_v3.1" },
+            { source: "FMS_v1.0", target: "RAD_v1.0" },
+            // FMS v2 upgraded to new GPS
+            { source: "FMS_v2.0", target: "GPS_v4.0" },
+            // Both FMS versions drive the display
+            { source: "DISP_v5.0", target: "FMS_v1.0" },
+            { source: "DISP_v5.1", target: "FMS_v2.0" },
+            // Engine sends data to FMS
+            { source: "FMS_v2.0", target: "ENG_CTRL_v2" }
+        ];
+
+        // Colors for component types
+        const typeColors = {
+            "Navigation": "#3b82f6", // Blue
+            "Sensor": "#10b981",     // Green
+            "UI": "#f59e0b",         // Orange
+            "Engine": "#ef4444"      // Red
+        };
+
+        // --- 2. BUILD THE GRAPH ---
+        // Graphology is exposed as a global variable 'graphology'
+        const Graph = graphology.Graph;
+        const graph = new Graph();
+
+        // Add Nodes
+        components.forEach(comp => {
+            graph.addNode(comp.id, {
+                label: comp.label,
+                size: 15,
+                color: typeColors[comp.type] || "#999",
+                x: Math.random() * 100, // Random initial positions
+                y: Math.random() * 100,
+                // Custom data attributes for later use
+                componentType: comp.type 
+            });
+        });
+
+        // Add Edges
+        dependencies.forEach(dep => {
+            graph.addEdge(dep.source, dep.target, {
+                type: "arrow",
+                label: "requires",
+                size: 3,
+                color: "#ccc"
+            });
+        });
+
+        // --- 3. APPLY LAYOUT ---
+        // We use ForceAtlas2 to make it look organic
+        // 'graphologyLibrary.layoutForceAtlas2' is exposed by the CDN script
+        const settings = { iterations: 100 };
+        graphologyLibrary.layoutForceAtlas2.assign(graph, settings);
+
+
+        // --- 4. RENDER WITH SIGMA ---
+        const container = document.getElementById("container");
+        
+        // Sigma is exposed as global 'Sigma'
+        const renderer = new Sigma.Sigma(graph, container, {
+            allowInvalidContainer: true
+        });
+
+        // --- 5. INTERACTIVITY (HOVER & CLICK) ---
+        
+        // Log details on click
+        renderer.on("clickNode", ({ node, attributes }) => {
+            console.log("Selected Component:", attributes.label);
+            alert(`Component: ${attributes.label}\nType: ${attributes.componentType}`);
+        });
+
+        // Mouse cursor change on hover
+        renderer.on("enterNode", () => container.style.cursor = "pointer");
+        renderer.on("leaveNode", () => container.style.cursor = "default");
+
+
+        // --- 6. GENERATE LEGEND (Optional Helper) ---
+        const legendContainer = document.getElementById("legend");
+        Object.keys(typeColors).forEach(type => {
+            const item = document.createElement("div");
+            item.className = "legend-item";
+            item.innerHTML = `<div class="dot" style="background:${typeColors[type]}"></div> ${type}`;
+            legendContainer.appendChild(item);
+        });
+
+    </script>
+</body>
+</html>
