@@ -1,551 +1,579 @@
-import React, { useState } from 'react';
-import { 
-  Code, 
-  Briefcase, 
-  TrendingUp, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Linkedin, 
-  Github, 
-  Download, 
-  ChevronRight,
-  Cpu,
-  Users,
-  Target,
-  Award,
-  Terminal,
-  Zap,
-  GraduationCap,
-  Trophy,
-  Star
-} from 'lucide-react';
-
-// --- Resume Data Source ---
-
-const personalInfo = {
-  name: "Naga Chethan P M",
-  title: "Avionics Tools Architect | PMO Leader | Integration Expert",
-  phone: "+91 7411 989 300",
-  email: "naga.chetu28@gmail.com",
-  location: "Bangalore, India",
-  linkedin: "linkedin.com/in/nagachethan",
-  github: "github.com/nagachethan" 
-};
-
-const education = [
-  {
-    degree: "M.Tech in Embedded Systems",
-    institution: "BITS, Pilani",
-    year: "2017 - 2020",
-    details: "Specialization in Avionics & Embedded Software"
-  },
-  {
-    degree: "B.E. in Electronics & Communication",
-    institution: "Visvesvaraya Technological University (VTU)",
-    year: "2010 - 2014",
-    details: "Secured 75.85% | Distinction"
-  }
-];
-
-const achievements = [
-  {
-    title: "Project of the Year",
-    issuer: "Airbus Group India",
-    desc: "Awarded for exceptional delivery of the BITE Integration project.",
-    flavors: ["management", "technical"]
-  },
-  {
-    title: "Spot Award (Cost Savings)",
-    issuer: "Collins Aerospace",
-    desc: "Automated semi-automated tests saving ~$30,000 and eliminating failure risks.",
-    flavors: ["consultant", "technical"]
-  },
-  {
-    title: "Best Performer (4 Consecutive Years)",
-    issuer: "Collins Aerospace",
-    desc: "Recognized for consistent high-impact delivery across multiple avionics programs.",
-    flavors: ["management", "technical"]
-  },
-  {
-    title: "Partner Award",
-    issuer: "Collins Aerospace",
-    desc: "For providing extensive support to 4 teams developing Automated Test Equipment.",
-    flavors: ["management", "consultant"]
-  },
-  {
-    title: "Grid Warrior - 2nd Place",
-    issuer: "IIT Bombay",
-    desc: "National level robotics competition winner.",
-    flavors: ["technical"]
-  },
-  {
-    title: "Intl. Robotics Challenge - 3rd Place",
-    issuer: "IIT Bombay",
-    desc: "International level recognition for robotics engineering.",
-    flavors: ["technical"]
-  },
-  {
-    title: "Process Optimization Award",
-    issuer: "Internal",
-    desc: "Achieved 50% reduction in test execution time via strategic automation.",
-    flavors: ["consultant", "technical"]
-  }
-];
-
-const skills = {
-  technical: [
-    "System Architecture", "Python & Flask", "C / C++", "Shell Scripting", 
-    "React & JS", "Robot Framework", "DO-178B/C & DO-330", "Linux/Windows/Mac",
-    "Docker", "SQL & SQLite", "Embedded Systems"
-  ],
-  management: [
-    "Program Management", "Resource Planning (200+ Engineers)", "Agile & Scrum", 
-    "Stakeholder Management", "Risk Mitigation", "Process Streamlining", 
-    "Cost Optimization", "Audit Management (SOI 2/3)", "Mentoring"
-  ],
-  consultant: [ 
-    "Process Re-engineering", "GenAI Integration (Gemini/Ollama)", 
-    "Automation Strategy", "Legacy Modernization", "Compliance Audits", 
-    "Technical Training", "Solution Architecture", "Workflow Optimization"
-  ],
-  tools: [
-    "JIRA", "Jenkins", "Git", "Google App Scripts", "MS Project", "Tableau"
-  ],
-  ai: [
-    "Gemini", "Perplexity", "OLLAMA", "OpenUI", "ChatGPT API", "Prompt Engineering"
-  ]
-};
-
-const experience = [
-  {
-    company: "Airbus Group India",
-    roles: [
-      {
-        title: "Avionics Tools Architect",
-        period: "Sep 2024 - Present",
-        techFocus: [
-          "Architecting next-gen avionics tools compliant with DO-330 standards.",
-          "Leading legacy tool migration strategies to modern Python/Web stacks.",
-          "Integrating AI agents (Gemini/Ollama) into developer workflows."
-        ],
-        mgmtFocus: [
-          "Managing tool delivery roadmaps for 3 critical avionics product lines.",
-          "Aligning technical deliverables with high-level organizational safety goals."
-        ],
-        consultFocus: [
-          "Advising leadership on toolchain modernization and AI adoption strategies.",
-          "Designing scalable solutions for automated verification processes."
-        ]
-      },
-      {
-        title: "Integration Lead",
-        period: "Aug 2023 - Present",
-        techFocus: [
-          "Technical ownership of BITE (Built-In Test Equipment) integration.",
-          "Resolved 20+ critical bugs in Dal A/B software via deep-dive debugging.",
-          "Implemented Robot Framework for automated regression testing."
-        ],
-        mgmtFocus: [
-          "Leading a cross-functional team of integration engineers.",
-          "Delivered 4 major software releases and 3 critical components on schedule.",
-          "Mentoring junior engineers on avionics standards and debugging."
-        ],
-        consultFocus: [
-          "Streamlined integration workflows reducing cycle time by 30%.",
-          "Established best practices for Continuous Integration (CI) using Jenkins."
-        ]
-      },
-      {
-        title: "Project Management Officer (PMO)",
-        period: "Feb 2022 - July 2024",
-        techFocus: [
-          "Automated PMO tracking using Google App Scripts and Python.",
-          "Built custom dashboards for real-time metric tracking."
-        ],
-        mgmtFocus: [
-          "Orchestrated planning and tracking for ~200 engineers (4 Lakh+ Hours).",
-          "Managed resource loading, MOMs, and critical path trackers.",
-          "Key contributor to 'Project of the Year' award."
-        ],
-        consultFocus: [
-          "Re-engineered the tracking infrastructure to eliminate manual overhead.",
-          "Optimized resource utilization across multiple integration streams."
-        ]
-      },
-      {
-        title: "Integration Engineer",
-        period: "Jan 2020 - Nov 2023",
-        techFocus: [
-          "Executed 400+ test cases for safety-critical avionics software.",
-          "Conducted 53 complex debug sessions to resolve intermittent failures."
-        ],
-        mgmtFocus: [
-          "Coordinated validation activities across 2 major component teams.",
-          "Ensured 100% compliance during critical certification audits."
-        ],
-        consultFocus: [
-          "Consulted on testability improvements for legacy codebases.",
-          "Achieved 'Green' status in 2 major external audits."
-        ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naga Chethan P M - Digital Resume</title>
+    
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Import Map to tell the browser where to find React and Icons -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.263.1"
       }
-    ]
-  },
-  {
-    company: "Collins Aerospace",
-    roles: [
-      {
-        title: "VnV Lead",
-        period: "Feb 2017 - Jan 2020",
-        techFocus: [
-          "Lead verification for DLODS/FODS (Dal A/B Systems).",
-          "Developed HSIT (Hardware-Software Integration) benches.",
-          "Automated 2300+ tests reducing manual effort by 60%."
-        ],
-        mgmtFocus: [
-          "Led a team of 9 engineers across 5 concurrent programs.",
-          "Managed relationships with 7 global customers.",
-          "Recognized as 'Best Performer' for 4 consecutive years."
-        ],
-        consultFocus: [
-          "Standardized verification processes across 11 test benches.",
-          "Saved $30,000+ by automating semi-automated test executions."
-        ]
-      },
-      {
-        title: "VnV Engineer",
-        period: "July 2014 - Jan 2017",
-        techFocus: [
-          "Developed LabVIEW/TestStand drivers for automated test equipment.",
-          "Programmed PIC Microcontrollers for custom test fixtures."
-        ],
-        mgmtFocus: [
-          "Coordinated delivery for 3 simultaneous programs.",
-          "Trained 4 new team members on DO-178B compliance."
-        ],
-        consultFocus: [
-          "Optimized test logic achieving 50% reduction in execution time.",
-          "Designed robust test artifacts for BBP and MEP systems."
-        ]
-      }
-    ]
-  }
-];
-
-// --- Components ---
-
-const SectionHeader = ({ icon: Icon, title, colorClass }) => (
-  <div className={`flex items-center gap-3 mb-6 pb-2 border-b ${colorClass} border-opacity-30`}>
-    <div className={`p-2 rounded-lg ${colorClass} bg-opacity-10`}>
-      <Icon size={24} />
-    </div>
-    <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-  </div>
-);
-
-const SkillBadge = ({ skill, flavor }) => {
-  const colors = {
-    technical: "bg-blue-100 text-blue-800 border-blue-200",
-    management: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    consultant: "bg-purple-100 text-purple-800 border-purple-200"
-  };
-  return (
-    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${colors[flavor] || colors.technical}`}>
-      {skill}
-    </span>
-  );
-};
-
-const AchievementCard = ({ award, activeTheme }) => (
-  <div className="flex gap-4 items-start p-4 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-md transition-shadow">
-    <div className={`p-2 rounded-full shrink-0 ${activeTheme.secondary} ${activeTheme.text}`}>
-      <Trophy size={18} />
-    </div>
-    <div>
-      <h4 className="font-bold text-gray-800">{award.title}</h4>
-      <div className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">{award.issuer}</div>
-      <p className="text-sm text-gray-600 leading-snug">{award.desc}</p>
-    </div>
-  </div>
-);
-
-const ExperienceCard = ({ role, flavor }) => {
-  const getPoints = () => {
-    switch (flavor) {
-      case 'technical': return role.techFocus;
-      case 'management': return role.mgmtFocus;
-      case 'consultant': return role.consultFocus;
-      default: return role.techFocus;
     }
-  };
+    </script>
 
-  const points = getPoints();
+    <!-- Babel to translate JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  if (!points || points.length === 0) return null;
+    <style>
+        /* Smooth scrolling and custom scrollbar */
+        html { scroll-behavior: smooth; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div id="root"></div>
 
-  return (
-    <div className="mb-8 relative pl-8 border-l-2 border-gray-200 last:mb-0 hover:border-gray-400 transition-colors duration-300">
-      <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 bg-white ${
-        flavor === 'technical' ? 'border-blue-500' : 
-        flavor === 'management' ? 'border-emerald-500' : 'border-purple-500'
-      }`}></div>
-      
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2">
-        <h3 className="text-xl font-bold text-gray-900">{role.title}</h3>
-        <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{role.period}</span>
-      </div>
-      
-      <ul className="space-y-2">
-        {points.map((point, idx) => (
-          <li key={idx} className="flex items-start gap-2 text-gray-700 leading-relaxed">
-            <ChevronRight size={16} className={`mt-1 shrink-0 ${
-              flavor === 'technical' ? 'text-blue-500' : 
-              flavor === 'management' ? 'text-emerald-500' : 'text-purple-500'
-            }`} />
-            <span>{point}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+    <!-- Main Application Script -->
+    <script type="text/babel" data-type="module">
+        import React, { useState } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Code, Briefcase, TrendingUp, Mail, Phone, MapPin, 
+            Linkedin, Github, Download, ChevronRight, Cpu, Users, 
+            Target, Award, Terminal, Zap, GraduationCap, Trophy, Star
+        } from 'lucide-react';
 
-// --- Main App ---
+        // --- Resume Data Source ---
 
-export default function Resume() {
-  const [flavor, setFlavor] = useState('technical');
+        const personalInfo = {
+            name: "Naga Chethan P M",
+            title: "Avionics Tools Architect | PMO Leader | Integration Expert",
+            phone: "+91 7411 989 300",
+            email: "naga.chetu28@gmail.com",
+            location: "Bangalore, India",
+            linkedin: "linkedin.com/in/nagachethan",
+            github: "github.com/nagachethan" 
+        };
 
-  const theme = {
-    technical: {
-      primary: "bg-blue-600",
-      secondary: "bg-blue-50",
-      text: "text-blue-600",
-      border: "border-blue-600",
-      gradient: "from-blue-600 to-blue-800",
-      shadow: "shadow-blue-200/50",
-      summary: "Accomplished Avionics Architect & Integration Lead with 10+ years building safety-critical systems (DAL A/B). Expert in C/C++, Python, and DO-178 compliance. Pioneering the use of AI agents (Gemini/Ollama) in avionics tooling."
-    },
-    management: {
-      primary: "bg-emerald-600",
-      secondary: "bg-emerald-50",
-      text: "text-emerald-600",
-      border: "border-emerald-600",
-      gradient: "from-emerald-600 to-emerald-800",
-      shadow: "shadow-emerald-200/50",
-      summary: "Results-oriented Program Manager & PMO Lead managing 400,000+ engineering hours and teams of 80+. Expert in streamlining operations, driving 'Green' audit outcomes, and delivering multi-million dollar avionics programs."
-    },
-    consultant: {
-      primary: "bg-purple-600",
-      secondary: "bg-purple-50",
-      text: "text-purple-600",
-      border: "border-purple-600",
-      gradient: "from-purple-600 to-purple-800",
-      shadow: "shadow-purple-200/50",
-      summary: "Strategic Consultant specializing in Avionics Process Optimization and GenAI Integration. Proven track record of architecting solutions that reduce costs by 30%+ and modernizing legacy workflows for regulatory compliance."
-    }
-  };
+        const education = [
+            {
+                degree: "M.Tech in Embedded Systems",
+                institution: "BITS, Pilani",
+                year: "2017 - 2020",
+                details: "Specialization in Avionics & Embedded Software"
+            },
+            {
+                degree: "B.E. in Electronics & Communication",
+                institution: "Visvesvaraya Technological University (VTU)",
+                year: "2010 - 2014",
+                details: "Secured 75.85% | Distinction"
+            }
+        ];
 
-  const activeTheme = theme[flavor];
-  
-  // Filter achievements based on flavor
-  const visibleAchievements = achievements.filter(a => a.flavors.includes(flavor));
+        const achievements = [
+            {
+                title: "Project of the Year",
+                issuer: "Airbus Group India",
+                desc: "Awarded for exceptional delivery of the BITE Integration project.",
+                flavors: ["management", "technical"]
+            },
+            {
+                title: "Spot Award (Cost Savings)",
+                issuer: "Collins Aerospace",
+                desc: "Automated semi-automated tests saving ~$30,000 and eliminating failure risks.",
+                flavors: ["consultant", "technical"]
+            },
+            {
+                title: "Best Performer (4 Consecutive Years)",
+                issuer: "Collins Aerospace",
+                desc: "Recognized for consistent high-impact delivery across multiple avionics programs.",
+                flavors: ["management", "technical"]
+            },
+            {
+                title: "Partner Award",
+                issuer: "Collins Aerospace",
+                desc: "For providing extensive support to 4 teams developing Automated Test Equipment.",
+                flavors: ["management", "consultant"]
+            },
+            {
+                title: "Grid Warrior - 2nd Place",
+                issuer: "IIT Bombay",
+                desc: "National level robotics competition winner.",
+                flavors: ["technical"]
+            },
+            {
+                title: "Intl. Robotics Challenge - 3rd Place",
+                issuer: "IIT Bombay",
+                desc: "International level recognition for robotics engineering.",
+                flavors: ["technical"]
+            },
+            {
+                title: "Process Optimization Award",
+                issuer: "Internal",
+                desc: "Achieved 50% reduction in test execution time via strategic automation.",
+                flavors: ["consultant", "technical"]
+            }
+        ];
 
-  return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      
-      {/* Navigation / Mode Switcher */}
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-sm font-bold text-gray-400 uppercase tracking-wider">Resume Mode</div>
-          <div className="flex bg-gray-100 p-1 rounded-xl">
-            <button 
-              onClick={() => setFlavor('technical')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                flavor === 'technical' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Code size={18} /> Technical Expert
-            </button>
-            <button 
-              onClick={() => setFlavor('management')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                flavor === 'management' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Briefcase size={18} /> Manager
-            </button>
-            <button 
-              onClick={() => setFlavor('consultant')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                flavor === 'consultant' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <TrendingUp size={18} /> Consultant
-            </button>
-          </div>
-        </div>
-      </div>
+        const skills = {
+            technical: [
+                "System Architecture", "Python & Flask", "C / C++", "Shell Scripting", 
+                "React & JS", "Robot Framework", "DO-178B/C & DO-330", "Linux/Windows/Mac",
+                "Docker", "SQL & SQLite", "Embedded Systems"
+            ],
+            management: [
+                "Program Management", "Resource Planning (200+ Engineers)", "Agile & Scrum", 
+                "Stakeholder Management", "Risk Mitigation", "Process Streamlining", 
+                "Cost Optimization", "Audit Management (SOI 2/3)", "Mentoring"
+            ],
+            consultant: [ 
+                "Process Re-engineering", "GenAI Integration (Gemini/Ollama)", 
+                "Automation Strategy", "Legacy Modernization", "Compliance Audits", 
+                "Technical Training", "Solution Architecture", "Workflow Optimization"
+            ],
+            tools: [
+                "JIRA", "Jenkins", "Git", "Google App Scripts", "MS Project", "Tableau"
+            ],
+            ai: [
+                "Gemini", "Perplexity", "OLLAMA", "OpenUI", "ChatGPT API", "Prompt Engineering"
+            ]
+        };
 
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        
-        {/* Header Section */}
-        <header className={`relative rounded-3xl overflow-hidden bg-gradient-to-r ${activeTheme.gradient} text-white shadow-xl mb-12 transition-all duration-500`}>
-          <div className="absolute top-0 right-0 p-12 opacity-10">
-            {flavor === 'technical' && <Terminal size={200} />}
-            {flavor === 'management' && <Users size={200} />}
-            {flavor === 'consultant' && <Zap size={200} />}
-          </div>
-          
-          <div className="relative z-10 p-8 sm:p-12">
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4">{personalInfo.name}</h1>
-            <h2 className="text-xl sm:text-2xl font-light opacity-90 mb-8 flex items-center gap-2">
-              {flavor === 'technical' && <Cpu size={24} />}
-              {flavor === 'management' && <Award size={24} />}
-              {flavor === 'consultant' && <Target size={24} />}
-              {activeTheme.summary.split('.')[0]}
-            </h2>
-            
-            <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium opacity-90">
-              <div className="flex items-center gap-2">
-                <Phone size={16} /> {personalInfo.phone}
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail size={16} /> {personalInfo.email}
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin size={16} /> {personalInfo.location}
-              </div>
-              <div className="flex items-center gap-2">
-                <Linkedin size={16} /> LinkedIn
-              </div>
+        const experience = [
+            {
+                company: "Airbus Group India",
+                roles: [
+                    {
+                        title: "Avionics Tools Architect",
+                        period: "Sep 2024 - Present",
+                        techFocus: [
+                            "Architecting next-gen avionics tools compliant with DO-330 standards.",
+                            "Leading legacy tool migration strategies to modern Python/Web stacks.",
+                            "Integrating AI agents (Gemini/Ollama) into developer workflows."
+                        ],
+                        mgmtFocus: [
+                            "Managing tool delivery roadmaps for 3 critical avionics product lines.",
+                            "Aligning technical deliverables with high-level organizational safety goals."
+                        ],
+                        consultFocus: [
+                            "Advising leadership on toolchain modernization and AI adoption strategies.",
+                            "Designing scalable solutions for automated verification processes."
+                        ]
+                    },
+                    {
+                        title: "Integration Lead",
+                        period: "Aug 2023 - Present",
+                        techFocus: [
+                            "Technical ownership of BITE (Built-In Test Equipment) integration.",
+                            "Resolved 20+ critical bugs in Dal A/B software via deep-dive debugging.",
+                            "Implemented Robot Framework for automated regression testing."
+                        ],
+                        mgmtFocus: [
+                            "Leading a cross-functional team of integration engineers.",
+                            "Delivered 4 major software releases and 3 critical components on schedule.",
+                            "Mentoring junior engineers on avionics standards and debugging."
+                        ],
+                        consultFocus: [
+                            "Streamlined integration workflows reducing cycle time by 30%.",
+                            "Established best practices for Continuous Integration (CI) using Jenkins."
+                        ]
+                    },
+                    {
+                        title: "Project Management Officer (PMO)",
+                        period: "Feb 2022 - July 2024",
+                        techFocus: [
+                            "Automated PMO tracking using Google App Scripts and Python.",
+                            "Built custom dashboards for real-time metric tracking."
+                        ],
+                        mgmtFocus: [
+                            "Orchestrated planning and tracking for ~200 engineers (4 Lakh+ Hours).",
+                            "Managed resource loading, MOMs, and critical path trackers.",
+                            "Key contributor to 'Project of the Year' award."
+                        ],
+                        consultFocus: [
+                            "Re-engineered the tracking infrastructure to eliminate manual overhead.",
+                            "Optimized resource utilization across multiple integration streams."
+                        ]
+                    },
+                    {
+                        title: "Integration Engineer",
+                        period: "Jan 2020 - Nov 2023",
+                        techFocus: [
+                            "Executed 400+ test cases for safety-critical avionics software.",
+                            "Conducted 53 complex debug sessions to resolve intermittent failures."
+                        ],
+                        mgmtFocus: [
+                            "Coordinated validation activities across 2 major component teams.",
+                            "Ensured 100% compliance during critical certification audits."
+                        ],
+                        consultFocus: [
+                            "Consulted on testability improvements for legacy codebases.",
+                            "Achieved 'Green' status in 2 major external audits."
+                        ]
+                    }
+                ]
+            },
+            {
+                company: "Collins Aerospace",
+                roles: [
+                    {
+                        title: "VnV Lead",
+                        period: "Feb 2017 - Jan 2020",
+                        techFocus: [
+                            "Lead verification for DLODS/FODS (Dal A/B Systems).",
+                            "Developed HSIT (Hardware-Software Integration) benches.",
+                            "Automated 2300+ tests reducing manual effort by 60%."
+                        ],
+                        mgmtFocus: [
+                            "Led a team of 9 engineers across 5 concurrent programs.",
+                            "Managed relationships with 7 global customers.",
+                            "Recognized as 'Best Performer' for 4 consecutive years."
+                        ],
+                        consultFocus: [
+                            "Standardized verification processes across 11 test benches.",
+                            "Saved $30,000+ by automating semi-automated test executions."
+                        ]
+                    },
+                    {
+                        title: "VnV Engineer",
+                        period: "July 2014 - Jan 2017",
+                        techFocus: [
+                            "Developed LabVIEW/TestStand drivers for automated test equipment.",
+                            "Programmed PIC Microcontrollers for custom test fixtures."
+                        ],
+                        mgmtFocus: [
+                            "Coordinated delivery for 3 simultaneous programs.",
+                            "Trained 4 new team members on DO-178B compliance."
+                        ],
+                        consultFocus: [
+                            "Optimized test logic achieving 50% reduction in execution time.",
+                            "Designed robust test artifacts for BBP and MEP systems."
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        // --- Components ---
+
+        const SectionHeader = ({ icon: Icon, title, colorClass }) => (
+            <div className={`flex items-center gap-3 mb-6 pb-2 border-b ${colorClass} border-opacity-30`}>
+                <div className={`p-2 rounded-lg ${colorClass} bg-opacity-10`}>
+                    <Icon size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
             </div>
-          </div>
-        </header>
+        );
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
-          {/* Left Column: Experience */}
-          <div className="lg:col-span-2 space-y-12">
-            
-            {/* Professional Summary */}
-            <section>
-              <SectionHeader icon={Users} title="Professional Profile" colorClass={activeTheme.text} />
-              <p className="text-lg text-gray-700 leading-relaxed bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                {activeTheme.summary}
-              </p>
-            </section>
-
-            {/* Work Experience */}
-            <section>
-              <SectionHeader icon={Briefcase} title="Experience" colorClass={activeTheme.text} />
-              <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100">
-                {experience.map((job, index) => (
-                  <div key={index} className="mb-12 last:mb-0">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className={`w-2 h-8 rounded-full ${activeTheme.primary}`}></div>
-                      <h3 className="text-2xl font-bold text-gray-800">{job.company}</h3>
-                    </div>
-                    <div>
-                      {job.roles.map((role, roleIdx) => (
-                        <ExperienceCard key={roleIdx} role={role} flavor={flavor} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: Skills, Awards, Education */}
-          <div className="space-y-10">
-            
-             {/* Key Achievements (Dynamic) */}
-             <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-              <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
-                <Star size={20} />
-                <h3 className="text-xl font-bold">Key Achievements</h3>
-              </div>
-              <div className="space-y-3">
-                {visibleAchievements.map((award, i) => (
-                  <AchievementCard key={i} award={award} activeTheme={activeTheme} />
-                ))}
-              </div>
-            </section>
-
-            {/* Education */}
-            <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-              <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
-                <GraduationCap size={20} />
-                <h3 className="text-xl font-bold">Education</h3>
-              </div>
-              <div className="space-y-6">
-                {education.map((edu, i) => (
-                  <div key={i} className="relative pl-4 border-l-2 border-gray-200">
-                     <div className={`absolute -left-[5px] top-1 w-2 h-2 rounded-full ${activeTheme.primary}`}></div>
-                    <h4 className="font-bold text-gray-800">{edu.degree}</h4>
-                    <div className="text-sm text-gray-600">{edu.institution}</div>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-500">{edu.year}</span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1 italic">{edu.details}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Core Competencies */}
-            <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-              <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
-                <Target size={20} />
-                <h3 className="text-xl font-bold">Core Competencies</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {skills[flavor].map((skill, i) => (
-                  <SkillBadge key={i} skill={skill} flavor={flavor} />
-                ))}
-              </div>
-            </section>
-
-            {/* AI & Emerging Tech */}
-            <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-3xl shadow-lg">
-              <div className="flex items-center gap-3 mb-4 text-yellow-400">
-                <Zap size={20} />
-                <h3 className="text-xl font-bold">GenAI & Future Tech</h3>
-              </div>
-              <p className="text-sm text-gray-300 mb-4">Leveraging modern LLMs for process automation.</p>
-              <div className="flex flex-wrap gap-2">
-                {skills.ai.map((skill, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20">
+        const SkillBadge = ({ skill, flavor }) => {
+            const colors = {
+                technical: "bg-blue-100 text-blue-800 border-blue-200",
+                management: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                consultant: "bg-purple-100 text-purple-800 border-purple-200"
+            };
+            return (
+                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${colors[flavor] || colors.technical}`}>
                     {skill}
-                  </span>
-                ))}
-              </div>
-            </section>
+                </span>
+            );
+        };
 
-            {/* Tools */}
-            <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-               <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
-                <Terminal size={20} />
-                <h3 className="text-xl font-bold">Tools & Platforms</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {skills.tools.map((skill, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </section>
+        const AchievementCard = ({ award, activeTheme }) => (
+            <div className="flex gap-4 items-start p-4 rounded-xl bg-gray-50 border border-gray-100 hover:shadow-md transition-shadow">
+                <div className={`p-2 rounded-full shrink-0 ${activeTheme.secondary} ${activeTheme.text}`}>
+                    <Trophy size={18} />
+                </div>
+                <div>
+                    <h4 className="font-bold text-gray-800">{award.title}</h4>
+                    <div className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">{award.issuer}</div>
+                    <p className="text-sm text-gray-600 leading-snug">{award.desc}</p>
+                </div>
+            </div>
+        );
 
-             {/* Call to Action (Download) */}
-             <button className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 bg-gradient-to-r ${activeTheme.gradient}`}>
-              <Download size={20} />
-              Download {flavor.charAt(0).toUpperCase() + flavor.slice(1)} Resume
-            </button>
+        const ExperienceCard = ({ role, flavor }) => {
+            const getPoints = () => {
+                switch (flavor) {
+                    case 'technical': return role.techFocus;
+                    case 'management': return role.mgmtFocus;
+                    case 'consultant': return role.consultFocus;
+                    default: return role.techFocus;
+                }
+            };
 
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+            const points = getPoints();
+
+            if (!points || points.length === 0) return null;
+
+            return (
+                <div className="mb-8 relative pl-8 border-l-2 border-gray-200 last:mb-0 hover:border-gray-400 transition-colors duration-300">
+                    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 bg-white ${
+                        flavor === 'technical' ? 'border-blue-500' : 
+                        flavor === 'management' ? 'border-emerald-500' : 'border-purple-500'
+                    }`}></div>
+                    
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-2">
+                        <h3 className="text-xl font-bold text-gray-900">{role.title}</h3>
+                        <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{role.period}</span>
+                    </div>
+                    
+                    <ul className="space-y-2">
+                        {points.map((point, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-gray-700 leading-relaxed">
+                                <ChevronRight size={16} className={`mt-1 shrink-0 ${
+                                    flavor === 'technical' ? 'text-blue-500' : 
+                                    flavor === 'management' ? 'text-emerald-500' : 'text-purple-500'
+                                }`} />
+                                <span>{point}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
+
+        function Resume() {
+            const [flavor, setFlavor] = useState('technical');
+
+            const theme = {
+                technical: {
+                    primary: "bg-blue-600",
+                    secondary: "bg-blue-50",
+                    text: "text-blue-600",
+                    border: "border-blue-600",
+                    gradient: "from-blue-600 to-blue-800",
+                    shadow: "shadow-blue-200/50",
+                    summary: "Accomplished Avionics Architect & Integration Lead with 10+ years building safety-critical systems (DAL A/B). Expert in C/C++, Python, and DO-178 compliance. Pioneering the use of AI agents (Gemini/Ollama) in avionics tooling."
+                },
+                management: {
+                    primary: "bg-emerald-600",
+                    secondary: "bg-emerald-50",
+                    text: "text-emerald-600",
+                    border: "border-emerald-600",
+                    gradient: "from-emerald-600 to-emerald-800",
+                    shadow: "shadow-emerald-200/50",
+                    summary: "Results-oriented Program Manager & PMO Lead managing 400,000+ engineering hours and teams of 80+. Expert in streamlining operations, driving 'Green' audit outcomes, and delivering multi-million dollar avionics programs."
+                },
+                consultant: {
+                    primary: "bg-purple-600",
+                    secondary: "bg-purple-50",
+                    text: "text-purple-600",
+                    border: "border-purple-600",
+                    gradient: "from-purple-600 to-purple-800",
+                    shadow: "shadow-purple-200/50",
+                    summary: "Strategic Consultant specializing in Avionics Process Optimization and GenAI Integration. Proven track record of architecting solutions that reduce costs by 30%+ and modernizing legacy workflows for regulatory compliance."
+                }
+            };
+
+            const activeTheme = theme[flavor];
+            const visibleAchievements = achievements.filter(a => a.flavors.includes(flavor));
+
+            return (
+                <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+                    
+                    {/* Navigation / Mode Switcher */}
+                    <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200">
+                        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div className="text-sm font-bold text-gray-400 uppercase tracking-wider">Resume Mode</div>
+                            <div className="flex bg-gray-100 p-1 rounded-xl">
+                                <button 
+                                    onClick={() => setFlavor('technical')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        flavor === 'technical' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Code size={18} /> Technical Expert
+                                </button>
+                                <button 
+                                    onClick={() => setFlavor('management')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        flavor === 'management' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Briefcase size={18} /> Manager
+                                </button>
+                                <button 
+                                    onClick={() => setFlavor('consultant')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        flavor === 'consultant' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <TrendingUp size={18} /> Consultant
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-5xl mx-auto px-4 py-12">
+                        
+                        {/* Header Section */}
+                        <header className={`relative rounded-3xl overflow-hidden bg-gradient-to-r ${activeTheme.gradient} text-white shadow-xl mb-12 transition-all duration-500`}>
+                            <div className="absolute top-0 right-0 p-12 opacity-10">
+                                {flavor === 'technical' && <Terminal size={200} />}
+                                {flavor === 'management' && <Users size={200} />}
+                                {flavor === 'consultant' && <Zap size={200} />}
+                            </div>
+                            
+                            <div className="relative z-10 p-8 sm:p-12">
+                                <h1 className="text-4xl sm:text-5xl font-bold mb-4">{personalInfo.name}</h1>
+                                <h2 className="text-xl sm:text-2xl font-light opacity-90 mb-8 flex items-center gap-2">
+                                    {flavor === 'technical' && <Cpu size={24} />}
+                                    {flavor === 'management' && <Award size={24} />}
+                                    {flavor === 'consultant' && <Target size={24} />}
+                                    {activeTheme.summary.split('.')[0]}
+                                </h2>
+                                
+                                <div className="flex flex-wrap gap-4 sm:gap-6 text-sm font-medium opacity-90">
+                                    <div className="flex items-center gap-2">
+                                        <Phone size={16} /> {personalInfo.phone}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Mail size={16} /> {personalInfo.email}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin size={16} /> {personalInfo.location}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Linkedin size={16} /> LinkedIn
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                            
+                            {/* Left Column: Experience */}
+                            <div className="lg:col-span-2 space-y-12">
+                                
+                                {/* Professional Summary */}
+                                <section>
+                                    <SectionHeader icon={Users} title="Professional Profile" colorClass={activeTheme.text} />
+                                    <p className="text-lg text-gray-700 leading-relaxed bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                        {activeTheme.summary}
+                                    </p>
+                                </section>
+
+                                {/* Work Experience */}
+                                <section>
+                                    <SectionHeader icon={Briefcase} title="Experience" colorClass={activeTheme.text} />
+                                    <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100">
+                                        {experience.map((job, index) => (
+                                            <div key={index} className="mb-12 last:mb-0">
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <div className={`w-2 h-8 rounded-full ${activeTheme.primary}`}></div>
+                                                    <h3 className="text-2xl font-bold text-gray-800">{job.company}</h3>
+                                                </div>
+                                                <div>
+                                                    {job.roles.map((role, roleIdx) => (
+                                                        <ExperienceCard key={roleIdx} role={role} flavor={flavor} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            </div>
+
+                            {/* Right Column: Skills, Awards, Education */}
+                            <div className="space-y-10">
+                                
+                                {/* Key Achievements (Dynamic) */}
+                                <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
+                                        <Star size={20} />
+                                        <h3 className="text-xl font-bold">Key Achievements</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {visibleAchievements.map((award, i) => (
+                                            <AchievementCard key={i} award={award} activeTheme={activeTheme} />
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Education */}
+                                <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
+                                        <GraduationCap size={20} />
+                                        <h3 className="text-xl font-bold">Education</h3>
+                                    </div>
+                                    <div className="space-y-6">
+                                        {education.map((edu, i) => (
+                                            <div key={i} className="relative pl-4 border-l-2 border-gray-200">
+                                                <div className={`absolute -left-[5px] top-1 w-2 h-2 rounded-full ${activeTheme.primary}`}></div>
+                                                <h4 className="font-bold text-gray-800">{edu.degree}</h4>
+                                                <div className="text-sm text-gray-600">{edu.institution}</div>
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-500">{edu.year}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-400 mt-1 italic">{edu.details}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Core Competencies */}
+                                <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
+                                        <Target size={20} />
+                                        <h3 className="text-xl font-bold">Core Competencies</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {skills[flavor].map((skill, i) => (
+                                            <SkillBadge key={i} skill={skill} flavor={flavor} />
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* AI & Emerging Tech */}
+                                <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-3xl shadow-lg">
+                                    <div className="flex items-center gap-3 mb-4 text-yellow-400">
+                                        <Zap size={20} />
+                                        <h3 className="text-xl font-bold">GenAI & Future Tech</h3>
+                                    </div>
+                                    <p className="text-sm text-gray-300 mb-4">Leveraging modern LLMs for process automation.</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {skills.ai.map((skill, i) => (
+                                            <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Tools */}
+                                <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className={`flex items-center gap-3 mb-4 ${activeTheme.text}`}>
+                                        <Terminal size={20} />
+                                        <h3 className="text-xl font-bold">Tools & Platforms</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {skills.tools.map((skill, i) => (
+                                            <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Call to Action (Download) */}
+                                <button className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 bg-gradient-to-r ${activeTheme.gradient}`}>
+                                    <Download size={20} />
+                                    Download {flavor.charAt(0).toUpperCase() + flavor.slice(1)} Resume
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Mount the React application
+        const root = createRoot(document.getElementById('root'));
+        root.render(<Resume />);
+    </script>
+</body>
+</html>
