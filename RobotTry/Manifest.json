@@ -1,0 +1,21 @@
+{
+  "name": "Family Trip Tracker",
+  "short_name": "TripTracker",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Map_marker_icon_%E2%80%93_Nicolas_Mollet_%E2%80%93_Car_%E2%80%93_Tourism_%E2%80%93_Gradient.svg/512px-Map_marker_icon_%E2%80%93_Nicolas_Mollet_%E2%80%93_Car_%E2%80%93_Tourism_%E2%80%93_Gradient.svg.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Map_marker_icon_%E2%80%93_Nicolas_Mollet_%E2%80%93_Car_%E2%80%93_Tourism_%E2%80%93_Gradient.svg/512px-Map_marker_icon_%E2%80%93_Nicolas_Mollet_%E2%80%93_Car_%E2%80%93_Tourism_%E2%80%93_Gradient.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
