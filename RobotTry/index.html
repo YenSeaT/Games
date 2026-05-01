@@ -2,206 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Road Trip Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TripTracker PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased selection:bg-blue-200">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // Initial Itinerary Data
+        // Distance Calculation (Haversine)
+        const getDistance = (lat1, lon1, lat2, lon2) => {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        };
+
         const initialStops = [
-            { id: 1, day: "Day 1", name: "Start from Home (Whitefield)", predictedTime: "06:00", predictedWeather: "25°C, Clear", actualTime: null, actualWeather: "", locked: false, notes: "Car packed, ready to go!" },
-            { id: 2, day: "Day 1", name: "Breakfast (Bidadi/Maddur)", predictedTime: "07:30", predictedWeather: "28°C, Sunny", actualTime: null, actualWeather: "", locked: false, notes: "Shree Renuka Thatte Idli or A2B (Pure Veg)." },
-            { id: 3, day: "Day 1", name: "Somanathapura Temple", predictedTime: "10:00", predictedWeather: "36°C, Mostly Cloudy", actualTime: null, actualWeather: "", locked: false, notes: "Carry umbrellas for parents. Hydrate." },
-            { id: 4, day: "Day 1", name: "Nanjangud Temple & Lunch", predictedTime: "12:45", predictedWeather: "36°C, PM Thunderstorms", actualTime: null, actualWeather: "", locked: false, notes: "Darshan and Udupi thali near temple." },
-            { id: 5, day: "Day 1", name: "Night Halt (Gundlupet)", predictedTime: "16:30", predictedWeather: "34°C, Chance of Rain", actualTime: null, actualWeather: "", locked: false, notes: "Dinner at Shrinidhi Pure Veg. Rest well." },
-            { id: 6, day: "Day 2", name: "Himavad Gopalaswamy Temple Base", predictedTime: "08:15", predictedWeather: "24°C, Misty/Cool", actualTime: null, actualWeather: "", locked: false, notes: "Park Kwid, take KSRTC forest shuttle." },
-            { id: 7, day: "Day 2", name: "B.R. Hills Temple", predictedTime: "13:00", predictedWeather: "34°C, Mostly Cloudy", actualTime: null, actualWeather: "", locked: false, notes: "Temple closes at 14:00. Short walk from parking." },
-            { id: 8, day: "Day 2", name: "Return Home (Whitefield)", predictedTime: "20:00", predictedWeather: "27°C, Clear", actualTime: null, actualWeather: "", locked: false, notes: "End of the 600+ km journey!" }
+            { id: 1, name: "Home (Whitefield)", timeStr: "06:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending" },
+            { id: 2, name: "Breakfast (Bidadi)", timeStr: "07:30", lat: 12.7984, lon: 77.3871, actualTime: null, weather: null, status: "pending" },
+            { id: 3, name: "Somanathapura Temple", timeStr: "10:00", lat: 12.2766, lon: 76.8824, actualTime: null, weather: null, status: "pending" },
+            { id: 4, name: "Nanjangud Temple", timeStr: "12:45", lat: 12.1165, lon: 76.6775, actualTime: null, weather: null, status: "pending" },
+            { id: 5, name: "Gundlupet Halt", timeStr: "16:30", lat: 11.8037, lon: 76.6841, actualTime: null, weather: null, status: "pending" },
+            { id: 6, name: "Himavad Gopalaswamy Base", timeStr: "08:15", lat: 11.7208, lon: 76.6276, actualTime: null, weather: null, status: "pending" },
+            { id: 7, name: "B.R. Hills Temple", timeStr: "13:00", lat: 11.9961, lon: 77.1384, actualTime: null, weather: null, status: "pending" },
+            { id: 8, name: "Home (Whitefield)", timeStr: "20:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending" }
         ];
 
         function App() {
             const [stops, setStops] = useState(initialStops);
-            const [liveTime, setLiveTime] = useState(new Date());
-            const [isSimulated, setIsSimulated] = useState(false);
-            const [simSpeed, setSimSpeed] = useState(1); // 1x is real-time, higher is faster
+            const [zoom, setZoom] = useState(2); // Pixel multiplier per minute
+            const [userLoc, setUserLoc] = useState(null);
 
-            // Master Clock Logic
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    if (isSimulated) {
-                        setLiveTime(prev => new Date(prev.getTime() + (1000 * simSpeed)));
-                    } else {
-                        setLiveTime(new Date());
+            // Time string to minutes since midnight
+            const toMins = (timeStr) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            // Fetch Weather via Open-Meteo
+            const fetchWeather = async (lat, lon, id) => {
+                try {
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                    const data = await res.json();
+                    if(data.current_weather) {
+                        setStops(prev => prev.map(s => s.id === id ? { ...s, weather: `${data.current_weather.temperature}°C` } : s));
                     }
-                }, 1000);
-                return () => clearInterval(interval);
-            }, [isSimulated, simSpeed]);
-
-            // Helper to format Date objects to HH:MM
-            const formatTime = (dateObj) => {
-                return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                } catch (e) {
+                    console.log("Weather fetch failed");
+                }
             };
 
-            const markArrived = (id) => {
-                const currentTimeStr = formatTime(liveTime);
-                setStops(stops.map(stop => 
-                    stop.id === id ? { ...stop, actualTime: currentTimeStr } : stop
-                ));
-            };
-
-            const updateActualWeather = (id, value) => {
-                setStops(stops.map(stop => 
-                    stop.id === id ? { ...stop, actualWeather: value } : stop
-                ));
-            };
-
-            const lockStop = (id) => {
-                setStops(stops.map(stop => 
-                    stop.id === id ? { ...stop, locked: true } : stop
-                ));
-            };
-
-            // Calculate variance between predicted and actual times
-            const calculateVariance = (predicted, actual) => {
-                if (!actual) return null;
-                const [pH, pM] = predicted.split(':').map(Number);
-                const [aH, aM] = actual.split(':').map(Number);
+            // Geolocation Tracking
+            useEffect(() => {
+                if (!navigator.geolocation) return;
                 
-                const pTotal = (pH * 60) + pM;
-                const aTotal = (aH * 60) + aM;
-                
-                const diff = aTotal - pTotal;
-                if (diff === 0) return <span className="text-gray-500 font-bold">On time</span>;
-                if (diff > 0) return <span className="text-red-500 font-bold">+{diff} mins late</span>;
-                return <span className="text-green-600 font-bold">{diff} mins early</span>;
+                const watchId = navigator.geolocation.watchPosition((pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    setUserLoc({ lat: latitude, lon: longitude });
+
+                    setStops(prev => prev.map(stop => {
+                        if (stop.status !== "arrived") {
+                            const dist = getDistance(latitude, longitude, stop.lat, stop.lon);
+                            // Auto-arrive if within 2km radius
+                            if (dist <= 2) {
+                                fetchWeather(stop.lat, stop.lon, stop.id);
+                                return { ...stop, status: "arrived", actualTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+                            }
+                        }
+                        return stop;
+                    }));
+                }, (err) => console.log(err), { enableHighAccuracy: true });
+
+                return () => navigator.geolocation.clearWatch(watchId);
+            }, []);
+
+            const manualArrive = (id, lat, lon) => {
+                fetchWeather(lat, lon, id);
+                setStops(prev => prev.map(s => 
+                    s.id === id ? { ...s, status: "arrived", actualTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) } : s
+                ));
             };
 
             return (
-                <div className="max-w-3xl mx-auto py-8 px-4">
-                    {/* Header & Clock Section */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 text-center sticky top-4 z-10">
-                        <h1 className="text-2xl font-bold text-slate-800 mb-2">Family Road Trip Tracker</h1>
-                        <p className="text-slate-500 mb-4">Bengaluru → Somanathapura → Gundlupet → B.R. Hills</p>
-                        <div className="text-4xl font-black text-blue-600 tracking-tight font-mono">
-                            {formatTime(liveTime)}
-                        </div>
-                        
-                        {/* Simulation Controls */}
-                        <div className="mt-4 flex flex-wrap justify-center items-center gap-4 bg-slate-50 p-3 rounded-lg text-sm border border-slate-100">
-                            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
-                                <input 
-                                    type="checkbox" 
-                                    checked={isSimulated} 
-                                    onChange={(e) => setIsSimulated(e.target.checked)}
-                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                />
-                                Enable Simulation Mode
-                            </label>
-                            {isSimulated && (
-                                <select 
-                                    value={simSpeed} 
-                                    onChange={(e) => setSimSpeed(Number(e.target.value))}
-                                    className="border border-slate-300 rounded px-2 py-1 bg-white text-slate-700"
-                                >
-                                    <option value={1}>1x (Real Time)</option>
-                                    <option value={60}>60x (1 min = 1 sec)</option>
-                                    <option value={3600}>3600x (1 hr = 1 sec)</option>
-                                </select>
-                            )}
+                <div className="max-w-lg mx-auto bg-white min-h-screen shadow-lg pb-20">
+                    <div className="sticky top-0 z-50 bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+                        <h1 className="font-bold text-lg">Trip Tracker</h1>
+                        <div className="flex gap-2">
+                            <span className="text-xs bg-blue-700 px-2 py-1 rounded">Zoom:</span>
+                            {[1, 2, 5].map(z => (
+                                <button key={z} onClick={() => setZoom(z)} className={`px-2 py-1 text-xs rounded ${zoom === z ? 'bg-white text-blue-600' : 'bg-blue-800'}`}>{z}x</button>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Timeline */}
-                    <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-                        
-                        {stops.map((stop) => (
-                            <div key={stop.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                {/* Timeline Dot */}
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 ${stop.locked ? 'bg-green-500' : 'bg-blue-500'}`}>
-                                    <span className="text-white text-xs font-bold">{stop.id}</span>
-                                </div>
-                                
-                                {/* Stop Card */}
-                                <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-xl border shadow-sm transition-all duration-200 ${stop.locked ? 'border-green-200 bg-green-50/30' : 'border-slate-200 hover:shadow-md'}`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded">{stop.day}</span>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-slate-800 leading-snug mb-3">{stop.name}</h3>
-                                    
-                                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                        {/* Predicted Column */}
-                                        <div className="bg-slate-50 p-3 rounded border border-slate-100">
-                                            <p className="font-semibold text-slate-500 text-xs uppercase mb-1">Predicted</p>
-                                            <p className="font-mono text-lg font-bold text-slate-700">{stop.predictedTime}</p>
-                                            <p className="text-slate-600 mt-1 line-clamp-1" title={stop.predictedWeather}>{stop.predictedWeather}</p>
+                    <div className="relative p-6 ml-4 border-l-2 border-slate-200 mt-4">
+                        {stops.map((stop, i) => {
+                            let gap = 0;
+                            if (i > 0) {
+                                // Add 24h (1440 mins) if the next stop rolls over to the next day
+                                let currMins = toMins(stop.timeStr);
+                                let prevMins = toMins(stops[i-1].timeStr);
+                                if (currMins < prevMins) currMins += 1440;
+                                gap = (currMins - prevMins) * zoom; 
+                            }
+
+                            return (
+                                <div key={stop.id} style={{ marginTop: `${gap}px` }} className="relative flex items-center group">
+                                    <div className={`absolute -left-[35px] w-4 h-4 rounded-full border-2 ${stop.status === 'arrived' ? 'bg-green-500 border-green-500' : 'bg-white border-blue-400'}`}></div>
+                                    <div className={`w-full p-4 rounded-lg border ${stop.status === 'arrived' ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+                                        <div className="flex justify-between">
+                                            <h3 className="font-bold text-slate-800 text-sm">{stop.name}</h3>
+                                            <span className="text-xs font-mono text-slate-500">Target: {stop.timeStr}</span>
                                         </div>
-                                        
-                                        {/* Actual Column */}
-                                        <div className="bg-blue-50 p-3 rounded border border-blue-100">
-                                            <p className="font-semibold text-blue-600 text-xs uppercase mb-1">Actual</p>
-                                            {stop.actualTime ? (
-                                                <p className="font-mono text-lg font-bold text-blue-800">{stop.actualTime}</p>
-                                            ) : (
-                                                <p className="text-slate-400 italic">Pending...</p>
-                                            )}
-                                            
-                                            {stop.locked ? (
-                                                <p className="text-blue-800 mt-1 font-medium">{stop.actualWeather || "No weather recorded"}</p>
-                                            ) : (
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Actual weather?" 
-                                                    value={stop.actualWeather}
-                                                    onChange={(e) => updateActualWeather(stop.id, e.target.value)}
-                                                    className="w-full mt-1 px-2 py-1 text-xs border border-blue-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                />
-                                            )}
+                                        <div className="mt-2 text-xs flex justify-between items-end">
+                                            <div>
+                                                {stop.actualTime ? (
+                                                    <span className="text-green-700 font-bold">Arrived: {stop.actualTime}</span>
+                                                ) : (
+                                                    <button onClick={() => manualArrive(stop.id, stop.lat, stop.lon)} className="bg-blue-100 text-blue-700 px-3 py-1 rounded font-medium">Mark Arrive</button>
+                                                )}
+                                            </div>
+                                            {stop.weather && <span className="text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">⛅ {stop.weather}</span>}
                                         </div>
                                     </div>
-
-                                    {/* Variance Display */}
-                                    {stop.actualTime && (
-                                        <div className="mb-4 text-sm text-center bg-slate-50 py-1 rounded border border-slate-100">
-                                            Variance: {calculateVariance(stop.predictedTime, stop.actualTime)}
-                                        </div>
-                                    )}
-
-                                    {/* Notes */}
-                                    <p className="text-sm text-slate-600 italic mb-4 border-l-2 border-slate-300 pl-2">
-                                        "{stop.notes}"
-                                    </p>
-
-                                    {/* Actions */}
-                                    {!stop.locked && (
-                                        <div className="flex gap-2">
-                                            {!stop.actualTime ? (
-                                                <button 
-                                                    onClick={() => markArrived(stop.id)}
-                                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition-colors text-sm"
-                                                >
-                                                    Mark as Arrived
-                                                </button>
-                                            ) : (
-                                                <button 
-                                                    onClick={() => lockStop(stop.id)}
-                                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded transition-colors text-sm"
-                                                >
-                                                    Lock & Freeze Data
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -209,6 +148,13 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => console.log('SW Registered')).catch(err => console.log('SW Failed', err));
+            });
+        }
     </script>
 </body>
 </html>
