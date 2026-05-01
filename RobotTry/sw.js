@@ -1,8 +1,9 @@
-const CACHE_NAME = 'trip-tracker-v1';
+const CACHE_NAME = 'trip-tracker-v2';
 const ASSETS_TO_CACHE = [
-  './',
   './index.html',
   './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
@@ -31,5 +32,21 @@ self.addEventListener('fetch', event => {
       .then(response => {
         return response || fetch(event.request);
       })
+  );
+});
+
+// Activate event: Delete the old, broken v1 cache
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Clearing old cache:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
   );
 });
