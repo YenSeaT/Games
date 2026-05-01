@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TripTracker PWA</title>
+    <title>TripTracker Premium</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased overflow-x-hidden">
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-800 font-sans antialiased overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Distance Calculation (Haversine)
         const getDistance = (lat1, lon1, lat2, lon2) => {
-            const R = 6371; // Earth radius in km
+            const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -31,28 +33,91 @@
         };
 
         const initialStops = [
-            { id: 1, name: "Home (Whitefield)", timeStr: "06:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending" },
-            { id: 2, name: "Breakfast (Bidadi)", timeStr: "07:30", lat: 12.7984, lon: 77.3871, actualTime: null, weather: null, status: "pending" },
-            { id: 3, name: "Somanathapura Temple", timeStr: "10:00", lat: 12.2766, lon: 76.8824, actualTime: null, weather: null, status: "pending" },
-            { id: 4, name: "Nanjangud Temple", timeStr: "12:45", lat: 12.1165, lon: 76.6775, actualTime: null, weather: null, status: "pending" },
-            { id: 5, name: "Gundlupet Halt", timeStr: "16:30", lat: 11.8037, lon: 76.6841, actualTime: null, weather: null, status: "pending" },
-            { id: 6, name: "Himavad Gopalaswamy Base", timeStr: "08:15", lat: 11.7208, lon: 76.6276, actualTime: null, weather: null, status: "pending" },
-            { id: 7, name: "B.R. Hills Temple", timeStr: "13:00", lat: 11.9961, lon: 77.1384, actualTime: null, weather: null, status: "pending" },
-            { id: 8, name: "Home (Whitefield)", timeStr: "20:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending" }
+            { id: 1, name: "Home (Whitefield)", timeStr: "06:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 2, name: "Breakfast (Bidadi)", timeStr: "07:30", lat: 12.7984, lon: 77.3871, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 3, name: "Somanathapura Temple", timeStr: "10:00", lat: 12.2766, lon: 76.8824, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 4, name: "Nanjangud Temple", timeStr: "12:45", lat: 12.1165, lon: 76.6775, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 5, name: "Gundlupet Halt", timeStr: "16:30", lat: 11.8037, lon: 76.6841, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 6, name: "Gopalaswamy Base", timeStr: "08:15", lat: 11.7208, lon: 76.6276, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 7, name: "B.R. Hills Temple", timeStr: "13:00", lat: 11.9961, lon: 77.1384, actualTime: null, weather: null, status: "pending", memories: [] },
+            { id: 8, name: "Home (Whitefield)", timeStr: "20:00", lat: 12.9698, lon: 77.7499, actualTime: null, weather: null, status: "pending", memories: [] }
         ];
 
         function App() {
             const [stops, setStops] = useState(initialStops);
-            const [zoom, setZoom] = useState(2); // Pixel multiplier per minute
             const [userLoc, setUserLoc] = useState(null);
+            const [driveTimeMinutes, setDriveTimeMinutes] = useState(0);
+            const mapRef = useRef(null);
+            const mapInstance = useRef(null);
+            const userMarker = useRef(null);
 
-            // Time string to minutes since midnight
-            const toMins = (timeStr) => {
-                const [h, m] = timeStr.split(':').map(Number);
-                return h * 60 + m;
-            };
+            // Calculate progress
+            const arrivedCount = stops.filter(s => s.status === 'arrived').length;
+            const progressPct = Math.round((arrivedCount / stops.length) * 100);
 
-            // Fetch Weather via Open-Meteo
+            // Initialize Map
+            useEffect(() => {
+                if (!mapInstance.current && mapRef.current) {
+                    mapInstance.current = L.map(mapRef.current).setView([12.3, 77.2], 8);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(mapInstance.current);
+
+                    // Add Route Markers
+                    stops.forEach(stop => {
+                        L.circleMarker([stop.lat, stop.lon], {
+                            color: '#3b82f6',
+                            radius: 6,
+                            fillOpacity: 0.8
+                        }).addTo(mapInstance.current).bindPopup(`<b>${stop.name}</b>`);
+                    });
+                }
+            }, []);
+
+            // Geolocation Tracking
+            useEffect(() => {
+                if (!navigator.geolocation) return;
+                
+                const watchId = navigator.geolocation.watchPosition((pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    setUserLoc({ lat: latitude, lon: longitude });
+
+                    // Update live map dot
+                    if (mapInstance.current) {
+                        if (!userMarker.current) {
+                            userMarker.current = L.circleMarker([latitude, longitude], {
+                                color: '#ef4444', fillColor: '#ef4444', radius: 8, fillOpacity: 1
+                            }).addTo(mapInstance.current).bindPopup("Current Location");
+                        } else {
+                            userMarker.current.setLatLng([latitude, longitude]);
+                        }
+                    }
+
+                    // Geofencing Auto-Arrive
+                    setStops(prev => prev.map(stop => {
+                        if (stop.status !== "arrived") {
+                            const dist = getDistance(latitude, longitude, stop.lat, stop.lon);
+                            if (dist <= 2) {
+                                fetchWeather(stop.lat, stop.lon, stop.id);
+                                setDriveTimeMinutes(0); // Reset drive timer on arrival
+                                return { ...stop, status: "arrived", actualTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+                            }
+                        }
+                        return stop;
+                    }));
+                }, (err) => console.log(err), { enableHighAccuracy: true });
+
+                return () => navigator.geolocation.clearWatch(watchId);
+            }, []);
+
+            // Cabin Comfort Timer (Adds 1 min every 60 seconds)
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setDriveTimeMinutes(prev => prev + 1);
+                }, 60000);
+                return () => clearInterval(timer);
+            }, []);
+
             const fetchWeather = async (lat, lon, id) => {
                 try {
                     const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -65,82 +130,125 @@
                 }
             };
 
-            // Geolocation Tracking
-            useEffect(() => {
-                if (!navigator.geolocation) return;
-                
-                const watchId = navigator.geolocation.watchPosition((pos) => {
-                    const { latitude, longitude } = pos.coords;
-                    setUserLoc({ lat: latitude, lon: longitude });
-
-                    setStops(prev => prev.map(stop => {
-                        if (stop.status !== "arrived") {
-                            const dist = getDistance(latitude, longitude, stop.lat, stop.lon);
-                            // Auto-arrive if within 2km radius
-                            if (dist <= 2) {
-                                fetchWeather(stop.lat, stop.lon, stop.id);
-                                return { ...stop, status: "arrived", actualTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-                            }
-                        }
-                        return stop;
-                    }));
-                }, (err) => console.log(err), { enableHighAccuracy: true });
-
-                return () => navigator.geolocation.clearWatch(watchId);
-            }, []);
-
             const manualArrive = (id, lat, lon) => {
                 fetchWeather(lat, lon, id);
+                setDriveTimeMinutes(0); // Reset timer
                 setStops(prev => prev.map(s => 
                     s.id === id ? { ...s, status: "arrived", actualTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) } : s
                 ));
             };
 
+            const addMemory = (id, e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    setStops(prev => prev.map(s => {
+                        if (s.id === id) {
+                            return { ...s, memories: [...s.memories, url] };
+                        }
+                        return s;
+                    }));
+                }
+            };
+
+            const openGoogleMaps = (lat, lon) => {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, '_blank');
+            };
+
+            // Dev tool to simulate fatigue for testing
+            const testFatigue = () => setDriveTimeMinutes(95);
+
             return (
-                <div className="max-w-lg mx-auto bg-white min-h-screen shadow-lg pb-20">
-                    <div className="sticky top-0 z-50 bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-                        <h1 className="font-bold text-lg">Trip Tracker</h1>
-                        <div className="flex gap-2">
-                            <span className="text-xs bg-blue-700 px-2 py-1 rounded">Zoom:</span>
-                            {[1, 2, 5].map(z => (
-                                <button key={z} onClick={() => setZoom(z)} className={`px-2 py-1 text-xs rounded ${zoom === z ? 'bg-white text-blue-600' : 'bg-blue-800'}`}>{z}x</button>
-                            ))}
+                <div className="max-w-lg mx-auto bg-slate-100 min-h-screen pb-20 relative">
+                    
+                    {/* Header & Progress Bar */}
+                    <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200">
+                        <div className="p-4 flex justify-between items-center">
+                            <h1 className="font-bold text-lg text-blue-700">Journey Dashboard</h1>
+                            <span className="text-sm font-bold text-slate-500">{progressPct}% Complete</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200">
+                            <div className="h-1.5 bg-blue-600 transition-all duration-1000 ease-in-out" style={{ width: `${progressPct}%` }}></div>
                         </div>
                     </div>
 
-                    <div className="relative p-6 ml-4 border-l-2 border-slate-200 mt-4">
-                        {stops.map((stop, i) => {
-                            let gap = 0;
-                            if (i > 0) {
-                                // Add 24h (1440 mins) if the next stop rolls over to the next day
-                                let currMins = toMins(stop.timeStr);
-                                let prevMins = toMins(stops[i-1].timeStr);
-                                if (currMins < prevMins) currMins += 1440;
-                                gap = (currMins - prevMins) * zoom; 
-                            }
+                    {/* Cabin Comfort Matrix Alert */}
+                    {driveTimeMinutes > 90 && (
+                        <div className="m-4 p-4 bg-orange-100 border-l-4 border-orange-500 rounded shadow-sm animate-pulse">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-orange-800">Stretch & Coffee Break Recommended</h3>
+                                    <p className="text-xs text-orange-700 mt-1">Continuous drive time exceeded 90 mins. Keep the 800cc cabin comfortable for senior passengers.</p>
+                                </div>
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                                <button onClick={() => window.open(`https://www.google.com/maps/search/highway+cafe+or+restaurant+near+me/`, '_blank')} className="bg-orange-500 text-white text-xs font-bold px-3 py-2 rounded">Find Cafe Nearby</button>
+                                <button onClick={() => setDriveTimeMinutes(0)} className="bg-orange-200 text-orange-800 text-xs font-bold px-3 py-2 rounded">Dismiss</button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Hidden test button for the fatigue timer */}
+                    {driveTimeMinutes <= 90 && (
+                        <button onClick={testFatigue} className="opacity-0 w-full h-2"></button>
+                    )}
 
-                            return (
-                                <div key={stop.id} style={{ marginTop: `${gap}px` }} className="relative flex items-center group">
-                                    <div className={`absolute -left-[35px] w-4 h-4 rounded-full border-2 ${stop.status === 'arrived' ? 'bg-green-500 border-green-500' : 'bg-white border-blue-400'}`}></div>
-                                    <div className={`w-full p-4 rounded-lg border ${stop.status === 'arrived' ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
-                                        <div className="flex justify-between">
-                                            <h3 className="font-bold text-slate-800 text-sm">{stop.name}</h3>
-                                            <span className="text-xs font-mono text-slate-500">Target: {stop.timeStr}</span>
-                                        </div>
-                                        <div className="mt-2 text-xs flex justify-between items-end">
-                                            <div>
-                                                {stop.actualTime ? (
-                                                    <span className="text-green-700 font-bold">Arrived: {stop.actualTime}</span>
-                                                ) : (
-                                                    <button onClick={() => manualArrive(stop.id, stop.lat, stop.lon)} className="bg-blue-100 text-blue-700 px-3 py-1 rounded font-medium">Mark Arrive</button>
-                                                )}
+                    {/* Map Container */}
+                    <div className="m-4 h-48 rounded-xl overflow-hidden shadow-md border border-slate-200" ref={mapRef}></div>
+
+                    {/* Timeline */}
+                    <div className="relative p-6 ml-4 border-l-2 border-slate-300 mt-2 space-y-6">
+                        {stops.map((stop) => (
+                            <div key={stop.id} className="relative flex items-start group">
+                                {/* Timeline Node */}
+                                <div className={`absolute -left-[35px] w-5 h-5 rounded-full border-4 shadow-sm transition-colors duration-500 ${stop.status === 'arrived' ? 'bg-green-500 border-green-100' : 'bg-white border-blue-400'}`}></div>
+                                
+                                {/* Stop Card (Glassmorphism) */}
+                                <div className={`w-full p-4 rounded-xl border shadow-sm backdrop-blur-sm transition-all duration-500 ${stop.status === 'arrived' ? 'bg-white/90 border-green-200' : 'bg-white/60 border-slate-200'}`}>
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold text-slate-800 text-[15px]">{stop.name}</h3>
+                                        <span className="text-xs font-mono font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">Target: {stop.timeStr}</span>
+                                    </div>
+
+                                    {/* Action Area */}
+                                    <div className="mt-4 flex flex-col gap-3">
+                                        
+                                        {!stop.actualTime ? (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => openGoogleMaps(stop.lat, stop.lon)} className="flex-1 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-2 rounded-lg font-semibold text-xs flex justify-center items-center gap-1">
+                                                    🗺️ Navigate
+                                                </button>
+                                                <button onClick={() => manualArrive(stop.id, stop.lat, stop.lon)} className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-semibold text-xs shadow-sm">
+                                                    Mark Arrived
+                                                </button>
                                             </div>
-                                            {stop.weather && <span className="text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">⛅ {stop.weather}</span>}
-                                        </div>
+                                        ) : (
+                                            <div className="flex justify-between items-center bg-green-50/50 p-2 rounded border border-green-100">
+                                                <span className="text-green-700 font-bold text-sm">✓ Arrived at {stop.actualTime}</span>
+                                                {stop.weather && <span className="text-blue-700 font-bold text-xs bg-blue-100 px-2 py-1 rounded-full">{stop.weather}</span>}
+                                            </div>
+                                        )}
+
+                                        {/* Geo-Locked Time Capsule (Only visible if arrived) */}
+                                        {stop.status === 'arrived' && (
+                                            <div className="mt-2 pt-3 border-t border-slate-100">
+                                                {stop.memories.length > 0 && (
+                                                    <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+                                                        {stop.memories.map((imgSrc, idx) => (
+                                                            <img key={idx} src={imgSrc} alt="Memory" className="h-16 w-16 object-cover rounded-md border border-slate-200 shadow-sm" />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <label className="cursor-pointer bg-slate-50 border border-slate-200 border-dashed hover:bg-slate-100 text-slate-600 text-xs font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                                                    <span>📸 Capture Moment</span>
+                                                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => addMemory(stop.id, e)} />
+                                                </label>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
@@ -149,7 +257,6 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
 
-        // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(reg => console.log('SW Registered')).catch(err => console.log('SW Failed', err));
